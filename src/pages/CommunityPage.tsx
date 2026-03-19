@@ -67,12 +67,14 @@ const CommunityPage = () => {
           </div>
 
           {/* Posts */}
-          {FEED_POSTS.map((p, i) => (
+          {FEED_POSTS.map((p, i) => {
+            const isAnon = "anon" in p && p.anon;
+            return (
             <div key={i} className="px-5 py-4 border-b border-border last:border-b-0">
               <div className="flex items-center gap-2.5 mb-2.5">
                 <div
                   className={`w-9 h-9 flex items-center justify-center font-heading text-xs font-extrabold shrink-0 ${
-                    p.anon
+                    isAnon
                       ? "bg-white/[0.08] border border-white/15 text-muted-foreground"
                       : "bg-primary/10 border border-primary text-primary"
                   }`}
@@ -82,7 +84,7 @@ const CommunityPage = () => {
                 <div className="flex-1">
                   <div className="font-heading text-[13px] font-bold text-foreground tracking-wide flex items-center gap-1.5">
                     {p.name}
-                    {p.anon && (
+                    {isAnon && (
                       <span className="bg-white/[0.08] border border-white/10 font-heading text-[9px] font-bold tracking-wider text-muted-foreground px-1.5 py-0.5 uppercase">
                         ANON
                       </span>
