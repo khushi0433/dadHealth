@@ -101,7 +101,8 @@ const CommunityPage = () => {
                 <button className="post-action">🔖 SAVE</button>
               </div>
             </div>
-          ))}
+          );
+          })}
         </div>
 
         {/* Right - Expert Q&A */}
