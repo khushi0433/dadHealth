@@ -52,16 +52,17 @@ const PricingPage = () => {
       <section className="bg-background">
         <div className="max-w-[1400px] mx-auto px-5 lg:px-8 py-12">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
-            {PRICING_PLANS.map((p) => (
+            {PRICING_PLANS.map((p) => {
+              const isPopular = "popular" in p && p.popular;
+              const hasExcluded = "excluded" in p && p.excluded;
+              return (
               <div
                 key={p.name}
                 className={`border p-6 relative ${
-                  p.popular
-                    ? "border-primary bg-primary/[0.03]"
-                    : "border-border"
+                  isPopular ? "border-primary bg-primary/[0.03]" : "border-border"
                 }`}
               >
-                {p.popular && (
+                {isPopular && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground font-heading text-[9px] font-bold tracking-wider uppercase px-3 py-1">
                     MOST POPULAR
                   </div>
@@ -75,9 +76,9 @@ const PricingPage = () => {
                 <p className="text-xs text-muted-foreground mb-1">
                   {p.name === "PRO" && plan === "monthly" ? "per month" : p.sub}
                 </p>
-                {"badge" in p && p.badge && plan === "annual" && (
+                {"badge" in p && (p as any).badge && plan === "annual" && (
                   <span className="inline-block bg-primary text-primary-foreground font-heading text-[9px] font-bold px-2 py-0.5 tracking-wider uppercase mt-1 mb-2">
-                    {p.badge}
+                    {(p as any).badge}
                   </span>
                 )}
                 <div className="my-5 space-y-2.5">
@@ -87,8 +88,8 @@ const PricingPage = () => {
                       <span className="text-sm text-foreground/80">{f}</span>
                     </div>
                   ))}
-                  {"excluded" in p &&
-                    p.excluded?.map((f) => (
+                  {hasExcluded &&
+                    (p as any).excluded?.map((f: string) => (
                       <div key={f} className="flex items-start gap-2.5">
                         <span className="feat-cross text-[9px]">—</span>
                         <span className="text-sm text-muted-foreground">{f}</span>
@@ -97,20 +98,21 @@ const PricingPage = () => {
                 </div>
                 <button
                   className={`w-full py-3 font-heading font-bold text-[13px] tracking-wider uppercase cursor-pointer ${
-                    p.popular
+                    isPopular
                       ? "bg-primary text-primary-foreground border-none"
                       : "bg-transparent text-foreground border border-foreground"
                   }`}
                 >
                   {p.cta}
                 </button>
-                {p.popular && (
+                {isPopular && (
                   <p className="text-[11px] text-muted-foreground text-center mt-2">
                     No card until trial ends · Cancel anytime
                   </p>
                 )}
               </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       </section>
