@@ -1,9 +1,67 @@
+"use client";
+
+import { useState } from "react";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 import LimeButton from "@/components/LimeButton";
 import { CIRCLES, FEED_POSTS, EXPERTS } from "@/lib/constants";
+import { useAuth } from "@/contexts/AuthContext";
+import { usePosts, useCreatePost } from "@/hooks/usePosts";
+import { useToggleLike } from "@/hooks/useLikes";
+import { useUserLikes } from "@/hooks/useUserLikes";
+import { useCircles, useUserCircles, useJoinCircle } from "@/hooks/useCircles";
+import { useRealtimePosts } from "@/hooks/useRealtimePosts";
 
 const CommunityPage = () => {
+  const { user } = useAuth();
+  const { data: posts = [] } = usePosts();
+  const createPost = useCreatePost(user?.id);
+  const toggleLike = useToggleLike(user?.id);
+  const { data: userLikedIds = new Set<string>() } = useUserLikes(user?.id);
+  const { data: circles = [] } = useCircles();
+  const { data: userCircleIds = [] } = useUserCircles(user?.id);
+  const joinCircle = useJoinCircle(user?.id);
+
+  const [postBody, setPostBody] = useState("");
+  const [postTag, setPostTag] = useState("FITNESS");
+  const [postAnon, setPostAnon] = useState(false);
+
+  useRealtimePosts();
+
+  const displayCircles = circles.length > 0 ? circles : CIRCLES.map((c, i) => ({
+    id: String(i),
+    icon: c.icon,
+    name: c.name,
+    members_count: c.members,
+  }));
+  const displayPosts = posts.length > 0 ? posts : FEED_POSTS.map((p, i) => ({
+    id: String(i),
+    ...p,
+    author_initials: (p as { initials?: string }).initials,
+    author_name: (p as { name?: string }).name,
+    author_meta: (p as { meta?: string }).meta,
+    tag: (p as { tag?: string }).tag,
+    body: (p as { body?: string }).body,
+    anonymous: !!(p as { anon?: boolean }).anon,
+    likes_count: (p as { respect?: number }).respect ?? 0,
+    replies_count: (p as { replies?: number }).replies ?? 0,
+  }));
+
+  const handlePost = () => {
+    if (!postBody.trim()) return;
+    const initials = user?.email?.slice(0, 2).toUpperCase() ?? "?";
+    const name = user?.user_metadata?.display_name ?? "Dad";
+    createPost.mutate({
+      body: postBody.trim(),
+      tag: postTag,
+      anonymous: postAnon,
+      author_initials: postAnon ? "?" : initials,
+      author_name: postAnon ? "Anonymous Dad" : name,
+      author_meta: postAnon ? "Anonymous · " : `Dad · `,
+    });
+    setPostBody("");
+  };
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <SiteHeader />
@@ -33,20 +91,31 @@ const CommunityPage = () => {
         <div className="px-5 lg:px-8 py-8 border-r border-border">
           <span className="section-label !p-0 mb-4 block">DAD CIRCLES</span>
           <div className="space-y-3">
-            {CIRCLES.map((c, i) => (
-              <div key={c.name} className="circle-card">
-                <div className="text-xl mb-2">{c.icon}</div>
-                <div className="font-heading text-xs font-extrabold text-foreground tracking-wide mb-1">
-                  {c.name}
+            {displayCircles.map((c: { id: string; icon: string; name: string; members_count?: number }) => {
+              const joined = user && userCircleIds.includes(c.id);
+              return (
+                <div key={c.id} className="circle-card">
+                  <div className="text-xl mb-2">{c.icon}</div>
+                  <div className="font-heading text-xs font-extrabold text-foreground tracking-wide mb-1">
+                    {c.name}
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-[10px] text-muted-foreground">
+                      {(c.members_count ?? 0).toLocaleString()} members
+                    </span>
+                    {user && (
+                      <button
+                        onClick={() => joinCircle.mutate({ circleId: c.id, join: !joined })}
+                        disabled={joinCircle.isPending}
+                        className="font-heading text-[9px] font-bold text-primary uppercase tracking-wider cursor-pointer bg-transparent border-none"
+                      >
+                        {joined ? "JOINED ✓" : "JOIN"}
+                      </button>
+                    )}
+                  </div>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-[10px] text-muted-foreground">{c.members.toLocaleString()} members</span>
-                  <span className="font-heading text-[9px] font-bold text-muted-foreground uppercase tracking-wider">
-                    {i === 0 ? "JOINED ✓" : "JOIN"}
-                  </span>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
@@ -56,25 +125,46 @@ const CommunityPage = () => {
           <div className="px-5 py-4 border-b border-border">
             <textarea
               placeholder="What's on your mind, dad?"
+              value={postBody}
+              onChange={(e) => setPostBody(e.target.value)}
               className="w-full bg-white/[0.04] border border-border p-3 text-foreground text-sm resize-none h-[60px] outline-none focus:border-primary transition-colors placeholder:text-muted-foreground/40 mb-2"
             />
             <div className="flex justify-between items-center">
               <div className="flex gap-1.5">
                 {["FITNESS", "MIND", "BOND"].map((t) => (
-                  <span key={t} className="tag-pill">
+                  <button
+                    key={t}
+                    onClick={() => setPostTag(t)}
+                    className={`tag-pill cursor-pointer ${postTag === t ? "bg-primary text-primary-foreground" : ""}`}
+                  >
                     {t}
-                  </span>
+                  </button>
                 ))}
+                <label className="flex items-center gap-1 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={postAnon}
+                    onChange={(e) => setPostAnon(e.target.checked)}
+                    className="w-3 h-3"
+                  />
+                  <span className="text-[10px] uppercase">Anon</span>
+                </label>
               </div>
-              <LimeButton small>POST</LimeButton>
+              <LimeButton
+                small
+                onClick={handlePost}
+                disabled={!user || !postBody.trim() || createPost.isPending}
+              >
+                {createPost.isPending ? "..." : "POST"}
+              </LimeButton>
             </div>
           </div>
 
           {/* Posts */}
-          {FEED_POSTS.map((p, i) => {
-            const isAnon = "anon" in p && (p as any).anon;
+          {displayPosts.map((p: Record<string, unknown>) => {
+            const isAnon = p.anonymous === true;
             return (
-              <div key={i} className="px-5 py-4 border-b border-border last:border-b-0">
+              <div key={String(p.id)} className="px-5 py-4 border-b border-border last:border-b-0">
                 <div className="flex items-center gap-2.5 mb-2.5">
                   <div
                     className={`w-9 h-9 flex items-center justify-center font-heading text-xs font-extrabold shrink-0 ${
@@ -83,25 +173,38 @@ const CommunityPage = () => {
                         : "bg-primary/10 border border-primary text-primary"
                     }`}
                   >
-                    {(p as any).initials}
+                    {(p.author_initials ?? p.initials ?? "?") as string}
                   </div>
                   <div className="flex-1">
                     <div className="font-heading text-[13px] font-bold text-foreground tracking-wide flex items-center gap-1.5">
-                      {(p as any).name}
+                      {(p.author_name ?? p.name ?? "Dad") as string}
                       {isAnon && (
                         <span className="bg-white/[0.08] border border-white/10 font-heading text-[9px] font-bold tracking-wider text-muted-foreground px-1.5 py-0.5 uppercase">
                           ANON
                         </span>
                       )}
                     </div>
-                    <div className="text-[10px] text-muted-foreground uppercase tracking-wide">{(p as any).meta}</div>
+                    <div className="text-[10px] text-muted-foreground uppercase tracking-wide">
+                      {(p.author_meta ?? p.meta ?? "") as string}
+                    </div>
                   </div>
-                  <span className="tag-pill">{(p as any).tag}</span>
+                  <span className="tag-pill">{(p.tag ?? "FITNESS") as string}</span>
                 </div>
-                <p className="text-[13px] text-foreground/70 leading-relaxed mb-3">{(p as any).body}</p>
+                <p className="text-[13px] text-foreground/70 leading-relaxed mb-3">{(p.body ?? "") as string}</p>
                 <div className="flex gap-3.5">
-                  <button className="post-action">👊 {(p as any).respect} RESPECT</button>
-                  <button className="post-action">💬 {(p as any).replies} REPLIES</button>
+                  <button
+                    onClick={() => {
+                      if (user && typeof p.id === "string") {
+                        const liked = userLikedIds.has(p.id);
+                        toggleLike.mutate({ postId: p.id, liked });
+                      }
+                    }}
+                    disabled={!user || toggleLike.isPending}
+                    className="post-action"
+                  >
+                    👊 {(p.likes_count ?? p.respect ?? 0) as number} RESPECT
+                  </button>
+                  <button className="post-action">💬 {(p.replies_count ?? p.replies ?? 0) as number} REPLIES</button>
                   <button className="post-action">🔖 SAVE</button>
                 </div>
               </div>
