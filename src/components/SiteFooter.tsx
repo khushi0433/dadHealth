@@ -3,9 +3,9 @@ import Logo from "./Logo";
 import { FOOTER_LINKS } from "@/lib/constants";
 
 const SiteFooter = () => (
-  <footer className="bg-card border-t border-border pt-16 lg:pt-20">
-    <div className="max-w-[1400px] mx-auto px-5 py-16 lg:px-8">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10">
+  <footer className="bg-card border-t border-border">
+    <div className="max-w-[1400px] mx-auto px-5 py-12 lg:px-8 lg:py-14">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 lg:gap-10">
         {/* Brand */}
         <div className="lg:col-span-2">
           <Logo />
@@ -71,14 +71,17 @@ const SiteFooter = () => (
       </div>
 
       {/* Bottom */}
-      <div className="mt-12 pt-8 border-t border-border flex flex-col md:flex-row justify-between items-center gap-4">
+      <div className="mt-10 pt-6 border-t border-border flex flex-col sm:flex-row justify-between items-center gap-4">
         <p className="text-xs text-muted-foreground">© 2025 Dad Health. All rights reserved.</p>
-        <div className="bg-card border border-border px-4 py-2.5 flex items-center gap-2">
+        <a
+          href="tel:116123"
+          className="inline-flex items-center gap-2 px-4 py-2.5 border border-border rounded-lg bg-background/50 hover:border-primary/50 hover:bg-primary/5 transition-colors"
+        >
           <span className="text-sm">🆘</span>
           <span className="font-heading text-[11px] font-bold tracking-wider uppercase text-muted-foreground">
             CRISIS SUPPORT — 116 123
           </span>
-        </div>
+        </a>
       </div>
     </div>
   </footer>

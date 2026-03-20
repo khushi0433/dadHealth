@@ -127,8 +127,9 @@ const DashboardPreview = () => {
         </h2>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-px bg-border">
-        {/* Sidebar */}
+      <div className="bg-primary/20 border border-primary/30 rounded-xl overflow-hidden">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-px bg-primary/30">
+          {/* Sidebar */}
         <div className="bg-card p-5">
           <Logo className="mb-5" />
           <div className="flex items-center gap-3 mb-6">
@@ -277,7 +278,7 @@ const DashboardPreview = () => {
               <span className="section-label !p-0 mb-2 block">TODAY'S PLAN</span>
               <div className="pb-4">
                 {tasks.map((task) => (
-                  <div key={task.name} className="flex items-center gap-3 py-3 border-b border-border last:border-b-0">
+                  <div key={task.name} className="flex items-center gap-3 py-3 border-b border-primary/20 last:border-b-0">
                     <div className="w-9 h-9 bg-primary/10 border border-primary/20 flex items-center justify-center text-base shrink-0">
                       {task.icon}
                     </div>
@@ -325,7 +326,7 @@ const DashboardPreview = () => {
               <div className="mt-6">
                 <span className="section-label !p-0 mb-3 block">SMART REMINDERS</span>
                 {SMART_REMINDERS.map((reminder) => (
-                  <div key={reminder} className="text-xs text-muted-foreground py-1.5 border-b border-border last:border-b-0">
+                  <div key={reminder} className="text-xs text-muted-foreground py-1.5 border-b border-primary/20 last:border-b-0">
                     {reminder}
                   </div>
                 ))}
@@ -367,7 +368,7 @@ const DashboardPreview = () => {
                       ["—", "WEIGHT"],
                       ["0 min", "ACTIVE"],
                     ].map(([v, l]) => (
-                      <div key={l} className="border border-border p-3">
+                      <div key={l} className="bg-card border border-primary/20 rounded-lg p-3">
                         <div className="font-heading text-[18px] font-extrabold text-foreground">{v}</div>
                         <div className="text-[10px] text-muted-foreground uppercase">{l}</div>
                       </div>
@@ -382,7 +383,7 @@ const DashboardPreview = () => {
                   </div>
                   <span className="section-label !p-0 mb-2 block">MEAL PLAN</span>
                   {MEALS.slice(0, 3).map((m) => (
-                    <div key={m.day} className="flex justify-between py-2 border-b border-border last:border-b-0 text-[11px]">
+                    <div key={m.day} className="flex justify-between py-2 border-b border-primary/20 last:border-b-0 text-[11px]">
                       <span className="text-foreground">{m.day} {m.name}</span>
                       <span className="text-muted-foreground">{m.kcal} kcal</span>
                     </div>
@@ -422,7 +423,7 @@ const DashboardPreview = () => {
                   </div>
                   <span className="section-label !p-0 mb-2 block">DAD DATE IDEAS</span>
                   {dates.map((d: { icon?: string; name: string; age_range?: string; budget?: string }) => (
-                    <div key={d.name} className="flex items-center gap-3 py-2.5 border-b border-border last:border-b-0">
+                    <div key={d.name} className="flex items-center gap-3 py-2.5 border-b border-primary/20 last:border-b-0">
                       <span className="text-lg">{d.icon}</span>
                       <div className="flex-1">
                         <div className="font-heading text-[12px] font-bold text-foreground">{d.name}</div>
@@ -444,7 +445,7 @@ const DashboardPreview = () => {
                   </div>
                   <span className="section-label !p-0 mb-2 block">RECENT POSTS</span>
                   {displayPosts.map((p: Record<string, unknown>, i: number) => (
-                    <div key={i} className="py-3 border-b border-border last:border-b-0">
+                    <div key={i} className="py-3 border-b border-primary/20 last:border-b-0">
                       <div className="flex items-center gap-2 mb-1">
                         <span className="tag-pill text-[9px]">{(p.tag ?? "FITNESS") as string}</span>
                         <span className="text-[10px] text-muted-foreground">
@@ -486,7 +487,7 @@ const DashboardPreview = () => {
                   <span className="section-label !p-0 mb-2 block">MARCH REPORT</span>
                   <div className="grid grid-cols-3 gap-2">
                     {reportStatsList.map(([n, l]) => (
-                      <div key={l} className="border border-border p-2.5">
+                      <div key={l} className="bg-card border border-primary/20 rounded-lg p-2.5">
                         <div className="font-heading text-[16px] font-extrabold text-foreground">{n}</div>
                         <div className="text-[9px] text-muted-foreground uppercase">{l}</div>
                       </div>
@@ -538,7 +539,7 @@ const DashboardPreview = () => {
                     { date: "12 Mar", text: "Ella said &apos;I love you Dad&apos; unprompted" },
                     { date: "3 Feb", text: "First bike ride without stabilisers" },
                   ].map((m) => (
-                    <div key={m.date} className="py-2 border-b border-border last:border-b-0">
+                    <div key={m.date} className="py-2 border-b border-primary/20 last:border-b-0">
                       <span className="tag-pill text-[9px] mr-1">{m.date}</span>
                       <span className="text-[11px] text-foreground/70">{m.text}</span>
                     </div>
@@ -552,7 +553,7 @@ const DashboardPreview = () => {
                 <>
                   <span className="section-label !p-0 mb-3 block">DAD CIRCLES</span>
                   {displayCircles.map((c) => (
-                    <div key={c.name} className="flex items-center gap-2 py-2 border-b border-border last:border-b-0">
+                    <div key={c.name} className="flex items-center gap-2 py-2 border-b border-primary/20 last:border-b-0">
                       <span className="text-lg">{c.icon}</span>
                       <div>
                         <div className="font-heading text-[11px] font-bold text-foreground">{c.name}</div>
@@ -583,6 +584,7 @@ const DashboardPreview = () => {
             </div>
           </>
         )}
+        </div>
       </div>
     </div>
   </section>

@@ -135,12 +135,14 @@ const FitnessPage = () => {
       </section>
 
       {/* Content grid */}
-      <div className="max-w-[1400px] mx-auto grid grid-cols-1 lg:grid-cols-2 gap-0">
-        {/* Exercise list */}
-        <div className="px-5 lg:px-8 py-8">
-          <span className="section-label !p-0 mb-4 block">TODAY'S MOVES</span>
-          {EXERCISES.map((ex, i) => (
-            <div key={i} className="flex items-center gap-3 py-3 border-b border-border last:border-b-0">
+      <div className="max-w-[1400px] mx-auto px-5 lg:px-8">
+        <div className="bg-card border-2 border-primary rounded-xl overflow-hidden">
+          <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto_1fr] gap-0">
+            {/* Exercise list */}
+            <div className="p-5 lg:p-8">
+              <span className="section-label !p-0 mb-4 block">TODAY'S MOVES</span>
+              {EXERCISES.map((ex, i) => (
+                <div key={i} className="flex items-center gap-3 py-3 border-b border-primary/20 last:border-b-0">
               <div className="w-7 h-7 bg-primary/10 flex items-center justify-center font-heading font-extrabold text-xs text-primary shrink-0">
                 {i + 1}
               </div>
@@ -151,15 +153,18 @@ const FitnessPage = () => {
               <span className="tag-pill">{ex.muscle}</span>
             </div>
           ))}
-        </div>
+            </div>
 
-        {/* Right side */}
-        <div className="px-5 lg:px-8 py-8 border-l border-border">
-          {/* Progress */}
-          <span className="section-label !p-0 mb-4 block">PROGRESS THIS MONTH</span>
-          <div className="grid grid-cols-2 gap-3 mb-8">
-            {progressStats.map((stat) => (
-              <div key={stat.label} className="card-dark p-3.5">
+            {/* Vertical divider */}
+            <div className="hidden lg:block w-px bg-primary/30 rounded-full self-stretch shrink-0 min-h-[200px]" />
+
+            {/* Right side */}
+            <div className="p-5 lg:p-8">
+              {/* Progress */}
+              <span className="section-label !p-0 mb-4 block">PROGRESS THIS MONTH</span>
+              <div className="grid grid-cols-2 gap-3 mb-8">
+                {progressStats.map((stat) => (
+                  <div key={stat.label} className="bg-card border border-primary/20 rounded-lg p-3.5">
                 <div className="font-heading text-xl font-extrabold text-primary leading-none">{stat.value}</div>
                 <div className="text-[10px] text-muted-foreground mt-1.5 uppercase tracking-wide">{stat.label}</div>
               </div>
@@ -193,6 +198,8 @@ const FitnessPage = () => {
               </button>
             </div>
           </ProGate>
+            </div>
+          </div>
         </div>
       </div>
 
