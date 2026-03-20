@@ -8,6 +8,12 @@ import LimeButton from "@/components/LimeButton";
 import OutlineButton from "@/components/OutlineButton";
 import { useProStatus } from "@/components/ProProvider";
 import { PRICING_PLANS, TESTIMONIALS, FAQ_ITEMS } from "@/lib/constants";
+import {
+  Accordion,
+  AccordionItem,
+  AccordionTrigger,
+  AccordionContent,
+} from "@/components/ui/accordion";
 
 const PricingPage = () => {
   const [plan, setPlan] = useState<"monthly" | "annual">("annual");
@@ -231,12 +237,18 @@ const PricingPage = () => {
       <section className="bg-background">
         <div className="max-w-2xl mx-auto px-5 py-16">
           <span className="section-label !p-0 mb-8 block text-center">COMMON QUESTIONS</span>
-          {FAQ_ITEMS.map((item) => (
-            <div key={item.q} className="py-6 border-b border-border last:border-b-0">
-              <h3 className="font-heading text-base font-extrabold text-foreground mb-2">{item.q}</h3>
-              <p className="text-sm text-muted-foreground leading-relaxed">{item.a}</p>
-            </div>
-          ))}
+          <Accordion type="single" collapsible className="w-full">
+            {FAQ_ITEMS.map((item) => (
+              <AccordionItem key={item.q} value={item.q} className="border-b border-border last:border-b-0">
+                <AccordionTrigger className="font-heading text-base font-extrabold text-foreground py-6 hover:no-underline [&[data-state=open]>svg]:rotate-180">
+                  {item.q}
+                </AccordionTrigger>
+                <AccordionContent className="text-sm text-muted-foreground leading-relaxed pb-6 pt-0">
+                  {item.a}
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
 
           {/* Final CTA */}
           <div className="text-center mt-12">
