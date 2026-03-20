@@ -1,0 +1,76 @@
+import { Link } from "react-router-dom";
+import LimeButton from "@/components/LimeButton";
+import { EXERCISES, PROGRESS_STATS } from "@/lib/constants";
+
+interface DadStrengthSectionProps {
+  workoutImg: string;
+}
+
+const DadStrengthSection = ({ workoutImg }: DadStrengthSectionProps) => (
+  <section className="bg-background border-t border-border">
+    {/* Hero banner */}
+    <div className="relative h-[280px] lg:h-[360px]">
+      <img src={workoutImg} alt="Dad Strength Workout" className="absolute inset-0 w-full h-full object-cover" />
+      <div className="absolute inset-0 bg-background/60" />
+      <div className="relative z-10 flex flex-col justify-end h-full max-w-[1400px] mx-auto px-5 lg:px-8 pb-8">
+        <span className="section-label text-primary mb-1">TODAY'S WORKOUT</span>
+        <h2 className="font-heading text-[42px] lg:text-[56px] font-extrabold text-foreground uppercase leading-none tracking-wide">
+          DAD STRENGTH
+        </h2>
+        <p className="text-sm text-foreground/50 mt-2">No gym needed · 22 minutes · 6 exercises · 280 kcal</p>
+      </div>
+    </div>
+
+    <div className="max-w-[1400px] mx-auto grid grid-cols-1 lg:grid-cols-2 gap-0">
+      {/* Timer + Exercises */}
+      <div className="px-5 lg:px-8 py-8">
+        {/* Timer */}
+        <div className="mb-6">
+          <div className="font-heading text-[52px] font-extrabold text-foreground leading-none tracking-wide">00:00</div>
+          <div className="font-heading text-[10px] font-bold tracking-wider uppercase text-muted-foreground mt-1">
+            WORKOUT TIMER · 6 EXERCISES
+          </div>
+          <div className="flex gap-3 mt-4">
+            <LimeButton small>START →</LimeButton>
+            <button className="bg-transparent text-foreground border border-foreground py-2 px-3.5 font-heading font-bold text-[11px] tracking-wider uppercase cursor-pointer hover:border-primary hover:text-primary transition-colors">
+              NEXT EXERCISE
+            </button>
+          </div>
+        </div>
+
+        {/* Exercise list */}
+        <span className="section-label !p-0 mb-4 block">TODAY'S MOVES</span>
+        {EXERCISES.map((ex, i) => (
+          <div key={i} className="flex items-center gap-3 py-3 border-b border-border last:border-b-0">
+            <div className="w-7 h-7 bg-primary/10 flex items-center justify-center font-heading font-extrabold text-xs text-primary shrink-0">
+              {i + 1}
+            </div>
+            <div className="flex-1">
+              <div className="font-heading text-sm font-bold text-foreground tracking-wide">{ex.name}</div>
+              <div className="text-[11px] text-muted-foreground mt-0.5">{ex.sets} · {ex.detail}</div>
+            </div>
+            <span className="tag-pill">{ex.muscle}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Progress */}
+      <div className="px-5 lg:px-8 py-8 border-l border-border">
+        <span className="section-label !p-0 mb-4 block">PROGRESS THIS MONTH</span>
+        <div className="grid grid-cols-2 gap-3 mb-8">
+          {PROGRESS_STATS.map((stat) => (
+            <div key={stat.label} className="card-dark p-3.5">
+              <div className="font-heading text-xl font-extrabold text-primary leading-none">{stat.value}</div>
+              <div className="text-[10px] text-muted-foreground mt-1.5 uppercase tracking-wide">{stat.label}</div>
+            </div>
+          ))}
+        </div>
+        <Link to="/fitness">
+          <LimeButton>VIEW FULL FITNESS →</LimeButton>
+        </Link>
+      </div>
+    </div>
+  </section>
+);
+
+export default DadStrengthSection;

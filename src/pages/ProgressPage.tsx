@@ -1,6 +1,8 @@
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
+import LimeButton from "@/components/LimeButton";
 import OutlineButton from "@/components/OutlineButton";
+import { ProGate } from "@/components/ProProvider";
 import { MOOD_WEEK, DAYS } from "@/lib/constants";
 
 const SLEEP_DATA = [
@@ -21,6 +23,15 @@ const BADGES = [
   { icon: "🧠", name: "Mind check" },
 ];
 
+const REPORT_STATS = [
+  ["12", "Workouts"],
+  ["8", "Journal entries"],
+  ["3", "Dad dates"],
+  ["6.8hrs", "Avg sleep"],
+  ["14", "Day streak"],
+  ["Good", "Avg mood"],
+] as const;
+
 const ProgressPage = () => {
   const dadScore = 74;
 
@@ -37,23 +48,25 @@ const ProgressPage = () => {
               <div className="font-heading text-[36px] font-extrabold text-primary leading-none">{dadScore}</div>
               <div className="font-heading text-[9px] font-bold tracking-wider uppercase text-muted-foreground">out of 100</div>
             </div>
-            <div className="flex-1 max-w-sm">
-              {[
-                { label: "Mind", value: 72 },
-                { label: "Body", value: 81 },
-                { label: "Bond", value: 68 },
-              ].map((item) => (
-                <div key={item.label} className="mb-2.5">
-                  <div className="flex justify-between font-heading text-[11px] font-bold uppercase text-muted-foreground tracking-wide mb-1">
-                    <span>{item.label}</span>
-                    <span className="text-primary">{item.value}%</span>
+            <ProGate featureName="Dad Health Score breakdown" lockMessage="Free users see the number. Pro shows you exactly what's dragging it down — and how to fix it.">
+              <div className="flex-1 max-w-sm">
+                {[
+                  { label: "Mind", value: 72 },
+                  { label: "Body", value: 81 },
+                  { label: "Bond", value: 68 },
+                ].map((item) => (
+                  <div key={item.label} className="mb-2.5">
+                    <div className="flex justify-between font-heading text-[11px] font-bold uppercase text-muted-foreground tracking-wide mb-1">
+                      <span>{item.label}</span>
+                      <span className="text-primary">{item.value}%</span>
+                    </div>
+                    <div className="bar-track">
+                      <div className="bar-fill" style={{ width: `${item.value}%` }} />
+                    </div>
                   </div>
-                  <div className="bar-track">
-                    <div className="bar-fill" style={{ width: `${item.value}%` }} />
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            </ProGate>
           </div>
         </div>
       </section>
@@ -63,14 +76,7 @@ const ProgressPage = () => {
         <div className="max-w-[1400px] mx-auto px-5 lg:px-8 py-10">
           <h2 className="font-heading text-[22px] font-extrabold uppercase tracking-wide mb-4">March report card</h2>
           <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
-            {[
-              ["12", "Workouts"],
-              ["8", "Journal entries"],
-              ["3", "Dad dates"],
-              ["6.8hrs", "Avg sleep"],
-              ["14", "Day streak"],
-              ["Good", "Avg mood"],
-            ].map(([n, l]) => (
+            {REPORT_STATS.map(([n, l]) => (
               <div key={l} className="bg-primary-foreground/[0.07] p-3.5">
                 <div className="font-heading text-[22px] font-extrabold leading-none">{n}</div>
                 <div className="text-[10px] opacity-55 mt-1.5 uppercase tracking-wide">{l}</div>
@@ -105,34 +111,32 @@ const ProgressPage = () => {
           </div>
         </div>
 
-        {/* Sleep */}
+        {/* Sleep - Pro gated */}
         <div className="py-8 border-t border-border">
           <span className="section-label !p-0 mb-4 block">SLEEP QUALITY THIS WEEK</span>
-          <div className="flex items-end gap-1.5 h-[80px] mb-3">
-            {SLEEP_DATA.map((s, i) => {
-              const h = Math.round((s.hrs / 10) * 70) + 4;
-              return (
-                <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                  <div
-                    className="w-full transition-all"
-                    style={{
-                      height: `${h}px`,
-                      backgroundColor:
-                        s.hrs >= 7
-                          ? "hsl(78, 89%, 65%)"
-                          : s.hrs >= 6
-                          ? "hsl(78, 89%, 65%, 0.4)"
-                          : "hsl(0, 0%, 20%)",
-                    }}
-                  />
-                  <span className="font-heading text-[9px] font-bold text-muted-foreground">{s.day}</span>
-                </div>
-              );
-            })}
-          </div>
-          <div className="p-3 bg-primary/[0.06] border border-primary/15 text-xs text-muted-foreground leading-relaxed">
-            <span className="text-primary font-semibold">Pattern spotted:</span> Your mood is 40% higher on days after 7+ hours sleep.
-          </div>
+          <ProGate featureName="Sleep tracker" lockMessage="Your sleep is connected to your mood, your patience and your energy. This shows you exactly how.">
+            <div>
+              <div className="flex items-end gap-1.5 h-[80px] mb-3">
+                {SLEEP_DATA.map((s, i) => {
+                  const h = Math.round((s.hrs / 10) * 70) + 4;
+                  return (
+                    <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                      <div
+                        className={`w-full transition-all ${
+                          s.hrs >= 7 ? "bg-primary" : s.hrs >= 6 ? "bg-primary/40" : "bg-muted"
+                        }`}
+                        style={{ height: `${h}px` }}
+                      />
+                      <span className="font-heading text-[9px] font-bold text-muted-foreground">{s.day}</span>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="p-3 bg-primary/[0.06] border border-primary/15 text-xs text-muted-foreground leading-relaxed">
+                <span className="text-primary font-semibold">Pattern spotted:</span> Your mood is 40% higher on days after 7+ hours sleep.
+              </div>
+            </div>
+          </ProGate>
         </div>
 
         {/* Mood correlation */}
