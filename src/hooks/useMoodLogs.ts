@@ -1,0 +1,47 @@
+"use client";
+
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/utils/supabaseClient";
+import type { User } from "@supabase/supabase-js";
+
+export function useMoodLogs(userId: string | undefined) {
+  return useQuery({
+    queryKey: ["mood_logs", userId],
+    queryFn: async () => {
+      if (!userId) return [];
+      const { data, error } = await supabase
+        .from("mood_logs")
+        .select("*")
+        .eq("user_id", userId)
+        .order("date", { ascending: false })
+        .limit(30);
+      if (error) throw error;
+      return data ?? [];
+    },
+    enabled: !!userId,
+  });
+}
+
+export function useSaveMoodLog(userId: string | undefined) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ date, mood_value }: { date: string; mood_value: number }) => {
+      if (!userId) throw new Error("Not authenticated");
+      const { data, error } = await supabase
+        .from("mood_logs")
+        .upsert(
+          { user_id: userId, date, mood_value },
+          { onConflict: "user_id,date" }
+        )
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["mood_logs", userId] });
+      queryClient.invalidateQueries({ queryKey: ["dad_score", userId] });
+      queryClient.invalidateQueries({ queryKey: ["report_stats", userId] });
+    },
+  });
+}
