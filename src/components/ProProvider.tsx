@@ -1,0 +1,163 @@
+import { useState, createContext, useContext, ReactNode } from "react";
+import Logo from "@/components/Logo";
+import LimeButton from "@/components/LimeButton";
+
+interface ProContextType {
+  isPro: boolean;
+  setPro: (val: boolean) => void;
+  showPaywall: (featureName: string) => void;
+}
+
+const ProContext = createContext<ProContextType>({
+  isPro: false,
+  setPro: () => {},
+  showPaywall: () => {},
+});
+
+export const useProStatus = () => useContext(ProContext);
+
+export const ProProvider = ({ children }: { children: ReactNode }) => {
+  const [isPro, setIsPro] = useState(false);
+  const [paywallFeature, setPaywallFeature] = useState<string | null>(null);
+
+  const showPaywall = (featureName: string) => {
+    if (!isPro) {
+      setPaywallFeature(featureName);
+    }
+  };
+
+  return (
+    <ProContext.Provider value={{ isPro, setPro: setIsPro, showPaywall }}>
+      {children}
+      {paywallFeature && (
+        <PaywallModal
+          featureName={paywallFeature}
+          onClose={() => setPaywallFeature(null)}
+          onStartTrial={() => {
+            setIsPro(true);
+            setPaywallFeature(null);
+          }}
+        />
+      )}
+    </ProContext.Provider>
+  );
+};
+
+interface PaywallModalProps {
+  featureName: string;
+  onClose: () => void;
+  onStartTrial: () => void;
+}
+
+const PaywallModal = ({ featureName, onClose, onStartTrial }: PaywallModalProps) => {
+  const [plan, setPlan] = useState<"monthly" | "annual">("annual");
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-sm" onClick={onClose}>
+      <div className="bg-card border border-border p-6 max-w-sm w-full mx-4 relative" onClick={(e) => e.stopPropagation()}>
+        <button
+          onClick={onClose}
+          className="absolute top-3 right-3 text-muted-foreground hover:text-foreground text-lg cursor-pointer bg-transparent border-none"
+        >
+          ×
+        </button>
+
+        <div className="flex items-center gap-2 mb-4">
+          <Logo />
+          <span className="tag-pill">PRO</span>
+        </div>
+
+        <p className="text-xs text-muted-foreground mb-6">
+          "<span className="text-primary font-semibold">{featureName}</span>" is a Pro feature.
+        </p>
+
+        <p className="text-sm text-muted-foreground mb-6">
+          Upgrade to Dad Health Pro to unlock this and everything below.
+        </p>
+
+        {/* Plan toggle */}
+        <div className="flex bg-white/5 border border-border p-1 gap-1 mb-6">
+          <button
+            onClick={() => setPlan("monthly")}
+            className={`flex-1 py-2 text-center font-heading text-xs font-bold tracking-wide uppercase cursor-pointer transition-all ${
+              plan === "monthly"
+                ? "bg-primary text-primary-foreground"
+                : "bg-transparent text-muted-foreground"
+            }`}
+          >
+            MONTHLY
+          </button>
+          <button
+            onClick={() => setPlan("annual")}
+            className={`flex-1 py-2 text-center font-heading text-xs font-bold tracking-wide uppercase cursor-pointer transition-all ${
+              plan === "annual"
+                ? "bg-primary text-primary-foreground"
+                : "bg-transparent text-muted-foreground"
+            }`}
+          >
+            ANNUAL
+          </button>
+        </div>
+
+        <div className="text-center mb-6">
+          <div className="font-heading text-[48px] font-extrabold text-primary leading-none">
+            {plan === "annual" ? "£4.17" : "£6.99"}
+          </div>
+          <div className="font-heading text-xs font-bold tracking-wider uppercase text-muted-foreground mt-1">
+            {plan === "annual" ? "PER MONTH · BILLED £49.99/YEAR" : "PER MONTH"}
+          </div>
+        </div>
+
+        <LimeButton full onClick={onStartTrial}>
+          START {plan === "annual" ? "ANNUAL" : "MONTHLY"} PLAN →
+        </LimeButton>
+        <p className="text-[11px] text-muted-foreground text-center mt-2">
+          7-day free trial · Cancel anytime
+        </p>
+
+        <button
+          onClick={onClose}
+          className="w-full mt-3 text-center font-heading text-[11px] font-bold tracking-wider uppercase text-muted-foreground cursor-pointer bg-transparent border-none hover:text-primary transition-colors"
+        >
+          See what's included
+        </button>
+      </div>
+    </div>
+  );
+};
+
+interface ProGateProps {
+  children: ReactNode;
+  featureName: string;
+  lockMessage?: string;
+}
+
+export const ProGate = ({ children, featureName, lockMessage }: ProGateProps) => {
+  const { isPro, showPaywall } = useProStatus();
+
+  if (isPro) return <>{children}</>;
+
+  return (
+    <div className="relative group cursor-pointer" onClick={() => showPaywall(featureName)}>
+      <div className="opacity-40 pointer-events-none blur-[1px]">
+        {children}
+      </div>
+      <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/60 backdrop-blur-[2px]">
+        <div className="text-2xl mb-2">🔒</div>
+        <div className="font-heading text-[11px] font-bold tracking-wider uppercase text-primary">
+          PRO FEATURE
+        </div>
+        {lockMessage && (
+          <p className="text-[10px] text-muted-foreground text-center mt-1 max-w-[200px]">
+            {lockMessage}
+          </p>
+        )}
+        <button className="mt-2 bg-primary text-primary-foreground font-heading font-bold text-[9px] tracking-wider uppercase px-3 py-1.5 border-none cursor-pointer hover:brightness-110 transition-all">
+          Unlock →
+        </button>
+      </div>
+    </div>
+  );
+};
+
+export default ProProvider;
