@@ -36,7 +36,9 @@ const CommunityPage = () => {
             {CIRCLES.map((c, i) => (
               <div key={c.name} className="circle-card">
                 <div className="text-xl mb-2">{c.icon}</div>
-                <div className="font-heading text-xs font-extrabold text-foreground tracking-wide mb-1">{c.name}</div>
+                <div className="font-heading text-xs font-extrabold text-foreground tracking-wide mb-1">
+                  {c.name}
+                </div>
                 <div className="flex justify-between items-center">
                   <span className="text-[10px] text-muted-foreground">{c.members.toLocaleString()} members</span>
                   <span className="font-heading text-[9px] font-bold text-muted-foreground uppercase tracking-wider">
@@ -59,7 +61,9 @@ const CommunityPage = () => {
             <div className="flex justify-between items-center">
               <div className="flex gap-1.5">
                 {["FITNESS", "MIND", "BOND"].map((t) => (
-                  <span key={t} className="tag-pill">{t}</span>
+                  <span key={t} className="tag-pill">
+                    {t}
+                  </span>
                 ))}
               </div>
               <LimeButton small>POST</LimeButton>
@@ -68,40 +72,40 @@ const CommunityPage = () => {
 
           {/* Posts */}
           {FEED_POSTS.map((p, i) => {
-            const isAnon = "anon" in p && p.anon;
+            const isAnon = "anon" in p && (p as any).anon;
             return (
-            <div key={i} className="px-5 py-4 border-b border-border last:border-b-0">
-              <div className="flex items-center gap-2.5 mb-2.5">
-                <div
-                  className={`w-9 h-9 flex items-center justify-center font-heading text-xs font-extrabold shrink-0 ${
-                    isAnon
-                      ? "bg-white/[0.08] border border-white/15 text-muted-foreground"
-                      : "bg-primary/10 border border-primary text-primary"
-                  }`}
-                >
-                  {p.initials}
-                </div>
-                <div className="flex-1">
-                  <div className="font-heading text-[13px] font-bold text-foreground tracking-wide flex items-center gap-1.5">
-                    {p.name}
-                    {isAnon && (
-                      <span className="bg-white/[0.08] border border-white/10 font-heading text-[9px] font-bold tracking-wider text-muted-foreground px-1.5 py-0.5 uppercase">
-                        ANON
-                      </span>
-                    )}
+              <div key={i} className="px-5 py-4 border-b border-border last:border-b-0">
+                <div className="flex items-center gap-2.5 mb-2.5">
+                  <div
+                    className={`w-9 h-9 flex items-center justify-center font-heading text-xs font-extrabold shrink-0 ${
+                      isAnon
+                        ? "bg-white/[0.08] border border-white/15 text-muted-foreground"
+                        : "bg-primary/10 border border-primary text-primary"
+                    }`}
+                  >
+                    {(p as any).initials}
                   </div>
-                  <div className="text-[10px] text-muted-foreground uppercase tracking-wide">{p.meta}</div>
+                  <div className="flex-1">
+                    <div className="font-heading text-[13px] font-bold text-foreground tracking-wide flex items-center gap-1.5">
+                      {(p as any).name}
+                      {isAnon && (
+                        <span className="bg-white/[0.08] border border-white/10 font-heading text-[9px] font-bold tracking-wider text-muted-foreground px-1.5 py-0.5 uppercase">
+                          ANON
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-[10px] text-muted-foreground uppercase tracking-wide">{(p as any).meta}</div>
+                  </div>
+                  <span className="tag-pill">{(p as any).tag}</span>
                 </div>
-                <span className="tag-pill">{p.tag}</span>
+                <p className="text-[13px] text-foreground/70 leading-relaxed mb-3">{(p as any).body}</p>
+                <div className="flex gap-3.5">
+                  <button className="post-action">👊 {(p as any).respect} RESPECT</button>
+                  <button className="post-action">💬 {(p as any).replies} REPLIES</button>
+                  <button className="post-action">🔖 SAVE</button>
+                </div>
               </div>
-              <p className="text-[13px] text-foreground/70 leading-relaxed mb-3">{p.body}</p>
-              <div className="flex gap-3.5">
-                <button className="post-action">👊 {p.respect} RESPECT</button>
-                <button className="post-action">💬 {p.replies} REPLIES</button>
-                <button className="post-action">🔖 SAVE</button>
-              </div>
-            </div>
-          );
+            );
           })}
         </div>
 
@@ -152,3 +156,4 @@ const CommunityPage = () => {
 };
 
 export default CommunityPage;
+

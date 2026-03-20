@@ -138,7 +138,7 @@ export const ProGate = ({ children, featureName, lockMessage }: ProGateProps) =>
   if (isPro) return <>{children}</>;
 
   return (
-    <div className="relative group cursor-pointer" onClick={() => showPaywall(featureName)}>
+    <div className="relative group cursor-pointer flex-1 min-w-[200px] w-full max-w-sm" onClick={() => showPaywall(featureName)}>
       <div className="opacity-40 pointer-events-none blur-[1px]">
         {children}
       </div>
@@ -148,7 +148,7 @@ export const ProGate = ({ children, featureName, lockMessage }: ProGateProps) =>
           PRO FEATURE
         </div>
         {lockMessage && (
-          <p className="text-[10px] text-muted-foreground text-center mt-1 max-w-[200px]">
+          <p className="text-[10px] text-muted-foreground text-center mt-1 px-2 max-w-[260px]">
             {lockMessage}
           </p>
         )}

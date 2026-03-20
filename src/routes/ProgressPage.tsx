@@ -43,13 +43,16 @@ const ProgressPage = () => {
       <section className="bg-background border-b border-border">
         <div className="max-w-[1400px] mx-auto px-5 lg:px-8 py-10">
           <span className="section-label !p-0 mb-4 block">YOUR DAD HEALTH SCORE</span>
-          <div className="flex gap-8 items-center">
+          <div className="flex flex-wrap gap-8 items-center">
             <div className="w-[100px] h-[100px] border-4 border-primary rounded-full flex flex-col items-center justify-center shrink-0">
               <div className="font-heading text-[36px] font-extrabold text-primary leading-none">{dadScore}</div>
               <div className="font-heading text-[9px] font-bold tracking-wider uppercase text-muted-foreground">out of 100</div>
             </div>
-            <ProGate featureName="Dad Health Score breakdown" lockMessage="Free users see the number. Pro shows you exactly what's dragging it down — and how to fix it.">
-              <div className="flex-1 max-w-sm">
+            <ProGate
+              featureName="Dad Health Score breakdown"
+              lockMessage="Free users see the number. Pro shows you exactly what's dragging it down — and how to fix it."
+            >
+              <div className="w-full min-w-[220px] flex-1">
                 {[
                   { label: "Mind", value: 72 },
                   { label: "Body", value: 81 },
@@ -95,7 +98,10 @@ const ProgressPage = () => {
           <span className="section-label !p-0 mb-4 block">DH BADGES EARNED</span>
           <div className="flex gap-3 flex-wrap">
             {BADGES.map((b) => (
-              <div key={b.name} className="flex flex-col items-center gap-1.5 p-2.5 border border-primary/20 bg-primary/[0.04] min-w-[60px]">
+              <div
+                key={b.name}
+                className="flex flex-col items-center gap-1.5 p-2.5 border border-primary/20 bg-primary/[0.04] min-w-[60px]"
+              >
                 <span className="text-2xl">{b.icon}</span>
                 <span className="font-heading text-[9px] font-bold text-primary uppercase tracking-wide text-center leading-tight">
                   {b.name}
@@ -114,7 +120,10 @@ const ProgressPage = () => {
         {/* Sleep - Pro gated */}
         <div className="py-8 border-t border-border">
           <span className="section-label !p-0 mb-4 block">SLEEP QUALITY THIS WEEK</span>
-          <ProGate featureName="Sleep tracker" lockMessage="Your sleep is connected to your mood, your patience and your energy. This shows you exactly how.">
+          <ProGate
+            featureName="Sleep tracker"
+            lockMessage="Your sleep is connected to your mood, your patience and your energy. This shows you exactly how."
+          >
             <div>
               <div className="flex items-end gap-1.5 h-[80px] mb-3">
                 {SLEEP_DATA.map((s, i) => {
@@ -122,9 +131,8 @@ const ProgressPage = () => {
                   return (
                     <div key={i} className="flex-1 flex flex-col items-center gap-1">
                       <div
-                        className={`w-full transition-all ${
-                          s.hrs >= 7 ? "bg-primary" : s.hrs >= 6 ? "bg-primary/40" : "bg-muted"
-                        }`}
+                        className={`w-full transition-all ${s.hrs >= 7 ? "bg-primary" : s.hrs >= 6 ? "bg-primary/40" : "bg-muted"
+                          }`}
                         style={{ height: `${h}px` }}
                       />
                       <span className="font-heading text-[9px] font-bold text-muted-foreground">{s.day}</span>
@@ -180,3 +188,4 @@ const ProgressPage = () => {
 };
 
 export default ProgressPage;
+

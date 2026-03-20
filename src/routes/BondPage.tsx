@@ -1,8 +1,9 @@
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 import LimeButton from "@/components/LimeButton";
+import OutlineButton from "@/components/OutlineButton";
 import { ProGate } from "@/components/ProProvider";
-import parentingImg from "@/assets/parenting.jpg";
+import { IMAGES } from "@/lib/images";
 
 const DAD_DATES = [
   { icon: "🎮", name: "Gaming night", age: "8–14", budget: "Free", time: "2 hrs" },
@@ -31,10 +32,10 @@ const BondPage = () => {
       <SiteHeader />
 
       {/* Hero */}
-      <section className="relative h-[280px] lg:h-[360px]">
-        <img src={parentingImg} alt="Parenting" className="absolute inset-0 w-full h-full object-cover" />
+      <section className="relative h-[580px] lg:h-[580px]"> 
+        <img src={IMAGES.bond} alt="Parenting" className="absolute inset-0 w-full h-full object-cover" />
         <div className="absolute inset-0 bg-background/65" />
-        <div className="relative z-10 flex flex-col justify-end h-full max-w-[1400px] mx-auto px-5 lg:px-8 pb-8">
+        <div className="relative z-10 flex flex-col justify-center items-start h-full max-w-[1400px] mx-auto px-5 lg:px-8">
           <span className="section-label text-primary mb-2">THE BOND</span>
           <h1 className="font-heading text-[42px] lg:text-[56px] font-extrabold text-foreground uppercase leading-none tracking-wide">
             PARENTING
@@ -60,7 +61,7 @@ const BondPage = () => {
 
       <div className="max-w-[1400px] mx-auto px-5 lg:px-8">
         {/* Dad date ideas */}
-        <div className="py-8">
+        <div className="pt-8 pb-6">
           <span className="section-label !p-0 mb-4 block">DAD DATE IDEAS</span>
           <div className="flex gap-2 mb-4 flex-wrap">
             {["All", "Free", "Under £15", "1 hr", "Evening"].map((f, i) => (
@@ -83,7 +84,9 @@ const BondPage = () => {
                 className="border border-border p-3.5 cursor-pointer transition-all hover:border-primary group"
               >
                 <div className="text-2xl mb-2">{d.icon}</div>
-                <div className="font-heading text-[13px] font-extrabold text-foreground tracking-wide mb-1 group-hover:text-primary transition-colors">{d.name}</div>
+                <div className="font-heading text-[13px] font-extrabold text-foreground tracking-wide mb-1 group-hover:text-primary transition-colors">
+                  {d.name}
+                </div>
                 <div className="flex gap-1.5 flex-wrap">
                   <span className="text-[10px] text-muted-foreground">Age {d.age}</span>
                   <span className="text-[10px] text-primary">· {d.budget}</span>
@@ -100,7 +103,10 @@ const BondPage = () => {
           <ProGate featureName="Milestone photo uploads" lockMessage="Words are good. Photos last forever.">
             <div>
               {MILESTONES.map((m) => (
-                <div key={m.text} className="flex gap-3 items-start py-3 border-b border-border last:border-b-0">
+                <div
+                  key={m.text}
+                  className="flex gap-3 items-start py-3 border-b border-border last:border-b-0"
+                >
                   <span className="tag-pill shrink-0">{m.date}</span>
                   <div className="flex-1">
                     <p className="text-sm text-foreground/70 leading-relaxed">{m.text}</p>
@@ -116,7 +122,10 @@ const BondPage = () => {
         <div className="py-8 border-t border-border">
           <span className="section-label !p-0 mb-4 block">CONVERSATION STARTERS</span>
           {CONVERSATION_STARTERS.map((q) => (
-            <div key={q} className="py-3 border-b border-border last:border-b-0 pl-3 border-l-[3px] border-l-primary mb-2">
+            <div
+              key={q}
+              className="py-3 border-b border-border last:border-b-0 pl-3 border-l-[3px] border-l-primary mb-2"
+            >
               <p className="text-sm text-foreground/70 leading-relaxed italic">"{q}"</p>
             </div>
           ))}
@@ -129,3 +138,4 @@ const BondPage = () => {
 };
 
 export default BondPage;
+

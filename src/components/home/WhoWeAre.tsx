@@ -1,22 +1,22 @@
 import LimeButton from "@/components/LimeButton";
-import { Link } from "react-router-dom";
+import Link from "next/link";
 
 interface WhoWeAreProps {
   gymImg: string;
 }
 
 const WhoWeAre = ({ gymImg }: WhoWeAreProps) => (
-  <section className="bg-background">
-    <div className="max-w-[1400px] mx-auto grid grid-cols-1 lg:grid-cols-2 gap-0">
-      <div className="h-[300px] lg:h-auto">
+  <section className="bg-black border-b-4 border-primary pt-8 lg:pt-10 pb-16 lg:pb-20">
+    <div className="max-w-[1400px] mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-0 lg:items-stretch px-5 lg:px-8">
+      <div className="relative min-h-[300px] lg:min-h-0 lg:h-full rounded-2xl overflow-hidden">
         <img
           src={gymImg}
           alt="Gym weights"
-          className="w-full h-full object-cover"
+          className="absolute inset-0 w-full h-full object-cover"
         />
       </div>
       <div className="px-5 py-12 lg:px-16 lg:py-20">
-        <span className="section-label">WHO WE ARE</span>
+        <span className="inline-block font-heading text-[10px] font-bold tracking-[2.5px] uppercase bg-primary text-primary-foreground px-2 py-0.5 mb-2">WHO WE ARE</span>
         <h2 className="font-heading text-[36px] lg:text-[48px] font-extrabold text-foreground uppercase leading-none mt-3 mb-6">
           WHO WE ARE
         </h2>
@@ -35,7 +35,7 @@ const WhoWeAre = ({ gymImg }: WhoWeAreProps) => (
           for fun days with the kids, recipes to cook together, takeaway alternatives and any
           other snippets we wish we knew sooner.
         </p>
-        <Link to="/pricing">
+        <Link href="/pricing">
           <LimeButton>TAKE ACTION →</LimeButton>
         </Link>
       </div>

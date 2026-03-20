@@ -1,3 +1,5 @@
+"use client";
+
 import { useState } from "react";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
@@ -29,7 +31,9 @@ const PricingPage = () => {
           {/* Pro confirmed state */}
           {isPro && (
             <div className="mt-6 border border-primary bg-primary/5 p-6 max-w-sm mx-auto">
-              <div className="font-heading text-[22px] font-extrabold text-primary uppercase mb-2">You're a Pro Dad.</div>
+              <div className="font-heading text-[22px] font-extrabold text-primary uppercase mb-2">
+                You're a Pro Dad.
+              </div>
               <p className="text-sm text-muted-foreground">You have full access to every Dad Health feature. Keep showing up.</p>
               <button
                 onClick={() => setPro(false)}
@@ -72,8 +76,8 @@ const PricingPage = () => {
           <div className="max-w-[1400px] mx-auto px-5 lg:px-8 py-12">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
               {PRICING_PLANS.map((p) => {
-                const isPopular = "popular" in p && p.popular;
-                const hasExcluded = "excluded" in p && p.excluded;
+                const isPopular = "popular" in p && (p as any).popular;
+                const hasExcluded = "excluded" in p && (p as any).excluded;
                 return (
                   <div
                     key={p.name}
@@ -90,10 +94,10 @@ const PricingPage = () => {
                       {p.name}
                     </div>
                     <div className="font-heading text-[42px] font-extrabold text-primary leading-none mb-1">
-                      {p.name === "PRO" && plan === "monthly" ? "£6.99" : p.price}
+                      {(p as any).name === "PRO" && plan === "monthly" ? "£6.99" : (p as any).price}
                     </div>
                     <p className="text-xs text-muted-foreground mb-1">
-                      {p.name === "PRO" && plan === "monthly" ? "per month" : p.sub}
+                      {(p as any).name === "PRO" && plan === "monthly" ? "per month" : (p as any).sub}
                     </p>
                     {"badge" in p && (p as any).badge && plan === "annual" && (
                       <span className="inline-block bg-primary text-primary-foreground font-heading text-[9px] font-bold px-2 py-0.5 tracking-wider uppercase mt-1 mb-2">
@@ -101,7 +105,7 @@ const PricingPage = () => {
                       </span>
                     )}
                     <div className="my-5 space-y-2.5">
-                      {p.features.map((f) => (
+                      {(p as any).features.map((f: string) => (
                         <div key={f} className="flex items-start gap-2.5">
                           <span className="feat-tick text-[10px]">✓</span>
                           <span className="text-sm text-foreground/80">{f}</span>
@@ -125,7 +129,7 @@ const PricingPage = () => {
                           : "bg-transparent text-foreground border border-foreground hover:border-primary hover:text-primary"
                       }`}
                     >
-                      {p.cta}
+                      {(p as any).cta}
                     </button>
                     {isPopular && (
                       <p className="text-[11px] text-muted-foreground text-center mt-2">
@@ -185,7 +189,7 @@ const PricingPage = () => {
                 "<span className="text-primary font-semibold">mood trend graphs</span>" is a Pro feature
               </p>
               <div className="flex bg-white/5 border border-border p-1 gap-1 mb-6">
-                <div className="flex-1 py-2 text-center font-heading text-xs font-bold tracking-wide uppercase text-muted-foreground">
+                <div className="flex-1 py-2 text-center font-heading text-xs font-bold tracking-wide text-muted-foreground">
                   MONTHLY
                 </div>
                 <div className="flex-1 py-2 text-center font-heading text-xs font-bold tracking-wide uppercase bg-primary text-primary-foreground">
@@ -250,3 +254,4 @@ const PricingPage = () => {
 };
 
 export default PricingPage;
+

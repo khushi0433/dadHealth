@@ -130,3 +130,4 @@ const MindPage = () => {
 };
 
 export default MindPage;
+

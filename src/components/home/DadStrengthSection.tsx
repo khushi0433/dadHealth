@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import Link from "next/link";
 import LimeButton from "@/components/LimeButton";
 import { EXERCISES, PROGRESS_STATS } from "@/lib/constants";
 
@@ -7,10 +7,11 @@ interface DadStrengthSectionProps {
 }
 
 const DadStrengthSection = ({ workoutImg }: DadStrengthSectionProps) => (
-  <section className="bg-background border-t border-border">
+  <section className="bg-background pt-8 pb-16 lg:pb-20">
     {/* Hero banner */}
-    <div className="relative h-[280px] lg:h-[360px]">
-      <img src={workoutImg} alt="Dad Strength Workout" className="absolute inset-0 w-full h-full object-cover" />
+   <div className="relative h-[400px] lg:h-[480px]"> 
+    <img src={workoutImg} alt="Dad Strength Workout" 
+    className="absolute inset-0 w-full h-full object-cover object-center" />
       <div className="absolute inset-0 bg-background/60" />
       <div className="relative z-10 flex flex-col justify-end h-full max-w-[1400px] mx-auto px-5 lg:px-8 pb-8">
         <span className="section-label text-primary mb-1">TODAY'S WORKOUT</span>
@@ -65,7 +66,7 @@ const DadStrengthSection = ({ workoutImg }: DadStrengthSectionProps) => (
             </div>
           ))}
         </div>
-        <Link to="/fitness">
+        <Link href="/fitness">
           <LimeButton>VIEW FULL FITNESS →</LimeButton>
         </Link>
       </div>

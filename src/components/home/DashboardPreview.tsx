@@ -32,7 +32,7 @@ const SMART_REMINDERS = [
 ];
 
 const DashboardPreview = () => (
-  <section className="bg-background border-t border-border">
+  <section className="bg-background pt-16 lg:pt-20 pb-8">
     <div className="max-w-[1400px] mx-auto px-5 lg:px-8">
       <div className="py-4">
         <span className="section-label">APP DASHBOARD</span>
@@ -44,7 +44,7 @@ const DashboardPreview = () => (
         </h2>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-px bg-border mb-12">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-px bg-border">
         {/* Sidebar */}
         <div className="bg-card p-5">
           <Logo className="mb-5" />
@@ -131,6 +131,7 @@ const DashboardPreview = () => (
 
           {/* Today's plan */}
           <span className="section-label !p-0 mb-2 block">TODAY'S PLAN</span>
+          <div className="pb-4">
           {TODAYS_PLAN.map((task) => (
             <div key={task.name} className="flex items-center gap-3 py-3 border-b border-border last:border-b-0">
               <div className="w-9 h-9 bg-primary/10 border border-primary/20 flex items-center justify-center text-base shrink-0">
@@ -151,6 +152,7 @@ const DashboardPreview = () => (
               </span>
             </div>
           ))}
+          </div>
         </div>
 
         {/* Right column */}

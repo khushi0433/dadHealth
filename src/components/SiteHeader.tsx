@@ -1,17 +1,20 @@
-import { Link, useLocation } from "react-router-dom";
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import Logo from "./Logo";
 import { NAV_LINKS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 
 const SiteHeader = () => {
-  const location = useLocation();
+  const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-50 bg-background border-b border-border">
+    <header className="sticky top-0 z-50 bg-black border-b border-white/10">
       <div className="max-w-[1400px] mx-auto flex items-center justify-between px-5 py-3 lg:px-8">
-        <Link to="/">
+        <Link href="/">
           <Logo />
         </Link>
 
@@ -19,10 +22,10 @@ const SiteHeader = () => {
           {NAV_LINKS.map((link) => (
             <Link
               key={link.href}
-              to={link.href}
+              href={link.href}
               className={cn(
                 "font-heading text-[11px] font-bold tracking-[1.5px] uppercase transition-colors duration-200",
-                location.pathname === link.href
+                pathname === link.href
                   ? "text-primary"
                   : "text-muted-foreground hover:text-foreground"
               )}
@@ -34,13 +37,13 @@ const SiteHeader = () => {
 
         <div className="flex items-center gap-3">
           <Link
-            to="/pricing"
+            href="/pricing"
             className="hidden lg:inline-flex font-heading text-[10px] font-bold tracking-wider uppercase text-primary border border-primary px-2 py-0.5 hover:bg-primary hover:text-primary-foreground transition-all duration-200"
           >
             PRO
           </Link>
           <Link
-            to="/pricing"
+            href="/pricing"
             className="bg-primary text-primary-foreground font-heading font-bold text-[11px] tracking-wider uppercase px-4 py-2.5 hover:brightness-110 hover:shadow-[0_0_20px_hsl(78,89%,65%,0.3)] transition-all duration-200"
           >
             START FREE — 7 DAYS
@@ -69,11 +72,11 @@ const SiteHeader = () => {
           {NAV_LINKS.map((link) => (
             <Link
               key={link.href}
-              to={link.href}
+              href={link.href}
               onClick={() => setMobileOpen(false)}
               className={cn(
                 "block font-heading text-[12px] font-bold tracking-[1.5px] uppercase py-2 transition-colors",
-                location.pathname === link.href
+                pathname === link.href
                   ? "text-primary"
                   : "text-muted-foreground"
               )}

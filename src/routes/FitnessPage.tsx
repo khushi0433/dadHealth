@@ -3,7 +3,7 @@ import SiteFooter from "@/components/SiteFooter";
 import LimeButton from "@/components/LimeButton";
 import { ProGate } from "@/components/ProProvider";
 import { EXERCISES, MEALS, PROGRESS_STATS } from "@/lib/constants";
-import workoutImg from "@/assets/workout.jpg";
+import { IMAGES } from "@/lib/images";
 
 const FitnessPage = () => {
   return (
@@ -12,7 +12,7 @@ const FitnessPage = () => {
 
       {/* Hero */}
       <section className="relative h-[320px] lg:h-[400px]">
-        <img src={workoutImg} alt="Workout" className="absolute inset-0 w-full h-full object-cover" />
+        <img src={IMAGES.workout} alt="Workout" className="absolute inset-0 w-full h-full object-cover" />
         <div className="absolute inset-0 bg-background/60" />
         <div className="relative z-10 flex flex-col justify-end h-full max-w-[1400px] mx-auto px-5 lg:px-8 pb-8">
           <span className="section-label text-primary mb-1">TODAY'S WORKOUT</span>
@@ -75,11 +75,17 @@ const FitnessPage = () => {
 
           {/* Meals - Pro gated */}
           <span className="section-label !p-0 mb-4 block">THIS WEEK'S MEALS</span>
-          <ProGate featureName="Meal planner" lockMessage="The hardest part of eating well is deciding what to eat. We've done that for you.">
+          <ProGate
+            featureName="Meal planner"
+            lockMessage="The hardest part of eating well is deciding what to eat. We've done that for you."
+          >
             <div className="bg-primary text-primary-foreground p-5">
               <h3 className="font-heading text-lg font-extrabold uppercase mb-4">MEAL PLANNER</h3>
               {MEALS.map((meal, i) => (
-                <div key={i} className="flex items-center gap-4 py-2.5 border-b border-primary-foreground/10 last:border-b-0">
+                <div
+                  key={i}
+                  className="flex items-center gap-4 py-2.5 border-b border-primary-foreground/10 last:border-b-0"
+                >
                   <span className="font-heading text-[10px] font-bold tracking-wider uppercase opacity-60 w-8">{meal.day}</span>
                   <span className="font-heading text-[13px] font-extrabold flex-1">{meal.name}</span>
                   <span className="text-xs opacity-60">{meal.kcal} kcal</span>
@@ -99,3 +105,4 @@ const FitnessPage = () => {
 };
 
 export default FitnessPage;
+

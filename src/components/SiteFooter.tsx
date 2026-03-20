@@ -1,9 +1,9 @@
-import { Link } from "react-router-dom";
+import Link from "next/link";
 import Logo from "./Logo";
 import { FOOTER_LINKS } from "@/lib/constants";
 
 const SiteFooter = () => (
-  <footer className="bg-card border-t border-border">
+  <footer className="bg-card border-t border-border pt-16 lg:pt-20">
     <div className="max-w-[1400px] mx-auto px-5 py-16 lg:px-8">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-10">
         {/* Brand */}
@@ -23,7 +23,7 @@ const SiteFooter = () => (
           <ul className="space-y-2.5">
             {FOOTER_LINKS.platform.map((link) => (
               <li key={link.label}>
-                <Link to={link.href} className="text-sm text-foreground/70 hover:text-primary transition-colors">
+                <Link href={link.href} className="text-sm text-foreground/70 hover:text-primary transition-colors">
                   {link.label}
                 </Link>
               </li>
@@ -39,7 +39,7 @@ const SiteFooter = () => (
           <ul className="space-y-2.5">
             {FOOTER_LINKS.company.map((link) => (
               <li key={link.label}>
-                <Link to={link.href} className="text-sm text-foreground/70 hover:text-primary transition-colors">
+                <Link href={link.href} className="text-sm text-foreground/70 hover:text-primary transition-colors">
                   {link.label}
                 </Link>
               </li>
@@ -55,7 +55,7 @@ const SiteFooter = () => (
           <ul className="space-y-2.5">
             {FOOTER_LINKS.legal.map((link) => (
               <li key={link.label}>
-                <Link to={link.href} className="text-sm text-foreground/70 hover:text-primary transition-colors">
+                <Link href={link.href} className="text-sm text-foreground/70 hover:text-primary transition-colors">
                   {link.label}
                 </Link>
               </li>
