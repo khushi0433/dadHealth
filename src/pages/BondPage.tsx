@@ -1,6 +1,7 @@
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
-import OutlineButton from "@/components/OutlineButton";
+import LimeButton from "@/components/LimeButton";
+import { ProGate } from "@/components/ProProvider";
 import parentingImg from "@/assets/parenting.jpg";
 
 const DAD_DATES = [
@@ -67,7 +68,7 @@ const BondPage = () => {
                 key={f}
                 className={`px-3 py-1.5 border font-heading text-[11px] font-bold tracking-wide uppercase cursor-pointer transition-all ${
                   i === 0
-                    ? "border-primary text-primary"
+                    ? "border-primary text-primary bg-primary/10"
                     : "border-border text-muted-foreground hover:border-primary hover:text-primary"
                 }`}
               >
@@ -79,10 +80,10 @@ const BondPage = () => {
             {DAD_DATES.map((d) => (
               <div
                 key={d.name}
-                className="border border-border p-3.5 cursor-pointer transition-all hover:border-primary"
+                className="border border-border p-3.5 cursor-pointer transition-all hover:border-primary group"
               >
                 <div className="text-2xl mb-2">{d.icon}</div>
-                <div className="font-heading text-[13px] font-extrabold text-foreground tracking-wide mb-1">{d.name}</div>
+                <div className="font-heading text-[13px] font-extrabold text-foreground tracking-wide mb-1 group-hover:text-primary transition-colors">{d.name}</div>
                 <div className="flex gap-1.5 flex-wrap">
                   <span className="text-[10px] text-muted-foreground">Age {d.age}</span>
                   <span className="text-[10px] text-primary">· {d.budget}</span>
@@ -93,18 +94,22 @@ const BondPage = () => {
           </div>
         </div>
 
-        {/* Milestones */}
+        {/* Milestones - Pro gated */}
         <div className="py-8 border-t border-border">
           <span className="section-label !p-0 mb-4 block">MILESTONE TRACKER</span>
-          {MILESTONES.map((m) => (
-            <div key={m.text} className="flex gap-3 items-start py-3 border-b border-border last:border-b-0">
-              <span className="tag-pill shrink-0">{m.date}</span>
-              <div className="flex-1">
-                <p className="text-sm text-foreground/70 leading-relaxed">{m.text}</p>
-                <span className="tag-pill-dark mt-2 inline-block">{m.tag}</span>
-              </div>
+          <ProGate featureName="Milestone photo uploads" lockMessage="Words are good. Photos last forever.">
+            <div>
+              {MILESTONES.map((m) => (
+                <div key={m.text} className="flex gap-3 items-start py-3 border-b border-border last:border-b-0">
+                  <span className="tag-pill shrink-0">{m.date}</span>
+                  <div className="flex-1">
+                    <p className="text-sm text-foreground/70 leading-relaxed">{m.text}</p>
+                    <span className="tag-pill-dark mt-2 inline-block">{m.tag}</span>
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
+          </ProGate>
         </div>
 
         {/* Conversation starters */}

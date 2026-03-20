@@ -4,10 +4,12 @@ import SiteFooter from "@/components/SiteFooter";
 import Logo from "@/components/Logo";
 import LimeButton from "@/components/LimeButton";
 import OutlineButton from "@/components/OutlineButton";
+import { useProStatus } from "@/components/ProProvider";
 import { PRICING_PLANS, TESTIMONIALS, FAQ_ITEMS } from "@/lib/constants";
 
 const PricingPage = () => {
   const [plan, setPlan] = useState<"monthly" | "annual">("annual");
+  const { isPro, setPro } = useProStatus();
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -24,98 +26,119 @@ const PricingPage = () => {
             Unlock every tool we've built to help you be a stronger dad.
           </p>
 
-          {/* Plan toggle */}
-          <div className="flex max-w-xs mx-auto mt-8 bg-white/5 border border-border p-1 gap-1">
-            {(["monthly", "annual"] as const).map((id) => (
+          {/* Pro confirmed state */}
+          {isPro && (
+            <div className="mt-6 border border-primary bg-primary/5 p-6 max-w-sm mx-auto">
+              <div className="font-heading text-[22px] font-extrabold text-primary uppercase mb-2">You're a Pro Dad.</div>
+              <p className="text-sm text-muted-foreground">You have full access to every Dad Health feature. Keep showing up.</p>
               <button
-                key={id}
-                onClick={() => setPlan(id)}
-                className={`flex-1 py-2.5 text-center font-heading text-xs font-bold tracking-wide uppercase cursor-pointer transition-all relative ${
-                  plan === id
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-transparent text-muted-foreground"
-                }`}
+                onClick={() => setPro(false)}
+                className="mt-4 text-[10px] text-muted-foreground underline cursor-pointer bg-transparent border-none hover:text-foreground transition-colors"
               >
-                {id === "monthly" ? "MONTHLY" : "ANNUAL"}
-                {id === "annual" && (
-                  <span className="ml-1.5 bg-primary text-primary-foreground font-heading text-[9px] font-bold px-1.5 py-0.5 tracking-wider">
-                    SAVE 40%
-                  </span>
-                )}
+                Cancel subscription
               </button>
-            ))}
-          </div>
+            </div>
+          )}
+
+          {/* Plan toggle */}
+          {!isPro && (
+            <div className="flex max-w-xs mx-auto mt-8 bg-white/5 border border-border p-1 gap-1">
+              {(["monthly", "annual"] as const).map((id) => (
+                <button
+                  key={id}
+                  onClick={() => setPlan(id)}
+                  className={`flex-1 py-2.5 text-center font-heading text-xs font-bold tracking-wide uppercase cursor-pointer transition-all relative ${
+                    plan === id
+                      ? "bg-primary text-primary-foreground"
+                      : "bg-transparent text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {id === "monthly" ? "MONTHLY" : "ANNUAL"}
+                  {id === "annual" && (
+                    <span className="ml-1.5 bg-primary text-primary-foreground font-heading text-[9px] font-bold px-1.5 py-0.5 tracking-wider">
+                      SAVE 40%
+                    </span>
+                  )}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
       {/* Pricing cards */}
-      <section className="bg-background">
-        <div className="max-w-[1400px] mx-auto px-5 lg:px-8 py-12">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
-            {PRICING_PLANS.map((p) => {
-              const isPopular = "popular" in p && p.popular;
-              const hasExcluded = "excluded" in p && p.excluded;
-              return (
-              <div
-                key={p.name}
-                className={`border p-6 relative ${
-                  isPopular ? "border-primary bg-primary/[0.03]" : "border-border"
-                }`}
-              >
-                {isPopular && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground font-heading text-[9px] font-bold tracking-wider uppercase px-3 py-1">
-                    MOST POPULAR
-                  </div>
-                )}
-                <div className="font-heading text-[11px] font-bold tracking-[2px] uppercase text-muted-foreground mb-3">
-                  {p.name}
-                </div>
-                <div className="font-heading text-[42px] font-extrabold text-primary leading-none mb-1">
-                  {p.name === "PRO" && plan === "monthly" ? "£6.99" : p.price}
-                </div>
-                <p className="text-xs text-muted-foreground mb-1">
-                  {p.name === "PRO" && plan === "monthly" ? "per month" : p.sub}
-                </p>
-                {"badge" in p && (p as any).badge && plan === "annual" && (
-                  <span className="inline-block bg-primary text-primary-foreground font-heading text-[9px] font-bold px-2 py-0.5 tracking-wider uppercase mt-1 mb-2">
-                    {(p as any).badge}
-                  </span>
-                )}
-                <div className="my-5 space-y-2.5">
-                  {p.features.map((f) => (
-                    <div key={f} className="flex items-start gap-2.5">
-                      <span className="feat-tick text-[10px]">✓</span>
-                      <span className="text-sm text-foreground/80">{f}</span>
-                    </div>
-                  ))}
-                  {hasExcluded &&
-                    (p as any).excluded?.map((f: string) => (
-                      <div key={f} className="flex items-start gap-2.5">
-                        <span className="feat-cross text-[9px]">—</span>
-                        <span className="text-sm text-muted-foreground">{f}</span>
+      {!isPro && (
+        <section className="bg-background">
+          <div className="max-w-[1400px] mx-auto px-5 lg:px-8 py-12">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+              {PRICING_PLANS.map((p) => {
+                const isPopular = "popular" in p && p.popular;
+                const hasExcluded = "excluded" in p && p.excluded;
+                return (
+                  <div
+                    key={p.name}
+                    className={`border p-6 relative ${
+                      isPopular ? "border-primary bg-primary/[0.03]" : "border-border"
+                    }`}
+                  >
+                    {isPopular && (
+                      <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-primary text-primary-foreground font-heading text-[9px] font-bold tracking-wider uppercase px-3 py-1">
+                        MOST POPULAR
                       </div>
-                    ))}
-                </div>
-                <button
-                  className={`w-full py-3 font-heading font-bold text-[13px] tracking-wider uppercase cursor-pointer ${
-                    isPopular
-                      ? "bg-primary text-primary-foreground border-none"
-                      : "bg-transparent text-foreground border border-foreground"
-                  }`}
-                >
-                  {p.cta}
-                </button>
-                {isPopular && (
-                  <p className="text-[11px] text-muted-foreground text-center mt-2">
-                    No card until trial ends · Cancel anytime
-                  </p>
-                )}
-              </div>
-              );
-            })}
+                    )}
+                    <div className="font-heading text-[11px] font-bold tracking-[2px] uppercase text-muted-foreground mb-3">
+                      {p.name}
+                    </div>
+                    <div className="font-heading text-[42px] font-extrabold text-primary leading-none mb-1">
+                      {p.name === "PRO" && plan === "monthly" ? "£6.99" : p.price}
+                    </div>
+                    <p className="text-xs text-muted-foreground mb-1">
+                      {p.name === "PRO" && plan === "monthly" ? "per month" : p.sub}
+                    </p>
+                    {"badge" in p && (p as any).badge && plan === "annual" && (
+                      <span className="inline-block bg-primary text-primary-foreground font-heading text-[9px] font-bold px-2 py-0.5 tracking-wider uppercase mt-1 mb-2">
+                        {(p as any).badge}
+                      </span>
+                    )}
+                    <div className="my-5 space-y-2.5">
+                      {p.features.map((f) => (
+                        <div key={f} className="flex items-start gap-2.5">
+                          <span className="feat-tick text-[10px]">✓</span>
+                          <span className="text-sm text-foreground/80">{f}</span>
+                        </div>
+                      ))}
+                      {hasExcluded &&
+                        (p as any).excluded?.map((f: string) => (
+                          <div key={f} className="flex items-start gap-2.5">
+                            <span className="feat-cross text-[9px]">—</span>
+                            <span className="text-sm text-muted-foreground">{f}</span>
+                          </div>
+                        ))}
+                    </div>
+                    <button
+                      onClick={() => {
+                        if (isPopular) setPro(true);
+                      }}
+                      className={`w-full py-3 font-heading font-bold text-[13px] tracking-wider uppercase cursor-pointer transition-all ${
+                        isPopular
+                          ? "bg-primary text-primary-foreground border-none hover:brightness-110 hover:shadow-[0_0_20px_hsl(78,89%,65%,0.3)]"
+                          : "bg-transparent text-foreground border border-foreground hover:border-primary hover:text-primary"
+                      }`}
+                    >
+                      {p.cta}
+                    </button>
+                    {isPopular && (
+                      <p className="text-[11px] text-muted-foreground text-center mt-2">
+                        No card until trial ends · Cancel anytime
+                      </p>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       {/* Locked feature example */}
       <section className="bg-card border-y border-border">
@@ -175,10 +198,8 @@ const PricingPage = () => {
                   PER MONTH · BILLED £49.99/YEAR
                 </div>
               </div>
-              <button className="w-full py-3 bg-primary text-primary-foreground font-heading font-extrabold text-sm tracking-wider uppercase cursor-pointer border-none mb-2">
-                START ANNUAL PLAN →
-              </button>
-              <p className="text-[11px] text-muted-foreground text-center">
+              <LimeButton full onClick={() => setPro(true)}>START ANNUAL PLAN →</LimeButton>
+              <p className="text-[11px] text-muted-foreground text-center mt-2">
                 7-day free trial · Cancel anytime
               </p>
             </div>
@@ -215,7 +236,7 @@ const PricingPage = () => {
 
           {/* Final CTA */}
           <div className="text-center mt-12">
-            <LimeButton>START 7-DAY FREE TRIAL →</LimeButton>
+            <LimeButton onClick={() => setPro(true)}>START 7-DAY FREE TRIAL →</LimeButton>
             <p className="text-[11px] text-muted-foreground mt-3">
               No card until trial ends · Cancel anytime · Full access immediately
             </p>

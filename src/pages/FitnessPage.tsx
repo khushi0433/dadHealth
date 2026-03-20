@@ -1,6 +1,7 @@
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
-import OutlineButton from "@/components/OutlineButton";
+import LimeButton from "@/components/LimeButton";
+import { ProGate } from "@/components/ProProvider";
 import { EXERCISES, MEALS, PROGRESS_STATS } from "@/lib/constants";
 import workoutImg from "@/assets/workout.jpg";
 
@@ -23,19 +24,17 @@ const FitnessPage = () => {
       </section>
 
       {/* Timer */}
-      <section className="bg-primary text-primary-foreground">
+      <section className="bg-background">
         <div className="max-w-[1400px] mx-auto px-5 lg:px-8 py-6 flex items-center gap-6">
           <div className="flex-1">
-            <div className="font-heading text-[52px] font-extrabold leading-none tracking-wide">00:00</div>
-            <div className="font-heading text-[10px] font-bold tracking-wider uppercase opacity-50 mt-1">
+            <div className="font-heading text-[52px] font-extrabold text-foreground leading-none tracking-wide">00:00</div>
+            <div className="font-heading text-[10px] font-bold tracking-wider uppercase text-muted-foreground mt-1">
               WORKOUT TIMER · 6 EXERCISES
             </div>
           </div>
           <div className="flex gap-3">
-            <button className="bg-background text-foreground border-none py-2.5 px-5 font-heading font-bold text-xs tracking-wider uppercase cursor-pointer">
-              START →
-            </button>
-            <button className="bg-primary-foreground/10 text-primary-foreground border border-primary-foreground/20 py-2.5 px-4 font-heading font-bold text-xs tracking-wider uppercase cursor-pointer">
+            <LimeButton small>START →</LimeButton>
+            <button className="bg-transparent text-foreground border border-foreground py-2.5 px-4 font-heading font-bold text-xs tracking-wider uppercase cursor-pointer hover:border-primary hover:text-primary transition-colors">
               NEXT EXERCISE
             </button>
           </div>
@@ -74,21 +73,23 @@ const FitnessPage = () => {
             ))}
           </div>
 
-          {/* Meals */}
+          {/* Meals - Pro gated */}
           <span className="section-label !p-0 mb-4 block">THIS WEEK'S MEALS</span>
-          <div className="bg-primary text-primary-foreground p-5">
-            <h3 className="font-heading text-lg font-extrabold uppercase mb-4">MEAL PLANNER</h3>
-            {MEALS.map((meal, i) => (
-              <div key={i} className="flex items-center gap-4 py-2.5 border-b border-primary-foreground/10 last:border-b-0">
-                <span className="font-heading text-[10px] font-bold tracking-wider uppercase opacity-60 w-8">{meal.day}</span>
-                <span className="font-heading text-[13px] font-extrabold flex-1">{meal.name}</span>
-                <span className="text-xs opacity-60">{meal.kcal} kcal</span>
-              </div>
-            ))}
-            <button className="mt-4 bg-primary-foreground text-primary font-heading font-bold text-[11px] tracking-wider uppercase px-4 py-2.5 border-none cursor-pointer">
-              GENERATE GROCERY LIST →
-            </button>
-          </div>
+          <ProGate featureName="Meal planner" lockMessage="The hardest part of eating well is deciding what to eat. We've done that for you.">
+            <div className="bg-primary text-primary-foreground p-5">
+              <h3 className="font-heading text-lg font-extrabold uppercase mb-4">MEAL PLANNER</h3>
+              {MEALS.map((meal, i) => (
+                <div key={i} className="flex items-center gap-4 py-2.5 border-b border-primary-foreground/10 last:border-b-0">
+                  <span className="font-heading text-[10px] font-bold tracking-wider uppercase opacity-60 w-8">{meal.day}</span>
+                  <span className="font-heading text-[13px] font-extrabold flex-1">{meal.name}</span>
+                  <span className="text-xs opacity-60">{meal.kcal} kcal</span>
+                </div>
+              ))}
+              <button className="mt-4 bg-primary-foreground text-primary font-heading font-bold text-[11px] tracking-wider uppercase px-4 py-2.5 border-none cursor-pointer hover:opacity-90 transition-opacity">
+                GENERATE GROCERY LIST →
+              </button>
+            </div>
+          </ProGate>
         </div>
       </div>
 
