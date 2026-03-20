@@ -1,11 +1,19 @@
+"use client";
+
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
-import LimeButton from "@/components/LimeButton";
 import OutlineButton from "@/components/OutlineButton";
 import { ProGate } from "@/components/ProProvider";
-import { MOOD_WEEK, DAYS } from "@/lib/constants";
+import { format } from "date-fns";
+import { MOOD_WEEK } from "@/lib/constants";
+import { useAuth } from "@/contexts/AuthContext";
+import { useDadScore } from "@/hooks/useDadScore";
+import { useReportStats } from "@/hooks/useReportStats";
+import { useSleepLogs } from "@/hooks/useSleepLogs";
+import { useMoodLogs } from "@/hooks/useMoodLogs";
+import { useBadges, useEarnedBadges } from "@/hooks/useBadges";
 
-const SLEEP_DATA = [
+const DEFAULT_SLEEP = [
   { day: "Mon", hrs: 6.5 },
   { day: "Tue", hrs: 7.2 },
   { day: "Wed", hrs: 5.8 },
@@ -15,25 +23,56 @@ const SLEEP_DATA = [
   { day: "Sun", hrs: 6.2 },
 ];
 
-const BADGES = [
-  { icon: "🔥", name: "14-day streak" },
-  { icon: "💪", name: "First workout" },
-  { icon: "📖", name: "Journal starter" },
-  { icon: "👨‍👧", name: "Dad date king" },
-  { icon: "🧠", name: "Mind check" },
-];
-
-const REPORT_STATS = [
-  ["12", "Workouts"],
-  ["8", "Journal entries"],
-  ["3", "Dad dates"],
-  ["6.8hrs", "Avg sleep"],
-  ["14", "Day streak"],
-  ["Good", "Avg mood"],
-] as const;
-
 const ProgressPage = () => {
-  const dadScore = 74;
+  const { user } = useAuth();
+  const { data: scoreData } = useDadScore(user?.id);
+  const { data: reportStats } = useReportStats(user?.id);
+  const { data: sleepLogs = [] } = useSleepLogs(user?.id);
+  const { data: moodLogs = [] } = useMoodLogs(user?.id);
+  const { data: badges = [] } = useBadges();
+  const { data: earnedBadges = [] } = useEarnedBadges(user?.id);
+
+  const dadScore = scoreData?.score ?? 74;
+  const breakdown = scoreData?.breakdown ?? { mind: 72, body: 81, bond: 68 };
+
+  const last7 = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - (6 - i));
+    return { key: d.toISOString().slice(0, 10), day: format(d, "EEE") };
+  });
+  const sleepMap = new Map(sleepLogs.map((s: { date: string; hours: number }) => [s.date, s.hours]));
+  const moodMap = new Map(moodLogs.map((m: { date: string; mood_value: number }) => [m.date, m.mood_value]));
+  const sleepData = last7.map(({ key, day }) => ({ day, hrs: sleepMap.get(key) ?? 6.5 }));
+  const moodWeekData = last7.map(({ key }) => moodMap.get(key) ?? 3);
+
+  const displaySleep = user && sleepLogs.length > 0 ? sleepData : DEFAULT_SLEEP;
+  const displayMood = user && moodLogs.length > 0 ? moodWeekData : MOOD_WEEK;
+
+  const reportStatsList = reportStats
+    ? [
+        [String(reportStats.workouts), "Workouts"],
+        [String(reportStats.journal), "Journal entries"],
+        [String(reportStats.dadDates), "Dad dates"],
+        [`${reportStats.avgSleep}hrs`, "Avg sleep"],
+        [String(reportStats.streak), "Day streak"],
+        [reportStats.avgMood, "Avg mood"],
+      ]
+    : [
+        ["12", "Workouts"],
+        ["8", "Journal entries"],
+        ["3", "Dad dates"],
+        ["6.8hrs", "Avg sleep"],
+        ["14", "Day streak"],
+        ["Good", "Avg mood"],
+      ];
+
+  const displayBadges = earnedBadges.length > 0 ? earnedBadges : badges.length > 0 ? badges : [
+    { icon: "🔥", name: "14-day streak" },
+    { icon: "💪", name: "First workout" },
+    { icon: "📖", name: "Journal starter" },
+    { icon: "👨‍👧", name: "Dad date king" },
+    { icon: "🧠", name: "Mind check" },
+  ];
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -54,9 +93,9 @@ const ProgressPage = () => {
             >
               <div className="w-full min-w-[220px] flex-1">
                 {[
-                  { label: "Mind", value: 72 },
-                  { label: "Body", value: 81 },
-                  { label: "Bond", value: 68 },
+                  { label: "Mind", value: breakdown.mind },
+                  { label: "Body", value: breakdown.body },
+                  { label: "Bond", value: breakdown.bond },
                 ].map((item) => (
                   <div key={item.label} className="mb-2.5">
                     <div className="flex justify-between font-heading text-[11px] font-bold uppercase text-muted-foreground tracking-wide mb-1">
@@ -79,7 +118,7 @@ const ProgressPage = () => {
         <div className="max-w-[1400px] mx-auto px-5 lg:px-8 py-10">
           <h2 className="font-heading text-[22px] font-extrabold uppercase tracking-wide mb-4">March report card</h2>
           <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
-            {REPORT_STATS.map(([n, l]) => (
+            {reportStatsList.map(([n, l]) => (
               <div key={l} className="bg-primary-foreground/[0.07] p-3.5">
                 <div className="font-heading text-[22px] font-extrabold leading-none">{n}</div>
                 <div className="text-[10px] opacity-55 mt-1.5 uppercase tracking-wide">{l}</div>
@@ -97,7 +136,7 @@ const ProgressPage = () => {
         <div className="py-8">
           <span className="section-label !p-0 mb-4 block">DH BADGES EARNED</span>
           <div className="flex gap-3 flex-wrap">
-            {BADGES.map((b) => (
+            {displayBadges.map((b: { icon: string; name: string }) => (
               <div
                 key={b.name}
                 className="flex flex-col items-center gap-1.5 p-2.5 border border-primary/20 bg-primary/[0.04] min-w-[60px]"
@@ -126,7 +165,7 @@ const ProgressPage = () => {
           >
             <div>
               <div className="flex items-end gap-1.5 h-[80px] mb-3">
-                {SLEEP_DATA.map((s, i) => {
+                {displaySleep.map((s: { day: string; hrs: number }, i: number) => {
                   const h = Math.round((s.hrs / 10) * 70) + 4;
                   return (
                     <div key={i} className="flex-1 flex flex-col items-center gap-1">
@@ -152,7 +191,7 @@ const ProgressPage = () => {
           <div className="bg-primary text-primary-foreground p-5">
             <h3 className="font-heading text-lg font-extrabold uppercase tracking-wide mb-3">Mood correlation</h3>
             <div className="flex gap-3 mb-3">
-              {SLEEP_DATA.map((s, i) => (
+              {displaySleep.map((s: { day: string; hrs: number }, i: number) => (
                 <div key={i} className="flex-1 flex flex-col items-center gap-1">
                   <div className="w-full h-10 bg-primary-foreground/[0.08] relative">
                     <div
@@ -163,7 +202,7 @@ const ProgressPage = () => {
                   <div className="w-full h-10 bg-primary-foreground/[0.08] relative">
                     <div
                       className="absolute bottom-0 left-0 right-0 bg-primary-foreground/35"
-                      style={{ height: `${Math.round((MOOD_WEEK[i] / 4) * 100)}%` }}
+                      style={{ height: `${Math.round(((displayMood[i] ?? 3) / 4) * 100)}%` }}
                     />
                   </div>
                   <span className="font-heading text-[9px] font-bold opacity-50">{s.day}</span>
