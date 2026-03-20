@@ -6,10 +6,21 @@ import Logo from "./Logo";
 import { NAV_LINKS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import AuthModal from "./AuthModal";
 
 const SiteHeader = () => {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [authOpen, setAuthOpen] = useState(false);
+  const { user, signOut } = useAuth();
+
+  const displayName = user?.user_metadata?.display_name
+    ?.split(" ")
+    .map((n: string) => n[0])
+    .join("")
+    .toUpperCase()
+    .slice(0, 2) || user?.email?.slice(0, 2).toUpperCase() || "?";
 
   return (
     <header className="sticky top-0 z-50 bg-black border-b border-white/10">
@@ -42,12 +53,29 @@ const SiteHeader = () => {
           >
             PRO
           </Link>
-          <Link
-            href="/pricing"
-            className="bg-primary text-primary-foreground font-heading font-bold text-[11px] tracking-wider uppercase px-4 py-2.5 hover:brightness-110 hover:shadow-[0_0_20px_hsl(78,89%,65%,0.3)] transition-all duration-200"
-          >
-            START FREE — 7 DAYS
-          </Link>
+          {user ? (
+            <div className="flex items-center gap-2">
+              <Link
+                href="/progress"
+                className="w-9 h-9 bg-primary/20 border border-primary rounded-full flex items-center justify-center font-heading text-sm font-bold text-primary"
+              >
+                {displayName}
+              </Link>
+              <button
+                onClick={() => signOut()}
+                className="font-heading text-[10px] font-bold tracking-wider uppercase text-muted-foreground hover:text-foreground transition-colors"
+              >
+                SIGN OUT
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setAuthOpen(true)}
+              className="bg-primary text-primary-foreground font-heading font-bold text-[11px] tracking-wider uppercase px-4 py-2.5 hover:brightness-110 hover:shadow-[0_0_20px_hsl(78,89%,65%,0.3)] transition-all duration-200"
+            >
+              START FREE — 7 DAYS
+            </button>
+          )}
 
           {/* Mobile menu button */}
           <button
@@ -67,6 +95,8 @@ const SiteHeader = () => {
       </div>
 
       {/* Mobile nav */}
+      <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} />
+
       {mobileOpen && (
         <nav className="md:hidden border-t border-border bg-background px-5 py-4 space-y-3">
           {NAV_LINKS.map((link) => (
