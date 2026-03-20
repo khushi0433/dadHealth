@@ -1,32 +1,60 @@
+"use client";
+
+import { useState } from "react";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
-import LimeButton from "@/components/LimeButton";
-import OutlineButton from "@/components/OutlineButton";
 import { ProGate } from "@/components/ProProvider";
 import { IMAGES } from "@/lib/images";
+import { useAuth } from "@/contexts/AuthContext";
+import { useDadDates } from "@/hooks/useDadDates";
+import { useMilestones, useSaveMilestone } from "@/hooks/useMilestones";
+import { useAgePrompts } from "@/hooks/useAgePrompts";
 
-const DAD_DATES = [
-  { icon: "🎮", name: "Gaming night", age: "8–14", budget: "Free", time: "2 hrs" },
-  { icon: "🏕️", name: "Garden camping", age: "5–12", budget: "Free", time: "Evening" },
-  { icon: "⚽", name: "Park kickabout", age: "4+", budget: "Free", time: "1 hr" },
-  { icon: "🍕", name: "Cook together", age: "6+", budget: "£10", time: "1 hr" },
-  { icon: "🎬", name: "Cinema trip", age: "6+", budget: "£25", time: "2 hrs" },
-  { icon: "🚴", name: "Bike ride", age: "7+", budget: "Free", time: "1–2 hrs" },
-];
-
-const MILESTONES = [
-  { date: "12 Mar", text: "Ella said 'I love you Dad' unprompted after school", tag: "BOND" },
-  { date: "3 Feb", text: "First bike ride without stabilisers — cried (me, not him)", tag: "MILESTONE" },
-  { date: "15 Jan", text: "Bedtime story streak — 14 nights in a row", tag: "STREAK" },
-];
-
-const CONVERSATION_STARTERS = [
-  "What made you laugh the hardest today?",
-  "If you could have any superpower, what would you pick and why?",
-  "What's one thing you wish Dad knew about your day?",
+const DEFAULT_DAD_DATES = [
+  { icon: "🎮", name: "Gaming night", age_range: "8–14", budget: "Free", time: "2 hrs" },
+  { icon: "🏕️", name: "Garden camping", age_range: "5–12", budget: "Free", time: "Evening" },
+  { icon: "⚽", name: "Park kickabout", age_range: "4+", budget: "Free", time: "1 hr" },
+  { icon: "🍕", name: "Cook together", age_range: "6+", budget: "£10", time: "1 hr" },
+  { icon: "🎬", name: "Cinema trip", age_range: "6+", budget: "£25", time: "2 hrs" },
+  { icon: "🚴", name: "Bike ride", age_range: "7+", budget: "Free", time: "1–2 hrs" },
 ];
 
 const BondPage = () => {
+  const { user } = useAuth();
+  const { data: dadDates = [] } = useDadDates();
+  const { data: milestones = [] } = useMilestones(user?.id);
+  const { data: prompts = [] } = useAgePrompts();
+
+  const [presentMode, setPresentMode] = useState(false);
+  const [dateFilter, setDateFilter] = useState(0);
+
+  const dates = dadDates.length > 0 ? dadDates : DEFAULT_DAD_DATES;
+  const filters = ["All", "Free", "Under £15", "1 hr", "Evening"];
+  const filteredDates = dates.filter((d: { budget?: string; time?: string }) => {
+    if (dateFilter === 0) return true;
+    if (dateFilter === 1) return d.budget === "Free";
+    if (dateFilter === 2) return d.budget?.includes("£") && parseInt(d.budget) <= 15;
+    if (dateFilter === 3) return d.time?.includes("1 hr");
+    if (dateFilter === 4) return d.time?.toLowerCase().includes("evening");
+    return true;
+  });
+
+  const displayMilestones = milestones.length > 0
+    ? milestones
+    : [
+        { date: "12 Mar", text: "Ella said 'I love you Dad' unprompted after school", tag: "BOND" },
+        { date: "3 Feb", text: "First bike ride without stabilisers — cried (me, not him)", tag: "MILESTONE" },
+        { date: "15 Jan", text: "Bedtime story streak — 14 nights in a row", tag: "STREAK" },
+      ];
+
+  const conversationStarters = prompts.length > 0
+    ? prompts.map((p: { prompt: string }) => p.prompt)
+    : [
+        "What made you laugh the hardest today?",
+        "If you could have any superpower, what would you pick and why?",
+        "What's one thing you wish Dad knew about your day?",
+      ];
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <SiteHeader />
@@ -53,9 +81,16 @@ const BondPage = () => {
             <h3 className="font-heading text-sm font-extrabold text-foreground uppercase tracking-wide">Present Dad Mode</h3>
             <p className="text-[11px] text-muted-foreground mt-0.5">Block distractions for 60 min</p>
           </div>
-          <div className="w-11 h-6 rounded-full bg-muted relative cursor-pointer">
-            <div className="w-5 h-5 rounded-full bg-foreground absolute top-0.5 left-0.5 transition-transform" />
-          </div>
+          <button
+            onClick={() => setPresentMode(!presentMode)}
+            className="w-11 h-6 rounded-full bg-muted relative cursor-pointer"
+          >
+            <div
+              className={`w-5 h-5 rounded-full bg-foreground absolute top-0.5 transition-transform ${
+                presentMode ? "left-6" : "left-0.5"
+              }`}
+            />
+          </button>
         </div>
       </section>
 
@@ -64,11 +99,12 @@ const BondPage = () => {
         <div className="pt-8 pb-6">
           <span className="section-label !p-0 mb-4 block">DAD DATE IDEAS</span>
           <div className="flex gap-2 mb-4 flex-wrap">
-            {["All", "Free", "Under £15", "1 hr", "Evening"].map((f, i) => (
+            {filters.map((f, i) => (
               <button
                 key={f}
+                onClick={() => setDateFilter(i)}
                 className={`px-3 py-1.5 border font-heading text-[11px] font-bold tracking-wide uppercase cursor-pointer transition-all ${
-                  i === 0
+                  dateFilter === i
                     ? "border-primary text-primary bg-primary/10"
                     : "border-border text-muted-foreground hover:border-primary hover:text-primary"
                 }`}
@@ -78,7 +114,7 @@ const BondPage = () => {
             ))}
           </div>
           <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
-            {DAD_DATES.map((d) => (
+            {filteredDates.map((d: { icon?: string; name: string; age_range?: string; age?: string; budget?: string; time?: string }) => (
               <div
                 key={d.name}
                 className="border border-border p-3.5 cursor-pointer transition-all hover:border-primary group"
@@ -88,9 +124,9 @@ const BondPage = () => {
                   {d.name}
                 </div>
                 <div className="flex gap-1.5 flex-wrap">
-                  <span className="text-[10px] text-muted-foreground">Age {d.age}</span>
-                  <span className="text-[10px] text-primary">· {d.budget}</span>
-                  <span className="text-[10px] text-muted-foreground">· {d.time}</span>
+                  <span className="text-[10px] text-muted-foreground">Age {d.age_range ?? d.age ?? "—"}</span>
+                  <span className="text-[10px] text-primary">· {d.budget ?? "—"}</span>
+                  <span className="text-[10px] text-muted-foreground">· {d.time ?? "—"}</span>
                 </div>
               </div>
             ))}
@@ -102,7 +138,7 @@ const BondPage = () => {
           <span className="section-label !p-0 mb-4 block">MILESTONE TRACKER</span>
           <ProGate featureName="Milestone photo uploads" lockMessage="Words are good. Photos last forever.">
             <div>
-              {MILESTONES.map((m) => (
+              {displayMilestones.map((m: { date: string; text: string; tag: string }) => (
                 <div
                   key={m.text}
                   className="flex gap-3 items-start py-3 border-b border-border last:border-b-0"
@@ -121,7 +157,7 @@ const BondPage = () => {
         {/* Conversation starters */}
         <div className="py-8 border-t border-border">
           <span className="section-label !p-0 mb-4 block">CONVERSATION STARTERS</span>
-          {CONVERSATION_STARTERS.map((q) => (
+          {conversationStarters.map((q: string) => (
             <div
               key={q}
               className="py-3 border-b border-border last:border-b-0 pl-3 border-l-[3px] border-l-primary mb-2"
