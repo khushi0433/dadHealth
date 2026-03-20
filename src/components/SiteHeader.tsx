@@ -7,13 +7,11 @@ import { NAV_LINKS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import AuthModal from "./AuthModal";
 
 const SiteHeader = () => {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [authOpen, setAuthOpen] = useState(false);
-  const { user, signOut } = useAuth();
+  const { user, signOut, openAuthModal } = useAuth();
 
   const displayName = user?.user_metadata?.display_name
     ?.split(" ")
@@ -70,7 +68,7 @@ const SiteHeader = () => {
             </div>
           ) : (
             <button
-              onClick={() => setAuthOpen(true)}
+              onClick={openAuthModal}
               className="bg-primary text-primary-foreground font-heading font-bold text-[11px] tracking-wider uppercase px-4 py-2.5 hover:brightness-110 hover:shadow-[0_0_20px_hsl(78,89%,65%,0.3)] transition-all duration-200"
             >
               START FREE — 7 DAYS
@@ -95,7 +93,6 @@ const SiteHeader = () => {
       </div>
 
       {/* Mobile nav */}
-      <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} />
 
       {mobileOpen && (
         <nav className="md:hidden border-t border-border bg-background px-5 py-4 space-y-3">

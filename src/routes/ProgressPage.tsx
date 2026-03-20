@@ -1,5 +1,6 @@
 "use client";
 
+import { useCallback } from "react";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 import OutlineButton from "@/components/OutlineButton";
@@ -12,6 +13,7 @@ import { useReportStats } from "@/hooks/useReportStats";
 import { useSleepLogs } from "@/hooks/useSleepLogs";
 import { useMoodLogs } from "@/hooks/useMoodLogs";
 import { useBadges, useEarnedBadges } from "@/hooks/useBadges";
+import { toast } from "@/hooks/use-toast";
 
 const DEFAULT_SLEEP = [
   { day: "Mon", hrs: 6.5 },
@@ -65,6 +67,25 @@ const ProgressPage = () => {
         ["14", "Day streak"],
         ["Good", "Avg mood"],
       ];
+
+  const handleShareReport = useCallback(async () => {
+    const text = `My Dad Health Score: ${dadScore}/100. Track your dad health at Dad Health.`;
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: "My Dad Health Report",
+          text,
+          url: typeof window !== "undefined" ? window.location.origin : "",
+        });
+        toast({ description: "Report shared!" });
+      } else {
+        await navigator.clipboard.writeText(text);
+        toast({ description: "Report copied to clipboard!" });
+      }
+    } catch {
+      toast({ description: "Share cancelled", variant: "destructive" });
+    }
+  }, [dadScore]);
 
   const displayBadges = earnedBadges.length > 0 ? earnedBadges : badges.length > 0 ? badges : [
     { icon: "🔥", name: "14-day streak" },
@@ -126,7 +147,7 @@ const ProgressPage = () => {
             ))}
           </div>
           <div className="mt-4">
-            <OutlineButton dark>Share report card</OutlineButton>
+            <OutlineButton dark onClick={handleShareReport}>Share report card</OutlineButton>
           </div>
         </div>
       </section>

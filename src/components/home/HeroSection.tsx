@@ -35,7 +35,9 @@ const HeroSection = ({ heroImg }: HeroSectionProps) => (
         <Link href="/pricing">
           <LimeButton>START FREE — 7 DAYS →</LimeButton>
         </Link>
-        <OutlineButton>HOW IT WORKS</OutlineButton>
+        <Link href="/#what-we-cover">
+          <OutlineButton>HOW IT WORKS</OutlineButton>
+        </Link>
       </div>
     </div>
   </section>

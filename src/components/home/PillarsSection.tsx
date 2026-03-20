@@ -6,7 +6,7 @@ interface PillarsSectionProps {
 }
 
 const PillarsSection = ({ pillarImages }: PillarsSectionProps) => (
-  <section className="bg-background pt-16 lg:pt-20 pb-16 lg:pb-20">
+  <section id="what-we-cover" className="bg-background pt-16 lg:pt-20 pb-16 lg:pb-20">
     <div className="max-w-[1400px] mx-auto">
       <div className="px-5 pb-4 lg:px-8">
         <span className="section-label">THE PILLARS OF OUR HEALTH</span>

@@ -4,13 +4,17 @@ import LimeButton from "@/components/LimeButton";
 
 interface ProContextType {
   isPro: boolean;
+  isSubscribed: boolean;
   setPro: (val: boolean) => void;
+  setSubscribed: (val: boolean) => void;
   showPaywall: (featureName: string) => void;
 }
 
 const ProContext = createContext<ProContextType>({
   isPro: false,
+  isSubscribed: false,
   setPro: () => {},
+  setSubscribed: () => {},
   showPaywall: () => {},
 });
 
@@ -18,6 +22,7 @@ export const useProStatus = () => useContext(ProContext);
 
 export const ProProvider = ({ children }: { children: ReactNode }) => {
   const [isPro, setIsPro] = useState(false);
+  const [isSubscribed, setIsSubscribed] = useState(false);
   const [paywallFeature, setPaywallFeature] = useState<string | null>(null);
 
   const showPaywall = (featureName: string) => {
@@ -27,7 +32,7 @@ export const ProProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <ProContext.Provider value={{ isPro, setPro: setIsPro, showPaywall }}>
+    <ProContext.Provider value={{ isPro, isSubscribed, setPro: setIsPro, setSubscribed: setIsSubscribed, showPaywall }}>
       {children}
       {paywallFeature && (
         <PaywallModal
@@ -56,6 +61,7 @@ const PaywallModal = ({ featureName, onClose, onStartTrial }: PaywallModalProps)
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-sm" onClick={onClose}>
       <div className="bg-card border border-border p-6 max-w-sm w-full mx-4 relative" onClick={(e) => e.stopPropagation()}>
         <button
+          type="button"
           onClick={onClose}
           className="absolute top-3 right-3 text-muted-foreground hover:text-foreground text-lg cursor-pointer bg-transparent border-none"
         >
@@ -78,21 +84,23 @@ const PaywallModal = ({ featureName, onClose, onStartTrial }: PaywallModalProps)
         {/* Plan toggle */}
         <div className="flex bg-white/5 border border-border p-1 gap-1 mb-6">
           <button
+            type="button"
             onClick={() => setPlan("monthly")}
             className={`flex-1 py-2 text-center font-heading text-xs font-bold tracking-wide uppercase cursor-pointer transition-all ${
               plan === "monthly"
                 ? "bg-primary text-primary-foreground"
-                : "bg-transparent text-muted-foreground"
+                : "bg-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
             MONTHLY
           </button>
           <button
+            type="button"
             onClick={() => setPlan("annual")}
             className={`flex-1 py-2 text-center font-heading text-xs font-bold tracking-wide uppercase cursor-pointer transition-all ${
               plan === "annual"
                 ? "bg-primary text-primary-foreground"
-                : "bg-transparent text-muted-foreground"
+                : "bg-transparent text-muted-foreground hover:text-foreground"
             }`}
           >
             ANNUAL
@@ -108,7 +116,7 @@ const PaywallModal = ({ featureName, onClose, onStartTrial }: PaywallModalProps)
           </div>
         </div>
 
-        <LimeButton full onClick={onStartTrial}>
+        <LimeButton type="button" full onClick={onStartTrial}>
           START {plan === "annual" ? "ANNUAL" : "MONTHLY"} PLAN →
         </LimeButton>
         <p className="text-[11px] text-muted-foreground text-center mt-2">
@@ -116,6 +124,7 @@ const PaywallModal = ({ featureName, onClose, onStartTrial }: PaywallModalProps)
         </p>
 
         <button
+          type="button"
           onClick={onClose}
           className="w-full mt-3 text-center font-heading text-[11px] font-bold tracking-wider uppercase text-muted-foreground cursor-pointer bg-transparent border-none hover:text-primary transition-colors"
         >
@@ -152,7 +161,7 @@ export const ProGate = ({ children, featureName, lockMessage }: ProGateProps) =>
             {lockMessage}
           </p>
         )}
-        <button className="mt-2 bg-primary text-primary-foreground font-heading font-bold text-[9px] tracking-wider uppercase px-3 py-1.5 border-none cursor-pointer hover:brightness-110 transition-all">
+        <button type="button" className="mt-2 bg-primary text-primary-foreground font-heading font-bold text-[9px] tracking-wider uppercase px-3 py-1.5 border-none cursor-pointer hover:brightness-110 transition-all">
           Unlock →
         </button>
       </div>

@@ -17,7 +17,8 @@ import {
 
 const PricingPage = () => {
   const [plan, setPlan] = useState<"monthly" | "annual">("annual");
-  const { isPro, setPro } = useProStatus();
+  const [previewPlan, setPreviewPlan] = useState<"monthly" | "annual">("annual");
+  const { isPro, isSubscribed, setPro, showPaywall } = useProStatus();
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -34,14 +35,15 @@ const PricingPage = () => {
             Unlock every tool we've built to help you be a stronger dad.
           </p>
 
-          {/* Pro confirmed state */}
-          {isPro && (
+          {/* Pro confirmed state - only for paid subscribers */}
+          {isSubscribed && (
             <div className="mt-6 border border-primary bg-primary/5 p-6 max-w-sm mx-auto">
               <div className="font-heading text-[22px] font-extrabold text-primary uppercase mb-2">
                 You're a Pro Dad.
               </div>
               <p className="text-sm text-muted-foreground">You have full access to every Dad Health feature. Keep showing up.</p>
               <button
+                type="button"
                 onClick={() => setPro(false)}
                 className="mt-4 text-[10px] text-muted-foreground underline cursor-pointer bg-transparent border-none hover:text-foreground transition-colors"
               >
@@ -126,6 +128,7 @@ const PricingPage = () => {
                         ))}
                     </div>
                     <button
+                      type="button"
                       onClick={() => {
                         if (isPopular) setPro(true);
                       }}
@@ -138,9 +141,13 @@ const PricingPage = () => {
                       {(p as any).cta}
                     </button>
                     {isPopular && (
-                      <p className="text-[11px] text-muted-foreground text-center mt-2">
+                      <button
+                        type="button"
+                        onClick={() => setPro(true)}
+                        className="block w-full mt-2 text-[11px] text-muted-foreground text-center cursor-pointer bg-transparent border-none hover:text-foreground transition-colors"
+                      >
                         No card until trial ends · Cancel anytime
-                      </p>
+                      </button>
                     )}
                   </div>
                 );
@@ -185,7 +192,7 @@ const PricingPage = () => {
               </div>
             </div>
 
-            {/* Paywall modal preview */}
+            {/* Paywall modal preview - interactive */}
             <div className="bg-card border border-border p-6">
               <div className="flex items-center gap-2 mb-4">
                 <Logo />
@@ -195,23 +202,43 @@ const PricingPage = () => {
                 "<span className="text-primary font-semibold">mood trend graphs</span>" is a Pro feature
               </p>
               <div className="flex bg-white/5 border border-border p-1 gap-1 mb-6">
-                <div className="flex-1 py-2 text-center font-heading text-xs font-bold tracking-wide text-muted-foreground">
+                <button
+                  type="button"
+                  onClick={() => setPreviewPlan("monthly")}
+                  className={`flex-1 py-2 text-center font-heading text-xs font-bold tracking-wide uppercase cursor-pointer transition-all ${
+                    previewPlan === "monthly" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
                   MONTHLY
-                </div>
-                <div className="flex-1 py-2 text-center font-heading text-xs font-bold tracking-wide uppercase bg-primary text-primary-foreground">
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPreviewPlan("annual")}
+                  className={`flex-1 py-2 text-center font-heading text-xs font-bold tracking-wide uppercase cursor-pointer transition-all ${
+                    previewPlan === "annual" ? "bg-primary text-primary-foreground hover:brightness-110" : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
                   ANNUAL
-                </div>
+                </button>
               </div>
               <div className="text-center mb-6">
-                <div className="font-heading text-[48px] font-extrabold text-primary leading-none">£4.17</div>
+                <div className="font-heading text-[48px] font-extrabold text-primary leading-none">
+                  {previewPlan === "annual" ? "£4.17" : "£6.99"}
+                </div>
                 <div className="font-heading text-xs font-bold tracking-wider uppercase text-muted-foreground mt-1">
-                  PER MONTH · BILLED £49.99/YEAR
+                  {previewPlan === "annual" ? "PER MONTH · BILLED £49.99/YEAR" : "PER MONTH"}
                 </div>
               </div>
-              <LimeButton full onClick={() => setPro(true)}>START ANNUAL PLAN →</LimeButton>
-              <p className="text-[11px] text-muted-foreground text-center mt-2">
+              <LimeButton type="button" full onClick={() => setPro(true)}>
+                START {previewPlan === "annual" ? "ANNUAL" : "MONTHLY"} PLAN →
+              </LimeButton>
+              <button
+                type="button"
+                onClick={() => setPro(true)}
+                className="block w-full mt-2 text-[11px] text-muted-foreground text-center cursor-pointer bg-transparent border-none hover:text-primary transition-colors"
+              >
                 7-day free trial · Cancel anytime
-              </p>
+              </button>
             </div>
           </div>
         </div>
@@ -252,10 +279,14 @@ const PricingPage = () => {
 
           {/* Final CTA */}
           <div className="text-center mt-12">
-            <LimeButton onClick={() => setPro(true)}>START 7-DAY FREE TRIAL →</LimeButton>
-            <p className="text-[11px] text-muted-foreground mt-3">
+            <LimeButton type="button" onClick={() => setPro(true)}>START 7-DAY FREE TRIAL →</LimeButton>
+            <button
+              type="button"
+              onClick={() => setPro(true)}
+              className="block w-full mt-3 text-[11px] text-muted-foreground cursor-pointer bg-transparent border-none hover:text-primary transition-colors"
+            >
               No card until trial ends · Cancel anytime · Full access immediately
-            </p>
+            </button>
           </div>
         </div>
       </section>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 import LimeButton from "@/components/LimeButton";
@@ -13,7 +14,8 @@ import { useCircles, useUserCircles, useJoinCircle } from "@/hooks/useCircles";
 import { useRealtimePosts } from "@/hooks/useRealtimePosts";
 
 const CommunityPage = () => {
-  const { user } = useAuth();
+  const router = useRouter();
+  const { user, openAuthModal } = useAuth();
   const { data: posts = [] } = usePosts();
   const createPost = useCreatePost(user?.id);
   const toggleLike = useToggleLike(user?.id);
@@ -193,19 +195,33 @@ const CommunityPage = () => {
                 <p className="text-[13px] text-foreground/70 leading-relaxed mb-3">{(p.body ?? "") as string}</p>
                 <div className="flex gap-3.5">
                   <button
+                    type="button"
                     onClick={() => {
-                      if (user && typeof p.id === "string") {
+                      if (!user) { openAuthModal(); return; }
+                      if (typeof p.id === "string") {
                         const liked = userLikedIds.has(p.id);
                         toggleLike.mutate({ postId: p.id, liked });
                       }
                     }}
-                    disabled={!user || toggleLike.isPending}
+                    disabled={toggleLike.isPending}
                     className="post-action"
                   >
                     👊 {(p.likes_count ?? p.respect ?? 0) as number} RESPECT
                   </button>
-                  <button className="post-action">💬 {(p.replies_count ?? p.replies ?? 0) as number} REPLIES</button>
-                  <button className="post-action">🔖 SAVE</button>
+                  <button
+                    type="button"
+                    onClick={() => !user && openAuthModal()}
+                    className="post-action"
+                  >
+                    💬 {(p.replies_count ?? p.replies ?? 0) as number} REPLIES
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => !user && openAuthModal()}
+                    className="post-action"
+                  >
+                    🔖 SAVE
+                  </button>
                 </div>
               </div>
             );
@@ -229,7 +245,11 @@ const CommunityPage = () => {
               </div>
               <div className="flex justify-between items-center mt-3">
                 <span className="font-heading text-[11px] font-bold text-primary">{e.time}</span>
-                <button className="bg-background text-foreground border border-foreground font-heading font-bold text-[10px] tracking-wider uppercase px-3 py-1.5 cursor-pointer">
+                <button
+                  type="button"
+                  onClick={() => router.push("/pricing")}
+                  className="bg-background text-foreground border border-foreground font-heading font-bold text-[10px] tracking-wider uppercase px-3 py-1.5 cursor-pointer hover:border-primary hover:text-primary transition-colors"
+                >
                   BOOK SESSION
                 </button>
               </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 import LimeButton from "@/components/LimeButton";
@@ -12,7 +13,8 @@ import { useSaveJournal } from "@/hooks/useJournal";
 import { useTherapists } from "@/hooks/useTherapists";
 
 const MindPage = () => {
-  const { user } = useAuth();
+  const router = useRouter();
+  const { user, openAuthModal } = useAuth();
   const { data: moodLogs = [] } = useMoodLogs(user?.id);
   const saveJournal = useSaveJournal(user?.id);
   const { data: therapists = [] } = useTherapists();
@@ -119,12 +121,15 @@ const MindPage = () => {
               small
               className="mt-3"
               onClick={() => {
-                if (journalText.trim() && user) {
-                  saveJournal.mutate(journalText);
-                  setJournalText("");
+                if (!journalText.trim()) return;
+                if (!user) {
+                  openAuthModal();
+                  return;
                 }
+                saveJournal.mutate(journalText);
+                setJournalText("");
               }}
-              disabled={!user || !journalText.trim() || saveJournal.isPending}
+              disabled={!journalText.trim() || saveJournal.isPending}
             >
               {saveJournal.isPending ? "..." : "SAVE ENTRY"} →
             </LimeButton>
@@ -179,7 +184,11 @@ const MindPage = () => {
                       {t.spec} · {t.slots} · {t.price}
                     </div>
                   </div>
-                  <button className="bg-transparent text-foreground border border-foreground font-heading font-bold text-[10px] tracking-wider uppercase px-3 py-1.5 cursor-pointer shrink-0 hover:border-primary hover:text-primary transition-colors">
+                  <button
+                    type="button"
+                    onClick={() => router.push("/pricing")}
+                    className="bg-transparent text-foreground border border-foreground font-heading font-bold text-[10px] tracking-wider uppercase px-3 py-1.5 cursor-pointer shrink-0 hover:border-primary hover:text-primary transition-colors"
+                  >
                     Book
                   </button>
                 </div>
