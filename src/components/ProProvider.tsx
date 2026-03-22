@@ -1,4 +1,5 @@
 import { useState, createContext, useContext, ReactNode } from "react";
+import { Lock } from "lucide-react";
 import Logo from "@/components/Logo";
 import LimeButton from "@/components/LimeButton";
 
@@ -152,7 +153,7 @@ export const ProGate = ({ children, featureName, lockMessage }: ProGateProps) =>
         {children}
       </div>
       <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/60 backdrop-blur-[2px]">
-        <div className="text-2xl mb-2">🔒</div>
+        <Lock className="h-8 w-8 mx-auto mb-2 text-primary" strokeWidth={1.5} aria-hidden="true" />
         <div className="font-heading text-[11px] font-bold tracking-wider uppercase text-primary">
           PRO FEATURE
         </div>

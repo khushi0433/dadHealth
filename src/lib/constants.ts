@@ -72,10 +72,10 @@ export const MOOD_WEEK = [3, 2, 4, 3, 4, 4, 2];
 export const DAYS = ["M", "T", "W", "T", "F", "S", "S"];
 
 export const CIRCLES = [
-  { icon: "👶", name: "New dad crew", members: 847 },
-  { icon: "💪", name: "Fit dads", members: 1204 },
-  { icon: "💔", name: "Single dads", members: 623 },
-  { icon: "🎓", name: "Teen dad club", members: 412 },
+  { iconKey: "baby", name: "New dad crew", members: 847 },
+  { iconKey: "fitness", name: "Fit dads", members: 1204 },
+  { iconKey: "bond", name: "Single dads", members: 623 },
+  { iconKey: "grad", name: "Teen dad club", members: 412 },
 ] as const;
 
 export const FEED_POSTS = [

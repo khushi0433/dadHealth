@@ -1,6 +1,8 @@
 "use client";
 
 import Logo from "@/components/Logo";
+import { Flame, LifeBuoy } from "lucide-react";
+import { DashboardIcon } from "@/components/DashboardIcon";
 import { MOOD_WEEK, DAYS, MEALS, CIRCLES, FEED_POSTS } from "@/lib/constants";
 import Link from "next/link";
 import { useState, useEffect } from "react";
@@ -9,13 +11,13 @@ import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
 
 const SIDEBAR_ITEMS = [
-  { icon: "🏠", label: "HOME", id: "HOME" as const },
-  { icon: "🏋️", label: "FITNESS", id: "FITNESS" as const },
-  { icon: "🧠", label: "MIND", id: "MIND" as const },
-  { icon: "👨‍👧", label: "BOND", id: "BOND" as const },
-  { icon: "👥", label: "COMMUNITY", id: "COMMUNITY" as const },
-  { icon: "📊", label: "PROGRESS", id: "PROGRESS" as const },
-  { icon: "💎", label: "PRO ★", href: "/pricing" },
+  { iconKey: "home", label: "HOME", id: "HOME" as const },
+  { iconKey: "fitness", label: "FITNESS", id: "FITNESS" as const },
+  { iconKey: "mind", label: "MIND", id: "MIND" as const },
+  { iconKey: "bond", label: "BOND", id: "BOND" as const },
+  { iconKey: "community", label: "COMMUNITY", id: "COMMUNITY" as const },
+  { iconKey: "progress", label: "PROGRESS", id: "PROGRESS" as const },
+  { iconKey: "pro", label: "PRO ★", href: "/pricing" },
 ];
 
 const SCORE_ITEMS = [
@@ -25,29 +27,29 @@ const SCORE_ITEMS = [
 ];
 
 const TODAYS_PLAN = [
-  { icon: "🧘", name: "5-min breathing reset", time: "MORNING · MENTAL HEALTH", status: "done" as const },
-  { icon: "🏃", name: "20-min dad run", time: "12:30PM · FITNESS", status: "start" as const },
-  { icon: "📖", name: "Bedtime story with Ella", time: "7:30PM · PARENTING", status: "log" as const },
-  { icon: "✍️", name: "Evening journal", time: "9:00PM · REFLECTION", status: "open" as const },
+  { iconKey: "breathing", name: "5-min breathing reset", time: "MORNING · MENTAL HEALTH", status: "done" as const },
+  { iconKey: "run", name: "20-min dad run", time: "12:30PM · FITNESS", status: "start" as const },
+  { iconKey: "story", name: "Bedtime story with Ella", time: "7:30PM · PARENTING", status: "log" as const },
+  { iconKey: "journal", name: "Evening journal", time: "9:00PM · REFLECTION", status: "open" as const },
 ];
 
 const SMART_REMINDERS = [
-  "🌅 Morning check-in at 7:30am",
-  "📖 Ella's bedtime in 45 mins",
-  "🏃 Run window: 12:00–12:45pm",
+  { iconKey: "sunrise", text: "Morning check-in at 7:30am" },
+  { iconKey: "story", text: "Ella's bedtime in 45 mins" },
+  { iconKey: "run", text: "Run window: 12:00–12:45pm" },
 ];
 
 const DEFAULT_GOALS = [
-  { icon: "🧘", name: "5-min breathing reset", time: "MORNING · MENTAL HEALTH", status: "done" as const },
-  { icon: "🏃", name: "20-min dad run", time: "12:30PM · FITNESS", status: "start" as const },
-  { icon: "📖", name: "Bedtime story", time: "7:30PM · PARENTING", status: "log" as const },
-  { icon: "✍️", name: "Evening journal", time: "9:00PM · REFLECTION", status: "open" as const },
+  { iconKey: "breathing", name: "5-min breathing reset", time: "MORNING · MENTAL HEALTH", status: "done" as const },
+  { iconKey: "run", name: "20-min dad run", time: "12:30PM · FITNESS", status: "start" as const },
+  { iconKey: "story", name: "Bedtime story", time: "7:30PM · PARENTING", status: "log" as const },
+  { iconKey: "journal", name: "Evening journal", time: "9:00PM · REFLECTION", status: "open" as const },
 ];
 
 const DEFAULT_DAD_DATES = [
-  { icon: "🎮", name: "Gaming night", age_range: "8–14", budget: "Free" },
-  { icon: "🏕️", name: "Garden camping", age_range: "5–12", budget: "Free" },
-  { icon: "⚽", name: "Park kickabout", age_range: "4+", budget: "Free" },
+  { iconKey: "gaming", name: "Gaming night", age_range: "8–14", budget: "Free" },
+  { iconKey: "camping", name: "Garden camping", age_range: "5–12", budget: "Free" },
+  { iconKey: "kickabout", name: "Park kickabout", age_range: "4+", budget: "Free" },
 ];
 
 const DashboardPreview = () => {
@@ -121,7 +123,14 @@ const DashboardPreview = () => {
             </div>
             <div>
               <div className="font-heading text-sm font-bold text-foreground">{displayName ?? "—"}</div>
-              <div className="text-xs text-muted-foreground">{user ? `${streak}-day streak 🔥` : "—"}</div>
+              <div className="text-xs text-muted-foreground flex items-center gap-1.5">
+                {user ? (
+                  <>
+                    <Flame className="h-3.5 w-3.5 text-primary shrink-0" strokeWidth={1.5} aria-hidden="true" />
+                    {streak}-day streak
+                  </>
+                ) : "—"}
+              </div>
             </div>
           </div>
           <nav className="space-y-1">
@@ -133,7 +142,7 @@ const DashboardPreview = () => {
                     href={item.href}
                     className="flex items-center gap-3 px-3 py-2.5 font-heading text-[11px] font-bold tracking-wider uppercase transition-colors text-muted-foreground hover:text-foreground"
                   >
-                    <span className="text-base">{item.icon}</span>
+                    <DashboardIcon icon={(item as { iconKey: string }).iconKey} size="md" />
                     {item.label}
                   </Link>
                 );
@@ -150,7 +159,7 @@ const DashboardPreview = () => {
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  <span className="text-base">{item.icon}</span>
+                  <DashboardIcon icon={(item as { iconKey: string }).iconKey} size="md" active={isActive} />
                   {item.label}
                 </button>
               );
@@ -262,8 +271,8 @@ const DashboardPreview = () => {
               <div className="pb-4">
                 {tasks.map((task) => (
                   <div key={task.name} className="flex items-center gap-3 py-3 border-b border-primary/20 last:border-b-0">
-                    <div className="w-9 h-9 bg-primary/10 border border-primary/20 flex items-center justify-center text-base shrink-0">
-                      {task.icon}
+                    <div className="w-9 h-9 bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
+                      <DashboardIcon icon={(task as { iconKey: string }).iconKey} size="md" />
                     </div>
                     <div className="flex-1">
                       <div className="font-heading text-[13px] font-bold tracking-wide text-foreground">{task.name}</div>
@@ -316,8 +325,9 @@ const DashboardPreview = () => {
               <div className="mt-6">
                 <span className="section-label !p-0 mb-3 block">SMART REMINDERS</span>
                 {SMART_REMINDERS.map((reminder) => (
-                  <div key={reminder} className="text-xs text-muted-foreground py-1.5 border-b border-primary/20 last:border-b-0">
-                    {reminder}
+                  <div key={reminder.text} className="text-xs text-muted-foreground py-1.5 border-b border-primary/20 last:border-b-0 flex items-center gap-2">
+                    <DashboardIcon icon={reminder.iconKey} size="sm" />
+                    {reminder.text}
                   </div>
                 ))}
               </div>
@@ -401,7 +411,7 @@ const DashboardPreview = () => {
                     </Link>
                   </div>
                   <a href="https://www.samaritans.org" target="_blank" rel="noopener noreferrer" className="block border border-destructive/30 bg-destructive/10 p-3 text-[10px] text-foreground hover:bg-destructive/20 transition-colors">
-                    🆘 CRISIS SUPPORT — SAMARITANS · CALM · MIND
+                    <span className="flex items-center gap-2"><LifeBuoy className="h-4 w-4 shrink-0 text-primary" strokeWidth={1.5} aria-hidden="true" />CRISIS SUPPORT — SAMARITANS · CALM · MIND</span>
                   </a>
                 </>
               )}
@@ -412,9 +422,9 @@ const DashboardPreview = () => {
                     PARENTING
                   </div>
                   <span className="section-label !p-0 mb-2 block">DAD DATE IDEAS</span>
-                  {dates.map((d: { icon?: string; name: string; age_range?: string; budget?: string }) => (
+                  {dates.map((d: { icon?: string; iconKey?: string; name: string; age_range?: string; budget?: string }) => (
                     <div key={d.name} className="flex items-center gap-3 py-2.5 border-b border-primary/20 last:border-b-0">
-                      <span className="text-lg">{d.icon}</span>
+                      <DashboardIcon icon={(d as { iconKey?: string }).iconKey ?? d.icon ?? "gaming"} size="lg" />
                       <div className="flex-1">
                         <div className="font-heading text-[12px] font-bold text-foreground">{d.name}</div>
                         <div className="text-[10px] text-muted-foreground">Age {d.age_range ?? "—"} · {d.budget ?? "—"}</div>
@@ -542,9 +552,9 @@ const DashboardPreview = () => {
               {activeScreen === "COMMUNITY" && (
                 <>
                   <span className="section-label !p-0 mb-3 block">DAD CIRCLES</span>
-                  {displayCircles.map((c) => (
+                  {displayCircles.map((c: { icon?: string; iconKey?: string; name: string; members?: number }) => (
                     <div key={c.name} className="flex items-center gap-2 py-2 border-b border-primary/20 last:border-b-0">
-                      <span className="text-lg">{c.icon}</span>
+                      <DashboardIcon icon={(c as { iconKey?: string }).iconKey ?? c.icon ?? "community"} size="lg" />
                       <div>
                         <div className="font-heading text-[11px] font-bold text-foreground">{c.name}</div>
                         <div className="text-[10px] text-muted-foreground">{c.members} members</div>
@@ -560,9 +570,9 @@ const DashboardPreview = () => {
                 <>
                   <span className="section-label !p-0 mb-3 block">BADGES</span>
                   <div className="flex gap-2 flex-wrap">
-                    {["🔥", "💪", "📖", "👨‍👧"].map((icon, i) => (
-                      <div key={i} className="w-10 h-10 border border-primary/20 bg-primary/[0.04] flex items-center justify-center text-lg">
-                        {icon}
+                    {["flame", "fitness", "story", "bond"].map((iconKey, i) => (
+                      <div key={i} className="w-10 h-10 border border-primary/20 bg-primary/[0.04] flex items-center justify-center">
+                        <DashboardIcon icon={iconKey} size="lg" />
                       </div>
                     ))}
                   </div>

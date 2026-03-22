@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Logo from "./Logo";
+import { LifeBuoy } from "lucide-react";
 import { FOOTER_LINKS } from "@/lib/constants";
 
 const SiteFooter = () => (
@@ -77,7 +78,7 @@ const SiteFooter = () => (
           href="tel:116123"
           className="inline-flex items-center gap-2 px-4 py-2.5 border border-border rounded-lg bg-background/50 hover:border-primary/50 hover:bg-primary/5 transition-colors"
         >
-          <span className="text-sm">🆘</span>
+          <LifeBuoy className="h-4 w-4 shrink-0 text-primary" strokeWidth={1.5} aria-hidden="true" />
           <span className="font-heading text-[11px] font-bold tracking-wider uppercase text-muted-foreground">
             CRISIS SUPPORT — 116 123
           </span>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { PenLine, BarChart2, Stethoscope, LifeBuoy } from "lucide-react";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 import LimeButton from "@/components/LimeButton";
@@ -82,9 +83,12 @@ const MindPage = () => {
               href="https://www.samaritans.org"
               target="_blank"
               rel="noopener noreferrer"
-              className="w-full lg:w-auto bg-destructive/10 text-foreground border border-destructive/30 px-4 py-3 font-heading font-bold text-xs tracking-wider uppercase cursor-pointer flex items-center justify-between hover:bg-destructive/20 transition-colors"
+              className="w-full lg:w-auto bg-destructive/10 text-primary border border-destructive/30 px-4 py-3 font-heading font-bold text-xs tracking-wider uppercase cursor-pointer flex items-center justify-between hover:bg-destructive/20 transition-colors"
             >
-              <span>🆘 CRISIS SUPPORT — SAMARITANS · CALM · MIND</span>
+              <span className="flex items-center gap-2">
+                <LifeBuoy className="h-4 w-4 shrink-0 text-primary" strokeWidth={1.5} aria-hidden="true" />
+                CRISIS SUPPORT — SAMARITANS · CALM · MIND
+              </span>
             </a>
           </div>
 
@@ -112,7 +116,7 @@ const MindPage = () => {
         <div className="max-w-[1400px] mx-auto grid grid-cols-1 md:grid-cols-3 gap-px bg-border">
           {/* Journal */}
           <div className="bg-card p-6">
-            <div className="text-3xl mb-3">✍️</div>
+            <PenLine className="h-8 w-8 mb-3 text-primary" strokeWidth={1.5} aria-hidden="true" />
             <h3 className="font-heading text-lg font-extrabold text-foreground uppercase tracking-wide mb-2">
               EVENING JOURNAL
             </h3>
@@ -146,7 +150,7 @@ const MindPage = () => {
           {/* Mood Trend - Pro gated */}
           <ProGate featureName="Mood trend graphs" lockMessage="Your mood today is one data point. Your mood over 30 days is a pattern. Patterns change lives.">
             <div className="bg-card p-6">
-              <div className="text-3xl mb-3">📊</div>
+              <BarChart2 className="h-8 w-8 mb-3 text-primary" strokeWidth={1.5} aria-hidden="true" />
               <h3 className="font-heading text-lg font-extrabold text-foreground uppercase tracking-wide mb-2">
                 MOOD TREND
               </h3>
@@ -176,7 +180,7 @@ const MindPage = () => {
           {/* Find a Therapist - Pro gated */}
           <ProGate featureName="Therapist booking" lockMessage="The gap between 'I should talk to someone' and actually doing it is where most men get stuck. We close that gap.">
             <div className="bg-card p-6">
-              <div className="text-3xl mb-3">🩺</div>
+              <Stethoscope className="h-8 w-8 mb-3 text-primary" strokeWidth={1.5} aria-hidden="true" />
               <h3 className="font-heading text-lg font-extrabold text-foreground uppercase tracking-wide mb-2">
                 FIND A THERAPIST
               </h3>

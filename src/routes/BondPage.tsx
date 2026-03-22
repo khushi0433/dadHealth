@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { format } from "date-fns";
+import { Lock } from "lucide-react";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 import { useProStatus } from "@/components/ProProvider";
@@ -147,7 +148,7 @@ const BondPage = () => {
             </div>
           ) : (
             <div className="flex flex-col items-center p-4 bg-background/50 border border-border rounded-lg text-center gap-2">
-              <span className="text-2xl">🔒</span>
+              <Lock className="h-8 w-8 text-primary" strokeWidth={1.5} aria-hidden="true" />
               <p className="text-xs font-bold text-foreground">Pro Feature</p>
               <p className="text-[10px] text-muted-foreground">Words are good. Photos last forever.</p>
               <button

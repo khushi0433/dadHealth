@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback } from "react";
+import { Trophy } from "lucide-react";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 import OutlineButton from "@/components/OutlineButton";
@@ -165,7 +166,7 @@ const ProgressPage = () => {
               <p className="text-sm text-muted-foreground">No badges earned yet.</p>
             )}
             <div className="flex flex-col items-center gap-1.5 p-2.5 border border-dashed border-border min-w-[60px] opacity-40">
-              <span className="text-2xl">🏆</span>
+              <Trophy className="h-8 w-8 text-primary" strokeWidth={1.5} aria-hidden="true" />
               <span className="font-heading text-[9px] font-bold text-muted-foreground uppercase tracking-wide text-center leading-tight">
                 30-day lock
               </span>
