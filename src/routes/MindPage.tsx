@@ -6,18 +6,13 @@ import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 import LimeButton from "@/components/LimeButton";
 import { ProGate } from "@/components/ProProvider";
-import { MOOD_WEEK, DAYS } from "@/lib/constants";
 import { useAuth } from "@/contexts/AuthContext";
-import { useMoodLogs } from "@/hooks/useMoodLogs";
-import { useSaveJournal } from "@/hooks/useJournal";
-import { useTherapists } from "@/hooks/useTherapists";
+import { useMind } from "@/hooks/useMind";
 
 const MindPage = () => {
   const router = useRouter();
   const { user, openAuthModal } = useAuth();
-  const { data: moodLogs = [] } = useMoodLogs(user?.id);
-  const saveJournal = useSaveJournal(user?.id);
-  const { data: therapists = [] } = useTherapists();
+  const { moodLogs, therapists, saveJournal } = useMind(user?.id);
 
   const [journalText, setJournalText] = useState("");
   const [breathPhase, setBreathPhase] = useState<"inhale" | "hold" | "exhale">("inhale");
@@ -30,8 +25,12 @@ const MindPage = () => {
     return d.toISOString().slice(0, 10);
   });
   const moodMap = new Map(moodLogs.map((m: { date: string; mood_value: number }) => [m.date, m.mood_value]));
-  const moodWeekData = last7.map((d) => moodMap.get(d) ?? 3);
-  const displayMood = user ? moodWeekData : MOOD_WEEK;
+  const moodWeekData = last7.map((d) => moodMap.get(d) ?? 0);
+  const displayMood = user ? moodWeekData : [0, 0, 0, 0, 0, 0, 0];
+  const avgMoodValue = displayMood.filter((v) => v > 0).length > 0
+    ? displayMood.reduce((a, b) => a + b, 0) / displayMood.filter((v) => v > 0).length
+    : 0;
+  const avgMoodLabel = avgMoodValue >= 3.5 ? "Great" : avgMoodValue >= 3 ? "Good" : avgMoodValue >= 2 ? "Okay" : avgMoodValue > 0 ? "Low" : "—";
 
   useEffect(() => {
     if (!breathActive) return;
@@ -45,10 +44,7 @@ const MindPage = () => {
     return () => clearInterval(id);
   }, [breathActive]);
 
-  const therapistsList = therapists.length > 0 ? therapists : [
-    { name: "Dr. Sam Wells", spec: "Anxiety & stress", slots: "Evenings", price: "£60/hr" },
-    { name: "Dr. Lisa Okafor", spec: "CBT specialist", slots: "Flexible", price: "£65/hr" },
-  ];
+  const therapistsList = therapists;
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -147,11 +143,11 @@ const MindPage = () => {
               </p>
               <div className="flex items-end gap-1.5 h-[80px] mb-2">
                 {displayMood.map((v: number, i: number) => {
-                  const h = Math.round((v / 4) * 68) + 8;
+                  const h = v > 0 ? Math.round((v / 4) * 68) + 8 : 8;
                   return (
                     <div key={i} className="flex-1 flex flex-col items-center gap-1">
                       <div
-                        className={`w-full transition-all ${v >= 3 ? "bg-primary" : "bg-muted"}`}
+                        className={`w-full transition-all ${v >= 3 ? "bg-primary" : v > 0 ? "bg-muted" : "bg-muted/50"}`}
                         style={{ height: `${h}px` }}
                       />
                     </div>
@@ -159,8 +155,8 @@ const MindPage = () => {
                 })}
               </div>
               <p className="text-xs text-muted-foreground">
-                Avg: <span className="text-primary font-semibold">Good</span> · vs last week:{" "}
-                <span className="text-primary">↑ 12%</span>
+                Avg: <span className="text-primary font-semibold">{avgMoodLabel}</span>
+                {user && avgMoodValue > 0 ? ` (${avgMoodValue.toFixed(1)}/4)` : ""}
               </p>
             </div>
           </ProGate>
@@ -175,13 +171,13 @@ const MindPage = () => {
               <p className="text-xs text-muted-foreground leading-relaxed mb-4">
                 Filtered for dad-friendly sessions, evening & weekend slots. Verified by the Dad Health community.
               </p>
-              {therapistsList.map((t: { name: string; spec: string; slots: string; price: string }) => (
+              {therapistsList.length > 0 ? therapistsList.map((t: { name: string; spec?: string; slots?: string; price?: string }) => (
                 <div key={t.name} className="therapist-card mb-2 last:mb-0">
                   <div className="w-2.5 h-2.5 rounded-full bg-primary shrink-0 mt-1" />
                   <div className="flex-1">
                     <div className="font-heading text-sm font-extrabold text-foreground">{t.name}</div>
                     <div className="text-[11px] text-muted-foreground mt-0.5">
-                      {t.spec} · {t.slots} · {t.price}
+                      {t.spec ?? "—"} · {t.slots ?? "—"} · {t.price ?? "—"}
                     </div>
                   </div>
                   <button
@@ -192,7 +188,9 @@ const MindPage = () => {
                     Book
                   </button>
                 </div>
-              ))}
+              )) : (
+                <p className="text-xs text-muted-foreground">No therapists available yet.</p>
+              )}
             </div>
           </ProGate>
         </div>
