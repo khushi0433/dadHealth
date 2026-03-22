@@ -5,54 +5,28 @@ import { useRouter } from "next/navigation";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 import LimeButton from "@/components/LimeButton";
-import { CIRCLES, FEED_POSTS, EXPERTS } from "@/lib/constants";
+import { EXPERTS } from "@/lib/constants";
 import { useAuth } from "@/contexts/AuthContext";
-import { usePosts, useCreatePost } from "@/hooks/usePosts";
-import { useToggleLike } from "@/hooks/useLikes";
-import { useUserLikes } from "@/hooks/useUserLikes";
-import { useCircles, useUserCircles, useJoinCircle } from "@/hooks/useCircles";
-import { useRealtimePosts } from "@/hooks/useRealtimePosts";
+import { useCommunity } from "@/hooks/useCommunity";
+import { useUserProfile } from "@/hooks/useUserProfile";
 
 const CommunityPage = () => {
   const router = useRouter();
   const { user, openAuthModal } = useAuth();
-  const { data: posts = [] } = usePosts();
-  const createPost = useCreatePost(user?.id);
-  const toggleLike = useToggleLike(user?.id);
-  const { data: userLikedIds = new Set<string>() } = useUserLikes(user?.id);
-  const { data: circles = [] } = useCircles();
-  const { data: userCircleIds = [] } = useUserCircles(user?.id);
-  const joinCircle = useJoinCircle(user?.id);
+  const { data: profile } = useUserProfile(user?.id);
+  const { posts, dadsCount, trendingTags, userLikedIds, circles, userCircleIds, createPost, toggleLike, joinCircle } = useCommunity(user?.id);
 
   const [postBody, setPostBody] = useState("");
   const [postTag, setPostTag] = useState("FITNESS");
   const [postAnon, setPostAnon] = useState(false);
 
-  useRealtimePosts();
-
-  const displayCircles = circles.length > 0 ? circles : CIRCLES.map((c, i) => ({
-    id: String(i),
-    icon: c.icon,
-    name: c.name,
-    members_count: c.members,
-  }));
-  const displayPosts = posts.length > 0 ? posts : FEED_POSTS.map((p, i) => ({
-    id: String(i),
-    ...p,
-    author_initials: (p as { initials?: string }).initials,
-    author_name: (p as { name?: string }).name,
-    author_meta: (p as { meta?: string }).meta,
-    tag: (p as { tag?: string }).tag,
-    body: (p as { body?: string }).body,
-    anonymous: !!(p as { anon?: boolean }).anon,
-    likes_count: (p as { respect?: number }).respect ?? 0,
-    replies_count: (p as { replies?: number }).replies ?? 0,
-  }));
+  const displayCircles = circles;
+  const displayPosts = posts;
 
   const handlePost = () => {
     if (!postBody.trim()) return;
     const initials = user?.email?.slice(0, 2).toUpperCase() ?? "?";
-    const name = user?.user_metadata?.display_name ?? "Dad";
+    const name = profile?.display_name ?? user?.user_metadata?.display_name ?? "Dad";
     createPost.mutate({
       body: postBody.trim(),
       tag: postTag,
@@ -81,7 +55,7 @@ const CommunityPage = () => {
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-primary-foreground" />
               <span className="font-heading text-[11px] font-bold tracking-wider uppercase opacity-70">
-                2,341 DADS ONLINE RIGHT NOW
+                {dadsCount > 0 ? dadsCount.toLocaleString() : "—"} DADS IN COMMUNITY
               </span>
             </div>
           </div>
@@ -93,7 +67,7 @@ const CommunityPage = () => {
         <div className="px-5 lg:px-8 py-8 border-r border-border">
           <span className="section-label !p-0 mb-4 block">DAD CIRCLES</span>
           <div className="space-y-3">
-            {displayCircles.map((c: { id: string; icon: string; name: string; members_count?: number }) => {
+            {displayCircles.length > 0 ? displayCircles.map((c: { id: string; icon?: string; name: string; members_count?: number }) => {
               const joined = user && userCircleIds.includes(c.id);
               return (
                 <div key={c.id} className="circle-card">
@@ -117,7 +91,9 @@ const CommunityPage = () => {
                   </div>
                 </div>
               );
-            })}
+            }) : (
+              <p className="text-sm text-muted-foreground">No circles yet.</p>
+            )}
           </div>
         </div>
 
@@ -163,7 +139,7 @@ const CommunityPage = () => {
           </div>
 
           {/* Posts */}
-          {displayPosts.map((p: Record<string, unknown>) => {
+          {displayPosts.length > 0 ? displayPosts.map((p: Record<string, unknown>) => {
             const isAnon = p.anonymous === true;
             return (
               <div key={String(p.id)} className="px-5 py-4 border-b border-border last:border-b-0">
@@ -192,7 +168,7 @@ const CommunityPage = () => {
                   </div>
                   <span className="tag-pill">{(p.tag ?? "FITNESS") as string}</span>
                 </div>
-                <p className="text-[13px] text-foreground/70 leading-relaxed mb-3">{(p.body ?? "") as string}</p>
+                <p className="text-[13px] text-foreground/70 leading-relaxed mb-3">{(p.body ?? p.content ?? "") as string}</p>
                 <div className="flex gap-3.5">
                   <button
                     type="button"
@@ -225,7 +201,11 @@ const CommunityPage = () => {
                 </div>
               </div>
             );
-          })}
+          }) : (
+            <div className="px-5 py-8 text-center">
+              <p className="text-sm text-muted-foreground">No posts yet. Be the first to share!</p>
+            </div>
+          )}
         </div>
 
         {/* Right - Expert Q&A */}
@@ -259,16 +239,14 @@ const CommunityPage = () => {
           {/* Trending */}
           <div className="mt-6">
             <span className="section-label !p-0 mb-3 block">TRENDING</span>
-            {[
-              { tag: "#ScreenFreeSunday", count: 847 },
-              { tag: "#DadRun", count: 412 },
-              { tag: "#MindfulDad", count: 289 },
-            ].map((t) => (
+            {trendingTags.length > 0 ? trendingTags.map((t: { tag: string; count: number }) => (
               <div key={t.tag} className="py-1.5">
                 <span className="text-sm text-primary font-medium">{t.tag}</span>
                 <span className="text-xs text-muted-foreground ml-2">{t.count}</span>
               </div>
-            ))}
+            )) : (
+              <p className="text-sm text-muted-foreground">No trending tags yet.</p>
+            )}
           </div>
         </div>
       </div>
