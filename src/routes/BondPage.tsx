@@ -4,26 +4,39 @@ import { useState } from "react";
 import { format } from "date-fns";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
-import { ProGate } from "@/components/ProProvider";
+import { useProStatus } from "@/components/ProProvider";
 import { IMAGES } from "@/lib/images";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBond } from "@/hooks/useBond";
 
+type DadDateRow = {
+  icon?: string;
+  name: string;
+  age_range?: string;
+  age?: string;
+  budget?: string;
+  duration_minutes?: number;
+  time_of_day?: string;
+};
+
+type DadDateDisplay = DadDateRow & { time: string };
+
 const BondPage = () => {
   const { user } = useAuth();
+  const { isPro, showPaywall } = useProStatus();
   const { dadDates, milestones, prompts, saveMilestone } = useBond(user?.id);
 
   const [presentMode, setPresentMode] = useState(false);
   const [dateFilter, setDateFilter] = useState(0);
 
-  const dates = dadDates.map((d: { duration_minutes?: number; time_of_day?: string; [k: string]: unknown }) => ({
+  const dates: DadDateDisplay[] = (dadDates as DadDateRow[]).map((d) => ({
     ...d,
     time: d.time_of_day ?? (d.duration_minutes != null
       ? (d.duration_minutes >= 60 ? `${Math.floor(d.duration_minutes / 60)} hr` : `${d.duration_minutes} min`)
       : "—"),
   }));
   const filters = ["All", "Free", "Under £15", "1 hr", "Evening"];
-  const filteredDates = dates.filter((d: { budget?: string; time?: string }) => {
+  const filteredDates = dates.filter((d) => {
     if (dateFilter === 0) return true;
     if (dateFilter === 1) return d.budget === "Free";
     if (dateFilter === 2) return d.budget?.includes("£") && parseInt(d.budget) <= 15;
@@ -94,7 +107,7 @@ const BondPage = () => {
             ))}
           </div>
           <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
-            {filteredDates.length > 0 ? filteredDates.map((d: { icon?: string; name: string; age_range?: string; age?: string; budget?: string; time?: string }) => (
+            {filteredDates.length > 0 ? filteredDates.map((d) => (
               <div
                 key={d.name}
                 className="border border-border p-3.5 cursor-pointer transition-all hover:border-primary group"
@@ -117,14 +130,11 @@ const BondPage = () => {
 
         {/* Milestones - Pro gated */}
         <div className="py-8 border-t border-border">
-          <span className="section-label !p-0 mb-4 block">MILESTONE TRACKER</span>
-          <ProGate featureName="Milestone photo uploads" lockMessage="Words are good. Photos last forever.">
+          <span className="section-label !p-0 mb-12 block">MILESTONE TRACKER</span>
+          {isPro ? (
             <div>
               {displayMilestones.length > 0 ? displayMilestones.map((m: { date: string; text: string; tag: string }) => (
-                <div
-                  key={m.text}
-                  className="flex gap-3 items-start py-3 border-b border-border last:border-b-0"
-                >
+                <div key={m.text} className="flex gap-3 items-start py-3 border-b border-border last:border-b-0">
                   <span className="tag-pill shrink-0">{m.date ? format(new Date(m.date), "d MMM") : "—"}</span>
                   <div className="flex-1">
                     <p className="text-sm text-foreground/70 leading-relaxed">{m.text}</p>
@@ -135,7 +145,20 @@ const BondPage = () => {
                 <p className="text-sm text-muted-foreground">No milestones yet.</p>
               )}
             </div>
-          </ProGate>
+          ) : (
+            <div className="flex flex-col items-center p-4 bg-background/50 border border-border rounded-lg text-center gap-2">
+              <span className="text-2xl">🔒</span>
+              <p className="text-xs font-bold text-foreground">Pro Feature</p>
+              <p className="text-[10px] text-muted-foreground">Words are good. Photos last forever.</p>
+              <button
+                type="button"
+                onClick={() => showPaywall("Milestone photo uploads")}
+                className="px-3 py-1 text-[10px] bg-primary text-primary-foreground font-bold uppercase rounded cursor-pointer hover:brightness-110"
+              >
+                Unlock →
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Conversation starters */}

@@ -45,11 +45,11 @@ async function fetchCommunityStats(posts: { tag?: string }[]) {
     .sort((a, b) => b.count - a.count)
     .slice(0, 5);
 
-  const { count: dadsCount } = await supabase
+  const { count: dadsCount, error } = await supabase
     .from("user_profile")
     .select("id", { count: "exact", head: true });
 
-  return { dadsCount: dadsCount ?? 0, trendingTags };
+  return { dadsCount: error ? 0 : (dadsCount ?? 0), trendingTags };
 }
 
 export function useCommunity(userId?: string) {

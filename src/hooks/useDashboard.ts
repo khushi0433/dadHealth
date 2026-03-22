@@ -37,7 +37,12 @@ async function fetchDashboard(userId: string) {
   const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59).toISOString();
   const monthEndDate = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().slice(0, 10);
 
-  const [dashboardRes, scoreRes, moodRes, workoutsRes, journalRes, milestonesRes, challengeRes, dadDatesRes, profileRes] = await Promise.all([
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+  const todayEnd = new Date();
+  todayEnd.setHours(23, 59, 59, 999);
+
+  const [dashboardRes, scoreRes, moodRes, workoutsRes, journalRes, milestonesRes, challengeRes, dadDatesRes, profileRes, bodyRes, todayWorkoutsRes] = await Promise.all([
     supabase.from("dashboard_view").select("*").eq("user_id", userId).single(),
     supabase.from("dad_score_view").select("mind_score, body_score, bond_score").eq("user_id", userId).single(),
     supabase
@@ -67,6 +72,19 @@ async function fetchDashboard(userId: string) {
     supabase.from("weekly_challenges").select("*").eq("active", true).order("created_at", { ascending: false }).limit(1).maybeSingle(),
     supabase.from("dad_dates").select("*"),
     supabase.from("user_profile").select("display_name").eq("user_id", userId).maybeSingle(),
+    supabase
+      .from("body_metrics")
+      .select("value")
+      .eq("user_id", userId)
+      .eq("metric_type", "weight")
+      .order("recorded_at", { ascending: false })
+      .limit(2),
+    supabase
+      .from("workout_sessions")
+      .select("duration_minutes")
+      .eq("user_id", userId)
+      .gte("performed_at", todayStart.toISOString())
+      .lte("performed_at", todayEnd.toISOString()),
   ]);
 
   const dashboard = dashboardRes.data;
@@ -83,6 +101,18 @@ async function fetchDashboard(userId: string) {
   const body = score?.body_score ?? 81;
   const bond = score?.bond_score ?? 68;
   const totalScore = Math.round((mind + body + bond) / 3);
+
+  const weightRows = (bodyRes.data ?? []) as { value: number }[];
+  const prevWeight = weightRows[1]?.value;
+  const latestWeight = weightRows[0]?.value;
+  const weightDisplay = prevWeight != null && latestWeight != null
+    ? `${prevWeight}→${latestWeight}kg`
+    : latestWeight != null
+      ? `${latestWeight}kg`
+      : null;
+
+  const todayWorkouts = (todayWorkoutsRes.data ?? []) as { duration_minutes: number }[];
+  const activeTodayMin = todayWorkouts.reduce((sum, w) => sum + (w.duration_minutes ?? 0), 0);
 
   return {
     ...dashboard,
@@ -101,14 +131,16 @@ async function fetchDashboard(userId: string) {
     challenge,
     dadDates,
     date: new Date().toISOString().slice(0, 10),
+    weightDisplay,
+    activeTodayMin,
   };
 }
 
 async function fetchAppStats() {
-  const { count: dadsCount } = await supabase
+  const { count: dadsCount, error } = await supabase
     .from("user_profile")
     .select("id", { count: "exact", head: true });
-  return { dadsCount: dadsCount ?? 0 };
+  return { dadsCount: error ? 0 : (dadsCount ?? 0) };
 }
 
 export function useDashboard(userId?: string) {

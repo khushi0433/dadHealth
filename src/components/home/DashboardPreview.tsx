@@ -353,10 +353,10 @@ const DashboardPreview = () => {
                   </div>
                   <div className="grid grid-cols-2 gap-2 mb-4">
                     {[
-                      [String(monthWorkouts), "WORKOUTS"],
-                      ["7.2km", "BEST RUN"],
-                      ["—", "WEIGHT"],
-                      ["0 min", "ACTIVE"],
+                      [user ? String(monthWorkouts) : "—", "WORKOUTS"],
+                      [dashboard?.weightDisplay ?? "—", "WEIGHT"],
+                      ["—", "BEST RUN"],
+                      [user && (dashboard?.activeTodayMin ?? 0) > 0 ? `${dashboard?.activeTodayMin} min` : "—", "ACTIVE"],
                     ].map(([v, l]) => (
                       <div key={l} className="bg-card border border-primary/20 rounded-lg p-3">
                         <div className="font-heading text-[18px] font-extrabold text-foreground">{v}</div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
@@ -32,15 +32,27 @@ const MindPage = () => {
     : 0;
   const avgMoodLabel = avgMoodValue >= 3.5 ? "Great" : avgMoodValue >= 3 ? "Good" : avgMoodValue >= 2 ? "Okay" : avgMoodValue > 0 ? "Low" : "—";
 
+  const breathRef = useRef({ count: 4, phaseIdx: 0 });
+
   useEffect(() => {
     if (!breathActive) return;
     const phases: Array<"inhale" | "hold" | "exhale"> = ["inhale", "hold", "exhale"];
-    let phaseIdx = 0;
+    breathRef.current = { count: 4, phaseIdx: 0 };
+    setBreathPhase(phases[0]);
+    setBreathCount(4);
     const id = setInterval(() => {
-      phaseIdx = (phaseIdx + 1) % 3;
-      setBreathPhase(phases[phaseIdx]);
-      setBreathCount(4);
-    }, 4000);
+      const { count, phaseIdx } = breathRef.current;
+      const nextCount = count - 1;
+      if (nextCount < 1) {
+        const nextPhaseIdx = (phaseIdx + 1) % 3;
+        breathRef.current = { count: 4, phaseIdx: nextPhaseIdx };
+        setBreathPhase(phases[nextPhaseIdx]);
+        setBreathCount(4);
+      } else {
+        breathRef.current = { count: nextCount, phaseIdx };
+        setBreathCount(nextCount);
+      }
+    }, 1000);
     return () => clearInterval(id);
   }, [breathActive]);
 

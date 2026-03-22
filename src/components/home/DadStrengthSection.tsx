@@ -1,12 +1,55 @@
+"use client";
+
 import Link from "next/link";
 import LimeButton from "@/components/LimeButton";
-import { EXERCISES, PROGRESS_STATS } from "@/lib/constants";
+import { EXERCISES } from "@/lib/constants";
+import { useAuth } from "@/contexts/AuthContext";
+import { useFitness } from "@/hooks/useFitness";
 
 interface DadStrengthSectionProps {
   workoutImg: string;
 }
 
-const DadStrengthSection = ({ workoutImg }: DadStrengthSectionProps) => (
+const DadStrengthSection = ({ workoutImg }: DadStrengthSectionProps) => {
+  const { user } = useAuth();
+  const { workouts, bodyMetrics } = useFitness(user?.id);
+
+  const monthWorkouts = workouts.filter((w: { performed_at: string }) => {
+    const d = new Date(w.performed_at);
+    const now = new Date();
+    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+  }).length;
+
+  const weightMetrics = bodyMetrics.filter((m: { metric_type: string }) => m.metric_type === "weight");
+  const latestWeight = weightMetrics[0];
+  const prevWeight = weightMetrics[1];
+  const weightDisplay = user && prevWeight && latestWeight
+    ? `${prevWeight.value}→${latestWeight.value}kg`
+    : user && latestWeight
+      ? `${latestWeight.value}kg`
+      : "—";
+
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+  const todayEnd = new Date();
+  todayEnd.setHours(23, 59, 59, 999);
+  const todayWorkouts = workouts.filter((w: { performed_at: string }) => {
+    const d = new Date(w.performed_at);
+    return d >= todayStart && d <= todayEnd;
+  });
+  const activeTodayMin = todayWorkouts.reduce((sum: number, w: { duration_minutes?: number }) => sum + (w.duration_minutes ?? 0), 0);
+  const activeDisplay = user && activeTodayMin > 0
+    ? `${activeTodayMin} min`
+    : "—";
+
+  const progressStats = [
+    { value: user ? String(monthWorkouts) : "—", label: "WORKOUTS" },
+    { value: weightDisplay, label: "WEIGHT" },
+    { value: "—", label: "BEST RUN" },
+    { value: activeDisplay, label: "ACTIVE TODAY" },
+  ];
+
+  return (
   <section className="bg-background pt-8 pb-16 lg:pb-20">
     {/* Hero banner */}
    <div className="relative h-[400px] lg:h-[480px]"> 
@@ -59,7 +102,7 @@ const DadStrengthSection = ({ workoutImg }: DadStrengthSectionProps) => (
       <div className="px-5 lg:px-8 py-8 border-l border-border">
         <span className="section-label !p-0 mb-4 block">PROGRESS THIS MONTH</span>
         <div className="grid grid-cols-2 gap-3 mb-8">
-          {PROGRESS_STATS.map((stat) => (
+          {progressStats.map((stat) => (
             <div key={stat.label} className="card-dark p-3.5">
               <div className="font-heading text-xl font-extrabold text-primary leading-none">{stat.value}</div>
               <div className="text-[10px] text-muted-foreground mt-1.5 uppercase tracking-wide">{stat.label}</div>
@@ -72,6 +115,7 @@ const DadStrengthSection = ({ workoutImg }: DadStrengthSectionProps) => (
       </div>
     </div>
   </section>
-);
+  );
+};
 
 export default DadStrengthSection;
