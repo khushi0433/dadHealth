@@ -1,34 +1,27 @@
 "use client";
 
 import { useState } from "react";
+import { format } from "date-fns";
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 import { ProGate } from "@/components/ProProvider";
 import { IMAGES } from "@/lib/images";
 import { useAuth } from "@/contexts/AuthContext";
-import { useDadDates } from "@/hooks/useDadDates";
-import { useMilestones, useSaveMilestone } from "@/hooks/useMilestones";
-import { useAgePrompts } from "@/hooks/useAgePrompts";
-
-const DEFAULT_DAD_DATES = [
-  { icon: "🎮", name: "Gaming night", age_range: "8–14", budget: "Free", time: "2 hrs" },
-  { icon: "🏕️", name: "Garden camping", age_range: "5–12", budget: "Free", time: "Evening" },
-  { icon: "⚽", name: "Park kickabout", age_range: "4+", budget: "Free", time: "1 hr" },
-  { icon: "🍕", name: "Cook together", age_range: "6+", budget: "£10", time: "1 hr" },
-  { icon: "🎬", name: "Cinema trip", age_range: "6+", budget: "£25", time: "2 hrs" },
-  { icon: "🚴", name: "Bike ride", age_range: "7+", budget: "Free", time: "1–2 hrs" },
-];
+import { useBond } from "@/hooks/useBond";
 
 const BondPage = () => {
   const { user } = useAuth();
-  const { data: dadDates = [] } = useDadDates();
-  const { data: milestones = [] } = useMilestones(user?.id);
-  const { data: prompts = [] } = useAgePrompts();
+  const { dadDates, milestones, prompts, saveMilestone } = useBond(user?.id);
 
   const [presentMode, setPresentMode] = useState(false);
   const [dateFilter, setDateFilter] = useState(0);
 
-  const dates = dadDates.length > 0 ? dadDates : DEFAULT_DAD_DATES;
+  const dates = dadDates.map((d: { duration_minutes?: number; time_of_day?: string; [k: string]: unknown }) => ({
+    ...d,
+    time: d.time_of_day ?? (d.duration_minutes != null
+      ? (d.duration_minutes >= 60 ? `${Math.floor(d.duration_minutes / 60)} hr` : `${d.duration_minutes} min`)
+      : "—"),
+  }));
   const filters = ["All", "Free", "Under £15", "1 hr", "Evening"];
   const filteredDates = dates.filter((d: { budget?: string; time?: string }) => {
     if (dateFilter === 0) return true;
@@ -39,21 +32,8 @@ const BondPage = () => {
     return true;
   });
 
-  const displayMilestones = milestones.length > 0
-    ? milestones
-    : [
-        { date: "12 Mar", text: "Ella said 'I love you Dad' unprompted after school", tag: "BOND" },
-        { date: "3 Feb", text: "First bike ride without stabilisers — cried (me, not him)", tag: "MILESTONE" },
-        { date: "15 Jan", text: "Bedtime story streak — 14 nights in a row", tag: "STREAK" },
-      ];
-
-  const conversationStarters = prompts.length > 0
-    ? prompts.map((p: { prompt: string }) => p.prompt)
-    : [
-        "What made you laugh the hardest today?",
-        "If you could have any superpower, what would you pick and why?",
-        "What's one thing you wish Dad knew about your day?",
-      ];
+  const displayMilestones = milestones;
+  const conversationStarters = prompts.map((p: { prompt: string }) => p.prompt);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -114,7 +94,7 @@ const BondPage = () => {
             ))}
           </div>
           <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
-            {filteredDates.map((d: { icon?: string; name: string; age_range?: string; age?: string; budget?: string; time?: string }) => (
+            {filteredDates.length > 0 ? filteredDates.map((d: { icon?: string; name: string; age_range?: string; age?: string; budget?: string; time?: string }) => (
               <div
                 key={d.name}
                 className="border border-border p-3.5 cursor-pointer transition-all hover:border-primary group"
@@ -129,7 +109,9 @@ const BondPage = () => {
                   <span className="text-[10px] text-muted-foreground">· {d.time ?? "—"}</span>
                 </div>
               </div>
-            ))}
+            )) : (
+              <p className="text-sm text-muted-foreground col-span-full">No dad date ideas yet.</p>
+            )}
           </div>
         </div>
 
@@ -138,18 +120,20 @@ const BondPage = () => {
           <span className="section-label !p-0 mb-4 block">MILESTONE TRACKER</span>
           <ProGate featureName="Milestone photo uploads" lockMessage="Words are good. Photos last forever.">
             <div>
-              {displayMilestones.map((m: { date: string; text: string; tag: string }) => (
+              {displayMilestones.length > 0 ? displayMilestones.map((m: { date: string; text: string; tag: string }) => (
                 <div
                   key={m.text}
                   className="flex gap-3 items-start py-3 border-b border-border last:border-b-0"
                 >
-                  <span className="tag-pill shrink-0">{m.date}</span>
+                  <span className="tag-pill shrink-0">{m.date ? format(new Date(m.date), "d MMM") : "—"}</span>
                   <div className="flex-1">
                     <p className="text-sm text-foreground/70 leading-relaxed">{m.text}</p>
                     <span className="tag-pill-dark mt-2 inline-block">{m.tag}</span>
                   </div>
                 </div>
-              ))}
+              )) : (
+                <p className="text-sm text-muted-foreground">No milestones yet.</p>
+              )}
             </div>
           </ProGate>
         </div>
@@ -157,14 +141,16 @@ const BondPage = () => {
         {/* Conversation starters */}
         <div className="py-8 border-t border-border">
           <span className="section-label !p-0 mb-4 block">CONVERSATION STARTERS</span>
-          {conversationStarters.map((q: string) => (
+          {conversationStarters.length > 0 ? conversationStarters.map((q: string) => (
             <div
               key={q}
               className="py-3 border-b border-border last:border-b-0 pl-3 border-l-[3px] border-l-primary mb-2"
             >
               <p className="text-sm text-foreground/70 leading-relaxed italic">"{q}"</p>
             </div>
-          ))}
+          )) : (
+            <p className="text-sm text-muted-foreground">No conversation starters yet.</p>
+          )}
         </div>
       </div>
 
