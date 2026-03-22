@@ -3,18 +3,9 @@
 import Logo from "@/components/Logo";
 import { MOOD_WEEK, DAYS, MEALS, CIRCLES, FEED_POSTS } from "@/lib/constants";
 import Link from "next/link";
+import { useState, useEffect } from "react";
+import { useDashboard } from "@/hooks/useDashboard";
 import { useAuth } from "@/contexts/AuthContext";
-import { useDadScore } from "@/hooks/useDadScore";
-import { useMoodLogs } from "@/hooks/useMoodLogs";
-import { useStreak } from "@/hooks/useStreak";
-import { useWeeklyChallenge } from "@/hooks/useWeeklyChallenge";
-import { useUserProfile } from "@/hooks/useUserProfile";
-import { useCbtCheckIn } from "@/hooks/useCbtCheckIn";
-import { useWorkoutSessions } from "@/hooks/useWorkouts";
-import { useDadDates } from "@/hooks/useDadDates";
-import { usePosts } from "@/hooks/usePosts";
-import { useReportStats } from "@/hooks/useReportStats";
-import { useState } from "react";
 import { format } from "date-fns";
 
 const SIDEBAR_ITEMS = [
@@ -60,59 +51,51 @@ const DEFAULT_DAD_DATES = [
 ];
 
 const DashboardPreview = () => {
-  const [activeScreen, setActiveScreen] = useState<"HOME" | "FITNESS" | "MIND" | "BOND" | "COMMUNITY" | "PROGRESS">("HOME");
   const { user } = useAuth();
-  const { data: scoreData } = useDadScore(user?.id);
-  const { data: moodLogs } = useMoodLogs(user?.id);
-  const { data: streak = 0 } = useStreak(user?.id);
-  const { data: challenge } = useWeeklyChallenge();
-  const { data: profile } = useUserProfile(user?.id);
-  const cbtMutation = useCbtCheckIn(user?.id);
-  const { data: workouts = [] } = useWorkoutSessions(user?.id);
-  const { data: dadDates = [] } = useDadDates();
-  const { data: posts = [] } = usePosts();
-  const { data: reportStats } = useReportStats(user?.id);
+  const { data: dashboard, loading, dadDates = [], dadsCount, checkIn } = useDashboard(user?.id);
+  const [activeScreen, setActiveScreen] = useState<"HOME" | "FITNESS" | "MIND" | "BOND" | "COMMUNITY" | "PROGRESS">("HOME");
 
   const today = new Date().toISOString().slice(0, 10);
-  const hasCheckedInToday = moodLogs?.some((m: { date: string }) => m.date === today);
-  const [cbtMood, setCbtMood] = useState(3);
-  const [cbtSleep, setCbtSleep] = useState(7);
+  const moodLogs = dashboard?.mood_logs ?? (dashboard?.mood_value != null ? [{ date: dashboard?.date ?? today, mood_value: dashboard.mood_value }] : []);
+  const hasCheckedInToday = moodLogs.some((m: { date: string }) => m.date === today);
+  const [cbtMood, setCbtMood] = useState(dashboard?.mood_value ?? 3);
+  const [cbtSleep, setCbtSleep] = useState(dashboard?.sleep_hours ?? 7);
 
-  const score = scoreData?.score ?? 74;
-  const breakdown = scoreData?.breakdown ?? { mind: 72, body: 81, bond: 68 };
+  useEffect(() => {
+    if (dashboard) {
+      if (dashboard.mood_value != null) setCbtMood(dashboard.mood_value);
+      if (dashboard.sleep_hours != null) setCbtSleep(dashboard.sleep_hours);
+    }
+  }, [dashboard?.mood_value, dashboard?.sleep_hours]);
+
+  const score = dashboard?.total_score ?? (user ? 74 : "—");
+  const breakdown = user && dashboard
+    ? { mind: dashboard.mind_score ?? 72, body: dashboard.body_score ?? 81, bond: dashboard.bond_score ?? 68 }
+    : { mind: 0, body: 0, bond: 0 };
   const SCORE_ITEMS = [
     { label: "MIND", value: breakdown.mind },
     { label: "BODY", value: breakdown.body },
     { label: "BOND", value: breakdown.bond },
   ];
+  const streak = dashboard?.streak_count ?? 0;
   const last7 = Array.from({ length: 7 }, (_, i) => {
     const d = new Date();
     d.setDate(d.getDate() - (6 - i));
     return d.toISOString().slice(0, 10);
   });
-  const moodMap = new Map((moodLogs ?? []).map((m: { date: string; mood_value: number }) => [m.date, m.mood_value]));
+  const moodMap = new Map(moodLogs.map((m: { date: string; mood_value: number }) => [m.date, m.mood_value]));
   const moodWeek = last7.map((d) => moodMap.get(d) ?? 3);
-  const displayName = user?.user_metadata?.display_name?.split(" ")[0] ?? user?.email?.split("@")[0] ?? "James";
-  const tasks = (profile?.goals ?? []).length > 0
-    ? (profile.goals as string[]).map((g, i) => ({
-        icon: DEFAULT_GOALS[i % DEFAULT_GOALS.length]?.icon ?? "✓",
-        name: g,
-        time: "TODAY",
-        status: "open" as const,
-      }))
-    : DEFAULT_GOALS;
+  const displayName = dashboard?.display_name?.split(" ")[0] ?? user?.user_metadata?.display_name?.split(" ")[0] ?? user?.email?.split("@")[0] ?? null;
+  const tasks = DEFAULT_GOALS;
 
-  const monthWorkouts = workouts.filter((w: { performed_at: string }) => {
-    const d = new Date(w.performed_at);
-    const now = new Date();
-    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-  }).length;
+  const workouts = dashboard?.today_workouts ? [{ count: dashboard.today_workouts }] : [];
+  const monthWorkouts = dashboard?.month_workouts ?? 0;
   const dates = dadDates.length > 0 ? dadDates.slice(0, 3) : DEFAULT_DAD_DATES;
-  const displayPosts = posts.length > 0 ? posts.slice(0, 3) : FEED_POSTS.slice(0, 3);
+  const displayPosts = FEED_POSTS.slice(0, 3);
   const displayCircles = CIRCLES.slice(0, 3);
-  const reportStatsList = reportStats
-    ? [[reportStats.workouts, "Workouts"], [reportStats.journal, "Journal"], [reportStats.dadDates, "Dad dates"]]
-    : [["12", "Workouts"], ["8", "Journal"], ["3", "Dad dates"]];
+  const reportStatsList = dashboard?.reportStats
+    ? [[String(dashboard.reportStats.workouts), "Workouts"], [String(dashboard.reportStats.journal), "Journal"], [String(dashboard.reportStats.dadDates), "Dad dates"]]
+    : [["—", "Workouts"], ["—", "Journal"], ["—", "Dad dates"]];
 
   return (
   <section className="bg-background pt-16 lg:pt-20 pb-8">
@@ -134,11 +117,11 @@ const DashboardPreview = () => {
           <Logo className="mb-5" />
           <div className="flex items-center gap-3 mb-6">
             <div className="w-10 h-10 bg-primary/20 border border-primary rounded-full flex items-center justify-center font-heading text-sm font-bold text-primary">
-              {user ? (displayName.slice(0, 2).toUpperCase()) : "JH"}
+              {displayName ? displayName.slice(0, 2).toUpperCase() : "—"}
             </div>
             <div>
-              <div className="font-heading text-sm font-bold text-foreground">{user ? displayName : "James H."}</div>
-              <div className="text-xs text-muted-foreground">{streak}-day streak 🔥</div>
+              <div className="font-heading text-sm font-bold text-foreground">{displayName ?? "—"}</div>
+              <div className="text-xs text-muted-foreground">{user ? `${streak}-day streak 🔥` : "—"}</div>
             </div>
           </div>
           <nav className="space-y-1">
@@ -182,7 +165,7 @@ const DashboardPreview = () => {
               <div className="mb-4">
                 <span className="section-label !p-0">GOOD MORNING</span>
                 <div className="font-heading text-[24px] font-extrabold text-foreground uppercase leading-tight mt-1">
-                  {displayName.toUpperCase()},<br />{format(new Date(), "EEEE")}
+                  {(displayName ?? "—").toUpperCase()},<br />{format(new Date(), "EEEE")}
                 </div>
                 <div className="flex items-center gap-2 mt-1">
                   <span className="tag-pill">PRO</span>
@@ -190,7 +173,7 @@ const DashboardPreview = () => {
                 </div>
                 <div className="flex items-center gap-2 mt-2">
                   <div className="w-1.5 h-1.5 rounded-full bg-primary" />
-                  <span className="text-xs text-muted-foreground">2,341 dads online</span>
+                  <span className="text-xs text-muted-foreground">{dadsCount > 0 ? dadsCount.toLocaleString() : "—"} dads in community</span>
                 </div>
               </div>
 
@@ -229,11 +212,11 @@ const DashboardPreview = () => {
                     </div>
                     <button
                       type="button"
-                      onClick={() => cbtMutation.mutate({ mood_value: cbtMood, sleep_hours: cbtSleep })}
-                      disabled={cbtMutation.isPending}
+                      onClick={() => checkIn.mutate({ mood_value: cbtMood, sleep_hours: cbtSleep })}
+                      disabled={checkIn.isPending}
                       className="self-end bg-primary text-primary-foreground font-heading font-bold text-[10px] tracking-wider uppercase px-3 py-1.5 border-none cursor-pointer hover:bg-primary/90 disabled:opacity-50"
                     >
-                      {cbtMutation.isPending ? "..." : "SAVE"}
+                      {checkIn.isPending ? "..." : "SAVE"}
                     </button>
                   </div>
                 </div>
@@ -319,8 +302,15 @@ const DashboardPreview = () => {
                 })}
               </div>
               <p className="text-xs text-muted-foreground">
-                Avg mood: <span className="text-primary font-semibold">Good</span> · vs last week:{" "}
-                <span className="text-primary">↑ 12%</span>
+                Avg mood: <span className="text-primary font-semibold">
+                  {user && moodWeek.length > 0
+                    ? (() => {
+                        const avg = (moodWeek as number[]).reduce((a, b) => a + b, 0) / moodWeek.length;
+                        return avg >= 3.5 ? "Great" : avg >= 3 ? "Good" : avg >= 2 ? "Okay" : "Low";
+                      })()
+                    : "—"}
+                </span>
+                {user && (moodWeek as number[]).filter((v) => v > 0).length > 0 ? ` (${((moodWeek as number[]).reduce((a, b) => a + b, 0) / moodWeek.length).toFixed(1)}/4)` : ""}
               </p>
 
               <div className="mt-6">
@@ -337,10 +327,10 @@ const DashboardPreview = () => {
                   THIS WEEK'S CHALLENGE
                 </div>
                 <div className="font-heading text-[16px] font-extrabold text-foreground uppercase tracking-wide mb-1">
-                  {(challenge as { title?: string })?.title ?? "SCREEN-FREE SUNDAY"}
+                  {(dashboard?.challenge as { title?: string })?.title ?? "SCREEN-FREE SUNDAY"}
                 </div>
                 <p className="text-xs text-muted-foreground mb-3">
-                  {(challenge as { participants_count?: number })?.participants_count ?? 847} dads taking part
+                  {(dashboard?.challenge as { participants_count?: number })?.participants_count ?? 847} dads taking part
                 </p>
                 <button
                   type="button"
@@ -517,11 +507,11 @@ const DashboardPreview = () => {
                 <>
                   <span className="section-label !p-0 mb-3 block">MOOD THIS WEEK</span>
                   <div className="flex items-end gap-1.5 h-[80px] mb-2">
-                    {(user ? moodWeek : MOOD_WEEK).map((v, i) => {
-                      const h = Math.round((v / 4) * 68) + 8;
+                    {(user ? moodWeek : MOOD_WEEK).map((v: number, i: number) => {
+                      const h = Math.round((Number(v) / 4) * 68) + 8;
                       return (
                         <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                          <div className={`w-full transition-all ${v >= 3 ? "bg-primary" : "bg-muted"}`} style={{ height: `${h}px` }} />
+                          <div className={`w-full transition-all ${Number(v) >= 3 ? "bg-primary" : "bg-muted"}`} style={{ height: `${h}px` }} />
                           <span className="font-heading text-[9px] font-bold text-muted-foreground">{DAYS[i]}</span>
                         </div>
                       );
