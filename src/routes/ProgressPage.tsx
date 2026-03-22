@@ -6,13 +6,8 @@ import SiteFooter from "@/components/SiteFooter";
 import OutlineButton from "@/components/OutlineButton";
 import { ProGate } from "@/components/ProProvider";
 import { format } from "date-fns";
-import { MOOD_WEEK } from "@/lib/constants";
 import { useAuth } from "@/contexts/AuthContext";
-import { useDadScore } from "@/hooks/useDadScore";
-import { useReportStats } from "@/hooks/useReportStats";
-import { useSleepLogs } from "@/hooks/useSleepLogs";
-import { useMoodLogs } from "@/hooks/useMoodLogs";
-import { useBadges, useEarnedBadges } from "@/hooks/useBadges";
+import { useProgress } from "@/hooks/useProgress";
 import { toast } from "@/hooks/use-toast";
 
 const DEFAULT_SLEEP = [
@@ -27,15 +22,16 @@ const DEFAULT_SLEEP = [
 
 const ProgressPage = () => {
   const { user } = useAuth();
-  const { data: scoreData } = useDadScore(user?.id);
-  const { data: reportStats } = useReportStats(user?.id);
-  const { data: sleepLogs = [] } = useSleepLogs(user?.id);
-  const { data: moodLogs = [] } = useMoodLogs(user?.id);
-  const { data: badges = [] } = useBadges();
-  const { data: earnedBadges = [] } = useEarnedBadges(user?.id);
+  const { data } = useProgress(user?.id);
+  const scoreData = data?.scoreData;
+  const reportStats = data?.reportStats;
+  const sleepLogs = data?.sleepLogs ?? [];
+  const moodLogs = data?.moodLogs ?? [];
+  const badges = data?.badges ?? [];
+  const earnedBadges = data?.earnedBadges ?? [];
 
-  const dadScore = scoreData?.score ?? 74;
-  const breakdown = scoreData?.breakdown ?? { mind: 72, body: 81, bond: 68 };
+  const dadScore = user ? (scoreData?.score ?? "—") : "—";
+  const breakdown = user ? (scoreData?.breakdown ?? { mind: "—", body: "—", bond: "—" }) : { mind: "—", body: "—", bond: "—" };
 
   const last7 = Array.from({ length: 7 }, (_, i) => {
     const d = new Date();
@@ -44,11 +40,11 @@ const ProgressPage = () => {
   });
   const sleepMap = new Map(sleepLogs.map((s: { date: string; hours: number }) => [s.date, s.hours]));
   const moodMap = new Map(moodLogs.map((m: { date: string; mood_value: number }) => [m.date, m.mood_value]));
-  const sleepData = last7.map(({ key, day }) => ({ day, hrs: sleepMap.get(key) ?? 6.5 }));
-  const moodWeekData = last7.map(({ key }) => moodMap.get(key) ?? 3);
+  const sleepData = last7.map(({ key, day }) => ({ day, hrs: sleepMap.get(key) ?? 0 }));
+  const moodWeekData = last7.map(({ key }) => moodMap.get(key) ?? 0);
 
-  const displaySleep = user && sleepLogs.length > 0 ? sleepData : DEFAULT_SLEEP;
-  const displayMood = user && moodLogs.length > 0 ? moodWeekData : MOOD_WEEK;
+  const displaySleep = user ? sleepData : last7.map(({ day }) => ({ day, hrs: 0 }));
+  const displayMood = user ? moodWeekData : [0, 0, 0, 0, 0, 0, 0];
 
   const reportStatsList = reportStats
     ? [
@@ -60,16 +56,16 @@ const ProgressPage = () => {
         [reportStats.avgMood, "Avg mood"],
       ]
     : [
-        ["12", "Workouts"],
-        ["8", "Journal entries"],
-        ["3", "Dad dates"],
-        ["6.8hrs", "Avg sleep"],
-        ["14", "Day streak"],
-        ["Good", "Avg mood"],
+        ["—", "Workouts"],
+        ["—", "Journal entries"],
+        ["—", "Dad dates"],
+        ["—", "Avg sleep"],
+        ["—", "Day streak"],
+        ["—", "Avg mood"],
       ];
 
   const handleShareReport = useCallback(async () => {
-    const text = `My Dad Health Score: ${dadScore}/100. Track your dad health at Dad Health.`;
+    const text = `My Dad Health Score: ${dadScore}${typeof dadScore === "number" ? "/100" : ""}. Track your dad health at Dad Health.`;
     try {
       if (navigator.share) {
         await navigator.share({
@@ -87,13 +83,7 @@ const ProgressPage = () => {
     }
   }, [dadScore]);
 
-  const displayBadges = earnedBadges.length > 0 ? earnedBadges : badges.length > 0 ? badges : [
-    { icon: "🔥", name: "14-day streak" },
-    { icon: "💪", name: "First workout" },
-    { icon: "📖", name: "Journal starter" },
-    { icon: "👨‍👧", name: "Dad date king" },
-    { icon: "🧠", name: "Mind check" },
-  ];
+  const displayBadges = earnedBadges.length > 0 ? earnedBadges : badges;
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -106,7 +96,7 @@ const ProgressPage = () => {
           <div className="flex flex-wrap gap-8 items-center">
             <div className="w-[100px] h-[100px] border-4 border-primary rounded-full flex flex-col items-center justify-center shrink-0">
               <div className="font-heading text-[36px] font-extrabold text-primary leading-none">{dadScore}</div>
-              <div className="font-heading text-[9px] font-bold tracking-wider uppercase text-muted-foreground">out of 100</div>
+              <div className="font-heading text-[9px] font-bold tracking-wider uppercase text-muted-foreground">{user ? "out of 100" : ""}</div>
             </div>
             <ProGate
               featureName="Dad Health Score breakdown"
@@ -117,17 +107,21 @@ const ProgressPage = () => {
                   { label: "Mind", value: breakdown.mind },
                   { label: "Body", value: breakdown.body },
                   { label: "Bond", value: breakdown.bond },
-                ].map((item) => (
-                  <div key={item.label} className="mb-2.5">
-                    <div className="flex justify-between font-heading text-[11px] font-bold uppercase text-muted-foreground tracking-wide mb-1">
-                      <span>{item.label}</span>
-                      <span className="text-primary">{item.value}%</span>
+                ].map((item) => {
+                  const numVal = typeof item.value === "number" ? item.value : 0;
+                  const displayVal = typeof item.value === "number" ? `${item.value}%` : "—";
+                  return (
+                    <div key={item.label} className="mb-2.5">
+                      <div className="flex justify-between font-heading text-[11px] font-bold uppercase text-muted-foreground tracking-wide mb-1">
+                        <span>{item.label}</span>
+                        <span className="text-primary">{displayVal}</span>
+                      </div>
+                      <div className="bar-track">
+                        <div className="bar-fill" style={{ width: `${numVal}%` }} />
+                      </div>
                     </div>
-                    <div className="bar-track">
-                      <div className="bar-fill" style={{ width: `${item.value}%` }} />
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </ProGate>
           </div>
@@ -137,7 +131,7 @@ const ProgressPage = () => {
       {/* Report card */}
       <section className="bg-primary text-primary-foreground">
         <div className="max-w-[1400px] mx-auto px-5 lg:px-8 py-10">
-          <h2 className="font-heading text-[22px] font-extrabold uppercase tracking-wide mb-4">March report card</h2>
+          <h2 className="font-heading text-[22px] font-extrabold uppercase tracking-wide mb-4">{format(new Date(), "MMMM")} report card</h2>
           <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
             {reportStatsList.map(([n, l]) => (
               <div key={l} className="bg-primary-foreground/[0.07] p-3.5">
@@ -157,7 +151,7 @@ const ProgressPage = () => {
         <div className="py-8">
           <span className="section-label !p-0 mb-4 block">DH BADGES EARNED</span>
           <div className="flex gap-3 flex-wrap">
-            {displayBadges.map((b: { icon: string; name: string }) => (
+            {displayBadges.length > 0 ? displayBadges.map((b: { icon: string; name: string }) => (
               <div
                 key={b.name}
                 className="flex flex-col items-center gap-1.5 p-2.5 border border-primary/20 bg-primary/[0.04] min-w-[60px]"
@@ -167,7 +161,9 @@ const ProgressPage = () => {
                   {b.name}
                 </span>
               </div>
-            ))}
+            )) : (
+              <p className="text-sm text-muted-foreground">No badges earned yet.</p>
+            )}
             <div className="flex flex-col items-center gap-1.5 p-2.5 border border-dashed border-border min-w-[60px] opacity-40">
               <span className="text-2xl">🏆</span>
               <span className="font-heading text-[9px] font-bold text-muted-foreground uppercase tracking-wide text-center leading-tight">
