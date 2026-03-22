@@ -1,11 +1,20 @@
--- DadHealth Supabase schema (reference - run in Supabase SQL Editor if tables don't exist)
+-- DadHealth Supabase schema (run in Supabase SQL Editor if tables don't exist)
 
--- mood_logs (1 per user per day)
+-- =========================
+-- EXTENSIONS
+-- =========================
+create extension if not exists "pgcrypto";
+
+-- =========================
+-- TABLES
+-- =========================
+
+-- mood_logs
 create table if not exists mood_logs (
   id uuid primary key default gen_random_uuid(),
   user_id uuid references auth.users(id) on delete cascade not null,
   date date not null,
-  mood_value int not null check (mood_value between 1 and 4),
+  mood_value int not null check (mood_value between 0 and 4),
   created_at timestamptz default now(),
   unique(user_id, date)
 );
@@ -16,6 +25,7 @@ create table if not exists sleep_logs (
   user_id uuid references auth.users(id) on delete cascade not null,
   date date not null,
   hours numeric not null,
+  quality int check (quality between 1 and 5),
   created_at timestamptz default now(),
   unique(user_id, date)
 );
@@ -25,8 +35,9 @@ create table if not exists workout_sessions (
   id uuid primary key default gen_random_uuid(),
   user_id uuid references auth.users(id) on delete cascade not null,
   exercise_name text not null,
-  duration_minutes int,
-  calories int,
+  duration_minutes int not null,
+  calories int not null,
+  exercises_completed int,
   performed_at timestamptz not null,
   created_at timestamptz default now()
 );
@@ -52,6 +63,18 @@ create table if not exists user_streaks (
   updated_at timestamptz default now()
 );
 
+-- daily_tasks
+create table if not exists daily_tasks (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references auth.users(id) on delete cascade not null,
+  title text not null,
+  category text,
+  status text default 'open',
+  date date not null,
+  created_at timestamptz default now(),
+  unique(user_id, title, date)
+);
+
 -- weekly_challenges
 create table if not exists weekly_challenges (
   id uuid primary key default gen_random_uuid(),
@@ -61,10 +84,10 @@ create table if not exists weekly_challenges (
   active boolean default true,
   created_at timestamptz default now()
 );
--- Seed weekly challenge
+
 insert into weekly_challenges (title, description, participants_count, active) 
 select 'Screen-free Sunday', '847 dads taking part', 847, true 
-where not exists (select 1 from weekly_challenges limit 1);
+where not exists (select 1 from weekly_challenges);
 
 -- meal_plans
 create table if not exists meal_plans (
@@ -83,7 +106,7 @@ create table if not exists body_metrics (
   user_id uuid references auth.users(id) on delete cascade not null,
   metric_type text not null,
   value numeric not null,
-  weight_kg numeric,
+  weight_kg numeric not null,
   recorded_at timestamptz not null,
   created_at timestamptz default now()
 );
@@ -93,6 +116,8 @@ create table if not exists journal_entries (
   id uuid primary key default gen_random_uuid(),
   user_id uuid references auth.users(id) on delete cascade not null,
   content text not null,
+  mood_value int not null,
+  tag text,
   created_at timestamptz default now()
 );
 
@@ -100,16 +125,16 @@ create table if not exists journal_entries (
 create table if not exists therapists (
   id uuid primary key default gen_random_uuid(),
   name text not null,
-  spec text not null,
-  slots text not null,
-  price text not null
+  spec text,
+  availability text,
+  price_per_hour numeric not null
 );
 
 -- milestones
 create table if not exists milestones (
   id uuid primary key default gen_random_uuid(),
   user_id uuid references auth.users(id) on delete cascade not null,
-  date text not null,
+  date date not null,
   text text not null,
   tag text not null,
   created_at timestamptz default now()
@@ -122,21 +147,15 @@ create table if not exists dad_dates (
   name text not null,
   age_range text not null,
   budget text not null,
-  time text not null
-);
-
--- age_prompts
-create table if not exists age_prompts (
-  id uuid primary key default gen_random_uuid(),
-  prompt text not null,
-  age_range text
+  duration_minutes int not null,
+  time_of_day text
 );
 
 -- posts
 create table if not exists posts (
   id uuid primary key default gen_random_uuid(),
   user_id uuid references auth.users(id) on delete set null,
-  body text not null,
+  content text not null,
   tag text not null,
   anonymous boolean default false,
   author_initials text,
@@ -160,6 +179,7 @@ create table if not exists comments (
   user_id uuid references auth.users(id) on delete cascade not null,
   post_id uuid references posts(id) on delete cascade not null,
   content text not null,
+  anonymous boolean default false,
   created_at timestamptz default now()
 );
 
@@ -195,3 +215,158 @@ create table if not exists earned_badges (
   earned_at timestamptz default now(),
   unique(user_id, badge_id)
 );
+
+-- =========================
+-- FUNCTIONS
+-- =========================
+
+-- streak logic
+create or replace function update_streak(p_user_id uuid)
+returns void
+language plpgsql
+as $$
+declare
+  last_date date;
+begin
+  select last_activity_date into last_date
+  from user_streaks
+  where user_id = p_user_id;
+
+  if last_date = current_date then return; end if;
+
+  if last_date = current_date - interval '1 day' then
+    update user_streaks
+    set streak_count = streak_count + 1,
+        last_activity_date = current_date,
+        updated_at = now()
+    where user_id = p_user_id;
+  else
+    update user_streaks
+    set streak_count = 1,
+        last_activity_date = current_date,
+        updated_at = now()
+    where user_id = p_user_id;
+  end if;
+end;
+$$;
+
+-- check-in logic
+create or replace function handle_daily_checkin(
+  p_user_id uuid,
+  p_mood int,
+  p_sleep numeric
+)
+returns void
+language plpgsql
+as $$
+begin
+  insert into mood_logs (user_id, date, mood_value)
+  values (p_user_id, current_date, p_mood)
+  on conflict (user_id, date)
+  do update set mood_value = excluded.mood_value;
+
+  insert into sleep_logs (user_id, date, hours)
+  values (p_user_id, current_date, p_sleep)
+  on conflict (user_id, date)
+  do update set hours = excluded.hours;
+
+  perform update_streak(p_user_id);
+end;
+$$;
+
+-- complete task
+create or replace function complete_task(
+  p_user_id uuid,
+  p_title text
+)
+returns void
+language plpgsql
+as $$
+begin
+  insert into daily_tasks (user_id, title, date, status)
+  values (p_user_id, p_title, current_date, 'done')
+  on conflict (user_id, title, date)
+  do update set status = 'done';
+end;
+$$;
+
+-- =========================
+-- VIEWS
+-- =========================
+
+create or replace view dad_score_view as
+select 
+  u.id as user_id,
+
+  coalesce((
+    select avg(mood_value) * 25
+    from mood_logs m
+    where m.user_id = u.id
+    and m.date >= current_date - 7
+  ), 0) as mind_score,
+
+  least((
+    select count(*) * 20
+    from workout_sessions w
+    where w.user_id = u.id
+    and w.performed_at >= now() - interval '7 days'
+  ), 100) as body_score,
+
+  least((
+    select count(*) * 15
+    from journal_entries j
+    where j.user_id = u.id
+    and j.created_at >= now() - interval '7 days'
+  ), 100) as bond_score
+
+from auth.users u;
+
+create or replace view dashboard_view as
+select 
+  u.id as user_id,
+  m.mood_value,
+  s.hours as sleep_hours,
+  st.streak_count,
+  (
+    select count(*) 
+    from workout_sessions w 
+    where w.user_id = u.id 
+    and w.performed_at::date = current_date
+  ) as today_workouts
+from auth.users u
+left join mood_logs m on m.user_id = u.id and m.date = current_date
+left join sleep_logs s on s.user_id = u.id and s.date = current_date
+left join user_streaks st on st.user_id = u.id;
+
+-- =========================
+-- TRIGGERS
+-- =========================
+
+create or replace function handle_new_user()
+returns trigger
+language plpgsql
+as $$
+begin
+  insert into user_profile (user_id) values (new.id);
+  insert into user_streaks (user_id, streak_count) values (new.id, 0);
+  return new;
+end;
+$$;
+
+drop trigger if exists on_auth_user_created on auth.users;
+
+create trigger on_auth_user_created
+after insert on auth.users
+for each row execute function handle_new_user();
+
+-- =========================
+-- INDEXES
+-- =========================
+
+create index if not exists idx_mood_user_date on mood_logs(user_id, date);
+create index if not exists idx_sleep_user_date on sleep_logs(user_id, date);
+create index if not exists idx_workout_user on workout_sessions(user_id);
+create index if not exists idx_tasks_user_date on daily_tasks(user_id, date);
+
+create unique index if not exists limit_posts_per_hour
+on posts(user_id, date_trunc('hour', created_at));
