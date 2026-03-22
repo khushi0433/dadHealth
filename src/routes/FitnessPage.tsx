@@ -5,23 +5,16 @@ import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 import LimeButton from "@/components/LimeButton";
 import { ProGate } from "@/components/ProProvider";
-import { EXERCISES, MEALS } from "@/lib/constants";
+import { EXERCISES } from "@/lib/constants";
 import { IMAGES } from "@/lib/images";
 import { useAuth } from "@/contexts/AuthContext";
-import { useWorkoutSessions, useSaveWorkout } from "@/hooks/useWorkouts";
-import { useBodyMetrics, useSaveBodyMetric } from "@/hooks/useBodyMetrics";
-import { useMealPlans, useSaveMealPlans } from "@/hooks/useMealPlans";
+import { useFitness } from "@/hooks/useFitness";
 
 const FITNESS_DURATION = 22 * 60;
 
 const FitnessPage = () => {
   const { user } = useAuth();
-  const { data: workouts = [] } = useWorkoutSessions(user?.id);
-  const saveWorkout = useSaveWorkout(user?.id);
-  const { data: bodyMetrics = [] } = useBodyMetrics(user?.id);
-  const saveBodyMetric = useSaveBodyMetric(user?.id);
-  const { data: mealPlans = [], isLoading: mealsLoading } = useMealPlans(user?.id);
-  const saveMealPlans = useSaveMealPlans(user?.id);
+  const { workouts, bodyMetrics, mealPlans, loading: mealsLoading, saveWorkout, saveBodyMetric, saveMealPlans } = useFitness(user?.id);
 
   const [timerSec, setTimerSec] = useState(0);
   const [timerRunning, setTimerRunning] = useState(false);
@@ -69,18 +62,16 @@ const FitnessPage = () => {
   const prevWeight = weightMetrics[1];
 
   const progressStats = [
-    { value: String(monthWorkouts), label: "WORKOUTS" },
+    { value: user ? String(monthWorkouts) : "—", label: "WORKOUTS" },
     {
-      value: prevWeight && latestWeight ? `${prevWeight.value}→${latestWeight.value}kg` : "—",
+      value: user && prevWeight && latestWeight ? `${prevWeight.value}→${latestWeight.value}kg` : "—",
       label: "WEIGHT",
     },
-    { value: "7.2km", label: "BEST RUN" },
+    { value: "—", label: "BEST RUN" },
     { value: timerSec > 0 ? formatTime(timerSec) : "0 min", label: "ACTIVE TODAY" },
   ];
 
-  const meals = mealPlans.length > 0
-    ? mealPlans
-    : MEALS.map((m) => ({ day: m.day, name: m.name, kcal: m.kcal }));
+  const meals = mealPlans;
 
   const handleCompleteWorkout = () => {
     const totalMin = Math.ceil(timerSec / 60) || 22;
@@ -179,7 +170,7 @@ const FitnessPage = () => {
           >
             <div className="bg-primary text-primary-foreground p-5">
               <h3 className="font-heading text-lg font-extrabold uppercase mb-4">MEAL PLANNER</h3>
-              {meals.map((meal: { day: string; name: string; kcal: number }, i: number) => (
+              {meals.length > 0 ? meals.map((meal: { day: string; name: string; kcal: number }, i: number) => (
                 <div
                   key={i}
                   className="flex items-center gap-4 py-2.5 border-b border-primary-foreground/10 last:border-b-0"
@@ -188,10 +179,12 @@ const FitnessPage = () => {
                   <span className="font-heading text-[13px] font-extrabold flex-1">{meal.name}</span>
                   <span className="text-xs opacity-60">{meal.kcal} kcal</span>
                 </div>
-              ))}
+              )) : (
+                <p className="text-sm opacity-60">No meal plan saved yet.</p>
+              )}
               <button
                 onClick={() => saveMealPlans.mutate(meals)}
-                disabled={!user || saveMealPlans.isPending || mealsLoading}
+                disabled={!user || saveMealPlans.isPending || mealsLoading || meals.length === 0}
                 className="mt-4 bg-primary-foreground text-primary font-heading font-bold text-[11px] tracking-wider uppercase px-4 py-2.5 border-none cursor-pointer hover:opacity-90 transition-opacity disabled:opacity-50"
               >
                 SAVE MEAL PLAN →
