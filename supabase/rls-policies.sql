@@ -1,6 +1,7 @@
 -- DadHealth RLS policies (run in Supabase SQL Editor after schema.sql)
 
 -- Enable RLS
+alter table clients enable row level security;
 alter table mood_logs enable row level security;
 alter table sleep_logs enable row level security;
 alter table workout_sessions enable row level security;
@@ -17,6 +18,7 @@ alter table user_circles enable row level security;
 alter table earned_badges enable row level security;
 
 -- Policies
+create policy "Anyone can read clients" on clients for select using (true);
 create policy "Users can CRUD own mood_logs" on mood_logs for all using (auth.uid() = user_id);
 create policy "Users can CRUD own sleep_logs" on sleep_logs for all using (auth.uid() = user_id);
 create policy "Users can CRUD own workout_sessions" on workout_sessions for all using (auth.uid() = user_id);

@@ -7,6 +7,7 @@ import { Toaster } from "@/components/ui/toaster";
 import ProProvider from "@/components/ProProvider";
 import { AuthProvider } from "@/contexts/AuthContext";
 import OnboardingCheck from "@/components/OnboardingCheck";
+import ClientBrandProvider from "@/components/ClientBrandProvider";
 import type { ReactNode } from "react";
 
 const queryClient = new QueryClient();
@@ -18,10 +19,12 @@ export default function Providers({ children }: { children: ReactNode }) {
         <Toaster />
         <Sonner />
         <AuthProvider>
-          <ProProvider>
-            {children}
-            <OnboardingCheck />
-          </ProProvider>
+          <ClientBrandProvider>
+            <ProProvider>
+              {children}
+              <OnboardingCheck />
+            </ProProvider>
+          </ClientBrandProvider>
         </AuthProvider>
       </TooltipProvider>
     </QueryClientProvider>

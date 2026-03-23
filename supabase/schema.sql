@@ -42,10 +42,37 @@ create table if not exists workout_sessions (
   created_at timestamptz default now()
 );
 
+-- clients (brand config per organization) - must exist before user_profile
+create table if not exists clients (
+  id uuid primary key default gen_random_uuid(),
+  slug text unique not null,
+  name text not null,
+  -- Brand colours as HSL values (same format as CSS vars: "H S% L%")
+  brand_config jsonb default '{
+    "primary": "78 89% 65%",
+    "primaryForeground": "0 0% 4%",
+    "accent": "78 89% 65%",
+    "lime": "78 89% 65%",
+    "ring": "78 89% 65%",
+    "sidebarPrimary": "78 89% 65%",
+    "sidebarRing": "78 89% 65%"
+  }'::jsonb,
+  created_at timestamptz default now()
+);
+
+-- Seed default Dad Health client
+insert into clients (id, slug, name, brand_config) values (
+  '00000000-0000-0000-0000-000000000001'::uuid,
+  'dadhealth',
+  'Dad Health',
+  '{"primary":"78 89% 65%","primaryForeground":"0 0% 4%","accent":"78 89% 65%","lime":"78 89% 65%","ring":"78 89% 65%","sidebarPrimary":"78 89% 65%","sidebarRing":"78 89% 65%"}'
+) on conflict (id) do nothing;
+
 -- user_profile
 create table if not exists user_profile (
   id uuid primary key default gen_random_uuid(),
   user_id uuid references auth.users(id) on delete cascade not null unique,
+  client_id uuid references clients(id) on delete set null,
   goals jsonb default '[]',
   pillar_order jsonb default '[]',
   onboarding_complete boolean default false,
@@ -53,6 +80,10 @@ create table if not exists user_profile (
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
+
+-- For existing DBs: add client_id if missing, backfill
+alter table user_profile add column if not exists client_id uuid references clients(id) on delete set null;
+update user_profile set client_id = '00000000-0000-0000-0000-000000000001'::uuid where client_id is null;
 
 -- user_streaks
 create table if not exists user_streaks (
@@ -346,8 +377,15 @@ create or replace function handle_new_user()
 returns trigger
 language plpgsql
 as $$
+declare
+  default_client_id uuid := '00000000-0000-0000-0000-000000000001'::uuid;
+  signup_client_id uuid;
 begin
-  insert into user_profile (user_id) values (new.id);
+  signup_client_id := (new.raw_user_meta_data->>'client_id')::uuid;
+  insert into user_profile (user_id, client_id) values (
+    new.id,
+    coalesce(signup_client_id, default_client_id)
+  );
   insert into user_streaks (user_id, streak_count) values (new.id, 0);
   return new;
 end;
@@ -369,4 +407,4 @@ create index if not exists idx_workout_user on workout_sessions(user_id);
 create index if not exists idx_tasks_user_date on daily_tasks(user_id, date);
 
 create unique index if not exists limit_posts_per_hour
-on posts(user_id, date_trunc('hour', created_at));
+on posts(user_id, date_trunc('hour', created_at AT TIME ZONE 'UTC'));

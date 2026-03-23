@@ -1,6 +1,25 @@
+export interface BrandConfig {
+  primary?: string;
+  primaryForeground?: string;
+  accent?: string;
+  lime?: string;
+  ring?: string;
+  sidebarPrimary?: string;
+  sidebarRing?: string;
+}
+
+export interface Client {
+  id: string;
+  slug: string;
+  name: string;
+  brand_config: BrandConfig;
+  created_at?: string;
+}
+
 export interface UserProfile {
   id: string;
   user_id: string;
+  client_id?: string | null;
   goals?: string[] | null;
   pillar_order?: string[] | null;
   onboarding_complete?: boolean;
