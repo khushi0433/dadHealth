@@ -188,17 +188,17 @@ const DashboardPreview = () => {
 
               {user && !hasCheckedInToday && (
                 <div className="border border-primary/20 p-4 mb-4">
-                  <div className="font-heading text-[11px] font-bold tracking-wider uppercase text-primary mb-2">DAILY CHECK-IN</div>
-                  <div className="flex gap-4 flex-wrap">
+                  <div className="font-heading text-[11px] font-bold tracking-wider uppercase text-primary mb-3">DAILY CHECK-IN</div>
+                  <div className="space-y-4">
                     <div>
-                      <label className="text-[10px] text-muted-foreground uppercase">Mood (1-4)</label>
-                      <div className="flex gap-1 mt-1">
+                      <label className="block text-[10px] text-muted-foreground uppercase mb-1.5">Mood (1-4)</label>
+                      <div className="flex flex-wrap gap-1.5">
                         {[1, 2, 3, 4].map((v) => (
                           <button
                             key={v}
                             type="button"
                             onClick={() => setCbtMood(v)}
-                            className={`w-8 h-8 font-heading text-xs font-bold border cursor-pointer ${
+                            className={`min-w-[2rem] h-8 px-2 font-heading text-xs font-bold border cursor-pointer ${
                               cbtMood === v ? "bg-primary text-primary-foreground border-primary" : "border-border hover:border-primary"
                             }`}
                           >
@@ -207,26 +207,31 @@ const DashboardPreview = () => {
                         ))}
                       </div>
                     </div>
-                    <div>
-                      <label className="text-[10px] text-muted-foreground uppercase">Sleep (hrs)</label>
-                      <input
-                        type="number"
-                        min={0}
-                        max={12}
-                        step={0.5}
-                        value={cbtSleep}
-                        onChange={(e) => setCbtSleep(parseFloat(e.target.value) || 7)}
-                        className="w-16 mt-1 bg-white/[0.04] border border-border p-1.5 text-foreground text-sm"
-                      />
+                    <div className="flex flex-wrap items-end gap-3 sm:gap-4">
+                      <div className="min-w-0 shrink-0">
+                        <label htmlFor="checkin-sleep" className="block text-[10px] text-muted-foreground uppercase mb-1.5">
+                          Sleep (hrs)
+                        </label>
+                        <input
+                          id="checkin-sleep"
+                          type="number"
+                          min={0}
+                          max={12}
+                          step={0.5}
+                          value={cbtSleep}
+                          onChange={(e) => setCbtSleep(parseFloat(e.target.value) || 7)}
+                          className="w-[4.5rem] box-border bg-white/[0.04] border border-border px-2 py-2 text-foreground text-sm tabular-nums [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => checkIn.mutate({ mood_value: cbtMood, sleep_hours: cbtSleep })}
+                        disabled={checkIn.isPending}
+                        className="bg-primary text-primary-foreground font-heading font-bold text-[10px] tracking-wider uppercase px-4 py-2 border-none cursor-pointer hover:bg-primary/90 disabled:opacity-50 shrink-0"
+                      >
+                        {checkIn.isPending ? "..." : "SAVE"}
+                      </button>
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => checkIn.mutate({ mood_value: cbtMood, sleep_hours: cbtSleep })}
-                      disabled={checkIn.isPending}
-                      className="self-end bg-primary text-primary-foreground font-heading font-bold text-[10px] tracking-wider uppercase px-3 py-1.5 border-none cursor-pointer hover:bg-primary/90 disabled:opacity-50"
-                    >
-                      {checkIn.isPending ? "..." : "SAVE"}
-                    </button>
                   </div>
                 </div>
               )}
