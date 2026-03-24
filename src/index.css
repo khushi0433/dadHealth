@@ -64,7 +64,7 @@
   }
 
   body {
-    @apply bg-background text-foreground font-body antialiased;
+    @apply bg-background text-foreground font-body antialiased text-base sm:text-[17px];
   }
 
   h1, h2, h3, h4, h5, h6 {
@@ -74,7 +74,7 @@
 
 @layer components {
   .section-label {
-    @apply font-heading text-[10px] font-bold tracking-[2.5px] uppercase text-muted-foreground;
+    @apply font-heading text-xs sm:text-sm font-bold tracking-[2.5px] uppercase text-muted-foreground;
   }
 
   .lime-section {
