@@ -23,7 +23,7 @@ const SiteHeader = () => {
   return (
     <header className="sticky top-0 z-50 bg-black border-b border-white/10">
       <div className="max-w-[1400px] mx-auto flex items-center justify-between px-5 py-3 lg:px-8">
-        <Link href="/">
+        <Link href="/" className="inline-flex shrink-0 items-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black rounded-sm">
           <Logo />
         </Link>
 
