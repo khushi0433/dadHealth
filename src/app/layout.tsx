@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Providers from "./providers";
 import "../index.css";
+import { OG_HERO_IMAGE } from "@/lib/images";
 
 export const metadata: Metadata = {
   title: {
@@ -16,12 +17,12 @@ export const metadata: Metadata = {
     description: "Built for dads, by dads. Fitness, mental health, bonding and community.",
     type: "website",
     url: "https://dadhealth.co.uk",
-    images: ["https://images.unsplash.com/photo-1516534775068-ba3e7458af70?w=1200&q=80"],
+    images: [OG_HERO_IMAGE],
   },
   twitter: {
     card: "summary_large_image",
     title: "Dad Health — Be the Stronger Dad",
-    images: ["https://images.unsplash.com/photo-1516534775068-ba3e7458af70?w=1200&q=80"],
+    images: [OG_HERO_IMAGE],
   },
 };
 
