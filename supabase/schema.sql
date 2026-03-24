@@ -376,17 +376,23 @@ left join user_streaks st on st.user_id = u.id;
 create or replace function handle_new_user()
 returns trigger
 language plpgsql
+security definer
 as $$
 declare
   default_client_id uuid := '00000000-0000-0000-0000-000000000001'::uuid;
   signup_client_id uuid;
+  final_client_id uuid;
 begin
+  -- Resolve client_id: from signup metadata, or default if it exists, else null
   signup_client_id := (new.raw_user_meta_data->>'client_id')::uuid;
-  insert into user_profile (user_id, client_id) values (
-    new.id,
-    coalesce(signup_client_id, default_client_id)
-  );
-  insert into user_streaks (user_id, streak_count) values (new.id, 0);
+  if signup_client_id is not null then
+    final_client_id := signup_client_id;
+  else
+    select id into final_client_id from public.clients where id = default_client_id limit 1;
+  end if;
+
+  insert into public.user_profile (user_id, client_id) values (new.id, final_client_id);
+  insert into public.user_streaks (user_id, streak_count) values (new.id, 0);
   return new;
 end;
 $$;
@@ -408,3 +414,54 @@ create index if not exists idx_tasks_user_date on daily_tasks(user_id, date);
 
 create unique index if not exists limit_posts_per_hour
 on posts(user_id, date_trunc('hour', created_at AT TIME ZONE 'UTC'));
+
+-- =========================
+-- LEGACY REPAIR (idempotent — run if signup failed before clients existed)
+-- =========================
+create table if not exists clients (
+  id uuid primary key default gen_random_uuid(),
+  slug text unique not null,
+  name text not null,
+  brand_config jsonb default '{}',
+  created_at timestamptz default now()
+);
+
+alter table user_profile add column if not exists client_id uuid references clients(id) on delete set null;
+
+insert into clients (id, slug, name, brand_config) values (
+  '00000000-0000-0000-0000-000000000001'::uuid,
+  'dadhealth',
+  'Dad Health',
+  '{"primary":"78 89% 65%","primaryForeground":"0 0% 4%","accent":"78 89% 65%","lime":"78 89% 65%","ring":"78 89% 65%","sidebarPrimary":"78 89% 65%","sidebarRing":"78 89% 65%"}'
+) on conflict (id) do nothing;
+
+update user_profile set client_id = '00000000-0000-0000-0000-000000000001'::uuid where client_id is null;
+
+create or replace function handle_new_user()
+returns trigger
+language plpgsql
+security definer
+as $$
+declare
+  default_client_id uuid := '00000000-0000-0000-0000-000000000001'::uuid;
+  signup_client_id uuid;
+  final_client_id uuid;
+begin
+  signup_client_id := (new.raw_user_meta_data->>'client_id')::uuid;
+  if signup_client_id is not null then
+    final_client_id := signup_client_id;
+  else
+    select id into final_client_id from public.clients where id = default_client_id limit 1;
+  end if;
+
+  insert into public.user_profile (user_id, client_id) values (new.id, final_client_id);
+  insert into public.user_streaks (user_id, streak_count) values (new.id, 0);
+  return new;
+end;
+$$;
+
+drop trigger if exists on_auth_user_created on auth.users;
+
+create trigger on_auth_user_created
+after insert on auth.users
+for each row execute function handle_new_user();
