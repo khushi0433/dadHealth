@@ -49,12 +49,12 @@ export default function AuthModal({ open, onClose, onSuccess }: AuthModalProps) 
   const handleOAuthSignIn = async (provider: Provider) => {
     setError(null);
     setOauthLoading(provider);
-
-    try {
-      const redirectTo =
-      typeof window !== "undefined"
-      ? `${window.location.origin}/api/auth/callback/google`
-      : undefined;
+try {
+    const redirectTo =
+    typeof window !== "undefined"
+    ? `${window.location.origin}`
+    : undefined;
+    await supabase.auth.signInWithOAuth({ provider, options: { redirectTo }});
 
       const { error: oauthError } = await supabase.auth.signInWithOAuth({
         provider,
