@@ -1,24 +1,22 @@
 import { cn } from "@/lib/utils";
 
-interface OutlineButtonProps {
-  children: React.ReactNode;
+interface OutlineButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   dark?: boolean;
   small?: boolean;
-  onClick?: () => void;
-  className?: string;
 }
 
-const OutlineButton = ({ children, dark, small, onClick, className }: OutlineButtonProps) => (
+const OutlineButton = ({ children, dark, small, className, type = "button", ...props }: OutlineButtonProps) => (
   <button
-    onClick={onClick}
+    type={type}
     className={cn(
-      "bg-transparent border-[1.5px] font-heading font-bold tracking-wider uppercase cursor-pointer inline-flex items-center gap-1.5 transition-all duration-200 hover:border-primary hover:text-primary active:scale-[0.97]",
+      "bg-transparent border-[1.5px] font-heading font-bold tracking-wider uppercase cursor-pointer inline-flex items-center gap-1.5 transition-all duration-200 active:scale-[0.97]",
       dark
-        ? "text-primary-foreground border-primary-foreground hover:bg-primary-foreground/10 hover:border-primary-foreground"
-        : "text-foreground border-foreground",
+        ? "text-primary-foreground border-primary-foreground hover:border-primary-foreground hover:text-primary-foreground hover:bg-primary/35 hover:brightness-110 hover:shadow-[0_0_20px_hsl(78,89%,65%,0.35)]"
+        : "text-foreground border-foreground hover:border-primary hover:text-primary",
       small ? "py-2 px-3.5 text-[11px]" : "py-[11px] px-5 text-[13px]",
       className
     )}
+    {...props}
   >
     {children} →
   </button>

@@ -183,7 +183,7 @@ const FitnessPage = () => {
               <button
                 onClick={() => saveMealPlans.mutate(meals)}
                 disabled={!user || saveMealPlans.isPending || mealsLoading || meals.length === 0}
-                className="mt-4 bg-primary-foreground text-primary font-heading font-bold text-[11px] tracking-wider uppercase px-4 py-2.5 border-none cursor-pointer hover:opacity-90 transition-opacity disabled:opacity-50"
+                className="mt-4 bg-primary-foreground text-primary font-heading font-bold text-[11px] tracking-wider uppercase px-4 py-2.5 border-none cursor-pointer transition-all duration-200 hover:brightness-110 hover:shadow-[0_0_20px_hsl(78,89%,65%,0.35)] active:scale-[0.97] disabled:opacity-50 disabled:hover:brightness-100 disabled:hover:shadow-none disabled:active:scale-100"
               >
                 SAVE MEAL PLAN →
               </button>
