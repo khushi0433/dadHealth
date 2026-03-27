@@ -6,7 +6,7 @@ import { FOOTER_LINKS } from "@/lib/constants";
 const SiteFooter = () => (
   <footer className="w-full min-w-0 bg-card border-t border-border">
     <div className="max-w-[1400px] mx-auto px-5 py-12 lg:px-8 lg:py-14">
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 lg:gap-10">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-8 lg:gap-10">
         {/* Brand */}
         <div className="lg:col-span-2">
           <Logo />
@@ -16,8 +16,8 @@ const SiteFooter = () => (
           </p>
         </div>
 
-        {/* Platform */}
-        <div>
+        {/* Platform — slight right nudge on small screens only */}
+        <div className="pl-3 sm:pl-4 lg:pl-0">
           <h4 className="font-heading text-[10px] font-bold tracking-[2.5px] uppercase text-muted-foreground mb-4">
             PLATFORM
           </h4>
@@ -48,8 +48,8 @@ const SiteFooter = () => (
           </ul>
         </div>
 
-        {/* Legal */}
-        <div>
+        {/* Legal — slight right nudge on small screens only */}
+        <div className="pl-3 sm:pl-4 lg:pl-0">
           <h4 className="font-heading text-[10px] font-bold tracking-[2.5px] uppercase text-muted-foreground mb-4">
             LEGAL
           </h4>
