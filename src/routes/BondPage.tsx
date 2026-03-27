@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { format } from "date-fns";
 import { Lock } from "lucide-react";
-import SiteHeader from "@/components/SiteHeader";
+import SitePageShell from "@/components/SitePageShell";
 import SiteFooter from "@/components/SiteFooter";
 import { useProStatus } from "@/components/ProProvider";
 import { IMAGES } from "@/lib/images";
@@ -50,11 +50,9 @@ const BondPage = () => {
   const conversationStarters = prompts.map((p: { prompt: string }) => p.prompt);
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <SiteHeader />
-
+    <SitePageShell>
       {/* Hero */}
-      <section className="relative h-[580px] lg:h-[580px]"> 
+      <section className="relative w-full min-w-0 h-[580px] lg:h-[580px]">
         <img src={IMAGES.bond} alt="Parenting" className="absolute inset-0 w-full h-full object-cover" />
         <div className="absolute inset-0 bg-background/65" />
         <div className="relative z-10 flex flex-col justify-center items-start h-full max-w-[1400px] mx-auto px-5 lg:px-8">
@@ -179,7 +177,7 @@ const BondPage = () => {
       </div>
 
       <SiteFooter />
-    </div>
+    </SitePageShell>
   );
 };
 

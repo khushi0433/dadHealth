@@ -8,7 +8,7 @@ interface HeroSectionProps {
 }
 
 const HeroSection = ({ heroImg }: HeroSectionProps) => (
-  <section className="relative h-[520px] lg:h-[600px]">
+  <section className="relative w-full min-w-0 h-[520px] lg:h-[600px]">
     <img
       src={heroImg}
       alt="Dad with child"

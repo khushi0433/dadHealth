@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import SiteHeader from "@/components/SiteHeader";
+import SitePageShell from "@/components/SitePageShell";
 import SiteFooter from "@/components/SiteFooter";
 import LimeButton from "@/components/LimeButton";
 import { EXPERTS } from "@/lib/constants";
@@ -39,9 +39,7 @@ const CommunityPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <SiteHeader />
-
+    <SitePageShell>
       {/* Hero */}
       <section className="bg-primary text-primary-foreground">
         <div className="max-w-[1400px] mx-auto px-5 lg:px-8 py-12">
@@ -252,7 +250,7 @@ const CommunityPage = () => {
       </div>
 
       <SiteFooter />
-    </div>
+    </SitePageShell>
   );
 };
 

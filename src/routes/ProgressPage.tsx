@@ -2,7 +2,7 @@
 
 import { useCallback } from "react";
 import { Trophy } from "lucide-react";
-import SiteHeader from "@/components/SiteHeader";
+import SitePageShell from "@/components/SitePageShell";
 import SiteFooter from "@/components/SiteFooter";
 import OutlineButton from "@/components/OutlineButton";
 import { ProGate } from "@/components/ProProvider";
@@ -87,9 +87,7 @@ const ProgressPage = () => {
   const displayBadges = earnedBadges.length > 0 ? earnedBadges : badges;
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <SiteHeader />
-
+    <SitePageShell>
       {/* Score */}
       <section className="bg-background border-b border-border">
         <div className="max-w-[1400px] mx-auto px-5 lg:px-8 py-10">
@@ -240,7 +238,7 @@ const ProgressPage = () => {
       </div>
 
       <SiteFooter />
-    </div>
+    </SitePageShell>
   );
 };
 

@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { PenLine, BarChart2, Stethoscope, LifeBuoy } from "lucide-react";
-import SiteHeader from "@/components/SiteHeader";
+import SitePageShell from "@/components/SitePageShell";
 import SiteFooter from "@/components/SiteFooter";
 import LimeButton from "@/components/LimeButton";
 import { ProGate } from "@/components/ProProvider";
@@ -60,11 +60,10 @@ const MindPage = () => {
   const therapistsList = therapists;
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <SiteHeader />
-
+    <SitePageShell>
       {/* Hero */}
-      <section className="bg-background max-w-[1400px] mx-auto px-5 lg:px-8 py-12">
+      <section className="bg-background w-full">
+        <div className="max-w-[1400px] mx-auto px-5 lg:px-8 py-12">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
           <div>
             <span className="section-label mb-2 block">MENTAL HEALTH</span>
@@ -108,6 +107,7 @@ const MindPage = () => {
               {breathActive ? "STOP" : "BEGIN"}
             </button>
           </div>
+        </div>
         </div>
       </section>
 
@@ -213,7 +213,7 @@ const MindPage = () => {
       </section>
 
       <SiteFooter />
-    </div>
+    </SitePageShell>
   );
 };
 

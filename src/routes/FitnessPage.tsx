@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import SiteHeader from "@/components/SiteHeader";
+import SitePageShell from "@/components/SitePageShell";
 import SiteFooter from "@/components/SiteFooter";
 import LimeButton from "@/components/LimeButton";
 import { ProGate } from "@/components/ProProvider";
@@ -83,11 +83,9 @@ const FitnessPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <SiteHeader />
-
+    <SitePageShell>
       {/* Hero */}
-      <section className="relative h-[320px] lg:h-[400px]">
+      <section className="relative w-full min-w-0 h-[320px] lg:h-[400px]">
         <img src={IMAGES.workout} alt="Workout" className="absolute inset-0 w-full h-full object-cover" />
         <div className="absolute inset-0 bg-background/60" />
         <div className="relative z-10 flex flex-col justify-end h-full max-w-[1400px] mx-auto px-5 lg:px-8 pb-8">
@@ -197,7 +195,7 @@ const FitnessPage = () => {
       </div>
 
       <SiteFooter />
-    </div>
+    </SitePageShell>
   );
 };
 

@@ -52,7 +52,7 @@ const DadStrengthSection = ({ workoutImg }: DadStrengthSectionProps) => {
   return (
   <section className="bg-background pt-8 pb-16 lg:pb-20">
     {/* Hero banner */}
-   <div className="relative h-[400px] lg:h-[480px]"> 
+   <div className="relative w-full min-w-0 h-[400px] lg:h-[480px]"> 
     <img src={workoutImg} alt="Dad Strength Workout" 
     className="absolute inset-0 w-full h-full object-cover object-center" />
       <div className="absolute inset-0 bg-background/60" />

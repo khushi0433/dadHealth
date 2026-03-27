@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import SiteHeader from "@/components/SiteHeader";
+import SitePageShell from "@/components/SitePageShell";
 import SiteFooter from "@/components/SiteFooter";
 import Logo from "@/components/Logo";
 import LimeButton from "@/components/LimeButton";
@@ -21,9 +21,7 @@ const PricingPage = () => {
   const { isPro, isSubscribed, setPro, showPaywall } = useProStatus();
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <SiteHeader />
-
+    <SitePageShell>
       {/* Hero */}
       <section className="bg-background border-b border-border">
         <div className="max-w-[1400px] mx-auto px-5 lg:px-8 py-16 text-center">
@@ -162,22 +160,21 @@ const PricingPage = () => {
         <div className="max-w-[1400px] mx-auto px-5 lg:px-8 py-12">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 max-w-4xl mx-auto">
             <div>
-              <span className="section-label !p-0 mb-2 block">EXAMPLE — LOCKED FEATURE</span>
+              <span className="section-label !p-0 mb-2 block">Mood trend insights</span>
               <h2 className="font-heading text-[22px] font-extrabold text-foreground uppercase tracking-wide mb-4">
-                MOOD TREND GRAPHS — PRO FEATURE
+                Track your patterns
               </h2>
               <p className="text-sm text-muted-foreground leading-relaxed mb-6">
-                Free users see a lock icon in place of their mood charts. Tapping it opens the
-                paywall modal with context — it tells them exactly which feature they tried to
-                unlock.
-              </p>
+  Track your mood over time, spot patterns, and understand what actually impacts your mental health. 
+  Pro gives you clear visual insights so you can improve how you show up every day.
+</p>
               <div className="space-y-2.5">
                 {[
                   { feat: "Daily mood check-in", badge: "FREE", included: true },
-                  { feat: "Mood trend graphs", badge: "PRO", included: false },
-                  { feat: "Sleep correlation insights", badge: "PRO", included: false },
-                  { feat: "Dad Health Score breakdown", badge: "PRO", included: false },
-                  { feat: "Crisis support", badge: "ALWAYS FREE", included: true },
+                  { feat: "See your mood patterns over time", badge: "PRO", included: false },
+                  { feat: "Understand how sleep affects your mood", badge: "PRO", included: false },
+                  { feat: "Full Dad Health Score insights", badge: "PRO", included: false },
+                  { feat: "Crisis support (always available)", badge: "ALWAYS FREE", included: true },
                 ].map((item) => (
                   <div key={item.feat} className="feat-row">
                     <span className={item.included ? "feat-tick" : "feat-cross"}>
@@ -196,10 +193,10 @@ const PricingPage = () => {
             <div className="bg-card border border-border p-6">
               <div className="flex items-center gap-2 mb-4">
                 <Logo />
-                <span className="tag-pill">PRO</span>
+                <span className="hidden lg:inline-flex font-heading text-[10px] font-bold tracking-wider uppercase text-primary border border-primary px-2 py-0.5 hover:bg-primary hover:text-primary-foreground transition-all duration-200">PRO</span>
               </div>
               <p className="text-xs text-muted-foreground mb-6">
-                "<span className="text-primary font-semibold">mood trend graphs</span>" is a Pro feature
+              <span className="text-primary font-semibold">Mood trends</span> are available on Pro
               </p>
               <div className="flex bg-white/5 border border-border p-1 gap-1 mb-6">
                 <button
@@ -292,7 +289,7 @@ const PricingPage = () => {
       </section>
 
       <SiteFooter />
-    </div>
+    </SitePageShell>
   );
 };
 

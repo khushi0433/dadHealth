@@ -4,7 +4,7 @@ import { LifeBuoy } from "lucide-react";
 import { FOOTER_LINKS } from "@/lib/constants";
 
 const SiteFooter = () => (
-  <footer className="bg-card border-t border-border">
+  <footer className="w-full min-w-0 bg-card border-t border-border">
     <div className="max-w-[1400px] mx-auto px-5 py-12 lg:px-8 lg:py-14">
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 lg:gap-10">
         {/* Brand */}

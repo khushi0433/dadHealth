@@ -1,7 +1,7 @@
 import Logo from "@/components/Logo";
 import LimeButton from "@/components/LimeButton";
 import OutlineButton from "@/components/OutlineButton";
-import SiteHeader from "@/components/SiteHeader";
+import SitePageShell from "@/components/SitePageShell";
 import SiteFooter from "@/components/SiteFooter";
 import { PILLARS } from "@/lib/constants";
 import { IMAGES } from "@/lib/images";
@@ -16,8 +16,7 @@ const PILLAR_IMAGES = [IMAGES.gym, IMAGES.run, IMAGES.food, IMAGES.bond];
 
 const Index = () => {
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <SiteHeader />
+    <SitePageShell>
       <HeroSection heroImg={IMAGES.hero} />
       <WhoWeAre gymImg={IMAGES.gym} />
       <StatsBar />
@@ -25,7 +24,7 @@ const Index = () => {
       <DashboardPreview />
       <DadStrengthSection workoutImg={IMAGES.workout} />
       <SiteFooter />
-    </div>
+    </SitePageShell>
   );
 };
 

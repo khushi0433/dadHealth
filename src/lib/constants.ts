@@ -46,19 +46,20 @@ export const PILLARS = [
 ] as const;
 
 export const EXERCISES = [
-  { name: "Press-up hold", sets: "3 sets", detail: "45 sec", muscle: "Chest" },
-  { name: "Goblet squat", sets: "3 sets", detail: "12 reps", muscle: "Legs" },
-  { name: "Dead bug", sets: "2 sets", detail: "10 reps", muscle: "Core" },
-  { name: "Hip hinge", sets: "3 sets", detail: "15 reps", muscle: "Back" },
-  { name: "Press-up", sets: "3 sets", detail: "10 reps", muscle: "Chest" },
-  { name: "Plank", sets: "3 sets", detail: "45 sec", muscle: "Core" },
+   {name:"Press-up hold", sets:"3 sets", detail:"45 sec", muscle:"Chest", rest:30},
+   {name:"Goblet squat",  sets:"3 sets", detail:"12 reps", muscle:"Legs",  rest:45},
+   {name:"Dead bug",      sets:"2 sets", detail:"10 reps", muscle:"Core",  rest:30},
+   {name:"Hip hinge",     sets:"3 sets", detail:"15 reps", muscle:"Back",  rest:45},
+   {name:"Press-up",      sets:"3 sets", detail:"10 reps", muscle:"Chest", rest:30},
+   {name:"Plank",         sets:"3 sets", detail:"45 sec",  muscle:"Core",  rest:30},
 ] as const;
 
 export const MEALS = [
-  { day: "MON", name: "Chicken & rice bowl", kcal: 520 },
-  { day: "TUE", name: "Eggs & avocado toast", kcal: 380 },
-  { day: "WED", name: "Salmon stir fry", kcal: 480 },
-  { day: "THU", name: "Turkey mince pasta", kcal: 560 },
+  {day:"MON", name:"Chicken & rice bowl", kcal:520, time:"20 min",},
+    {day:"TUE", name:"Eggs & avocado toast", kcal:380, time:"10 min"},
+    {day:"WED", name:"Salmon stir fry", kcal:480, time:"25 min"},
+    {day:"THU", name:"Turkey mince pasta", kcal:560, time:"20 min"},
+    {day:"FRI", name:"Dad's chilli", kcal:490, time:"30 min"},
 ] as const;
 
 export const PROGRESS_STATS = [

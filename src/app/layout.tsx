@@ -1,7 +1,11 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import Providers from "./providers";
 import "../index.css";
 import { OG_HERO_IMAGE } from "@/lib/images";
+
+export const viewport: Viewport = {
+  themeColor: "hsl(0, 0%, 4%)",
+};
 
 export const metadata: Metadata = {
   title: {
@@ -28,8 +32,8 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
-      <body>
+    <html lang="en" className="h-full bg-background">
+      <body className="min-h-dvh">
         <Providers>{children}</Providers>
       </body>
     </html>
