@@ -12,6 +12,19 @@ import { useComments, useAddComment, useDeleteComment } from "@/hooks/useComment
 import type { User } from "@supabase/supabase-js";
 import LimeButton from "@/components/LimeButton";
 
+function safeString(val: unknown, fallback = ""): string {
+  if (val == null) return fallback;
+  if (typeof val === "object") return JSON.stringify(val);
+  return String(val);
+}
+
+function safeNumber(val: unknown, fallback = 0): number {
+  if (val == null) return fallback;
+  if (typeof val === "number") return val;
+  const n = Number(val);
+  return Number.isNaN(n) ? fallback : n;
+}
+
 type FeedPost = Record<string, unknown>;
 
 type ToggleLikeMutation = {
@@ -109,11 +122,11 @@ export default function CommunityFeedPost({
               : "bg-primary/10 border border-primary text-primary"
           }`}
         >
-          {(p.author_initials ?? p.initials ?? "?") as string}
+          {safeString(p.author_initials ?? p.initials, "?")}
         </div>
         <div className="flex-1 min-w-0">
           <div className="font-heading text-[13px] font-bold text-foreground tracking-wide flex items-center gap-1.5">
-            {(p.author_name ?? p.name ?? "Dad") as string}
+            {safeString(p.author_name ?? p.name, "Dad")}
             {isAnon && (
               <span className="bg-white/[0.08] border border-white/10 font-heading text-[9px] font-bold tracking-wider text-muted-foreground px-1.5 py-0.5 uppercase">
                 ANON
@@ -121,11 +134,11 @@ export default function CommunityFeedPost({
             )}
           </div>
           <div className="text-[10px] text-muted-foreground uppercase tracking-wide">
-            {(p.author_meta ?? p.meta ?? "") as string}
+            {safeString(p.author_meta ?? p.meta)}
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <span className="tag-pill">{(p.tag ?? "FITNESS") as string}</span>
+          <span className="tag-pill">{safeString(p.tag, "FITNESS")}</span>
           {isOwner && postId && (
             <button
               type="button"
@@ -139,7 +152,7 @@ export default function CommunityFeedPost({
           )}
         </div>
       </div>
-      <p className="text-[13px] text-foreground/70 leading-relaxed mb-3">{(p.body ?? p.content ?? "") as string}</p>
+      <p className="text-[13px] text-foreground/70 leading-relaxed mb-3">{safeString(p.body ?? p.content)}</p>
       <div className="relative z-[60] flex flex-wrap gap-2 items-center pointer-events-auto">
         <button
           type="button"
@@ -158,7 +171,7 @@ export default function CommunityFeedPost({
         >
           <HandThumbUpIcon className="w-4 h-4 shrink-0" aria-hidden />
           <span>
-            {(p.likes_count ?? p.respect ?? 0) as number} RESPECT
+            {safeNumber(p.likes_count ?? p.respect)} RESPECT
           </span>
         </button>
         <button
@@ -168,7 +181,7 @@ export default function CommunityFeedPost({
         >
           <ChatBubbleLeftRightIcon className="w-4 h-4 shrink-0" aria-hidden />
           <span>
-            {(p.replies_count ?? p.replies ?? 0) as number} REPLIES
+            {safeNumber(p.replies_count ?? p.replies)} REPLIES
           </span>
         </button>
         <button
@@ -206,7 +219,7 @@ export default function CommunityFeedPost({
                     <span className="font-heading font-bold text-foreground/90 mr-2">
                       {c.user_id === user?.id ? "You" : "Dad"}
                     </span>
-                    {c.content}
+                    {safeString(c.content)}
                   </span>
                   {user?.id === c.user_id && (
                     <button
