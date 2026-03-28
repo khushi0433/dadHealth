@@ -1,10 +1,18 @@
 import { createBrowserClient } from "@supabase/ssr";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+function readSupabaseBrowserEnv() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
+  const baseUrl = url?.replace(/\/+$/, "");
+  if (!baseUrl || !key) {
+    throw new Error("Application configuration error");
+  }
+  return { url: baseUrl, key };
+}
 
 export function createClient() {
-  return createBrowserClient(supabaseUrl, supabaseAnonKey);
+  const { url, key } = readSupabaseBrowserEnv();
+  return createBrowserClient(url, key);
 }
 
 export const supabase = createClient();
