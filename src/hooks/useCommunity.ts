@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 import { supabase } from "@/utils/supabaseClient";
 
 async function fetchPosts() {
@@ -72,6 +73,20 @@ export function useCommunity(userId?: string) {
       if (!userId) return new Set<string>();
       const { data, error } = await supabase.from("likes").select("post_id").eq("user_id", userId);
       if (error) throw error;
+      return new Set((data ?? []).map((r) => r.post_id));
+    },
+    enabled: !!userId,
+  });
+
+  const userSavesQuery = useQuery({
+    queryKey: ["user_saves", userId],
+    queryFn: async () => {
+      if (!userId) return new Set<string>();
+      const { data, error } = await supabase.from("saved_posts").select("post_id").eq("user_id", userId);
+      // Missing table / migration: keep rest of community working
+      if (error) {
+        return new Set<string>();
+      }
       return new Set((data ?? []).map((r) => r.post_id));
     },
     enabled: !!userId,
@@ -153,6 +168,7 @@ export function useCommunity(userId?: string) {
     },
   });
 
+  /** Like / unlike — separate from save; variables are always `{ postId, liked }`. */
   const toggleLike = useMutation({
     mutationFn: async ({ postId, liked }: { postId: string; liked: boolean }) => {
       if (!userId) throw new Error("Not authenticated");
@@ -168,6 +184,40 @@ export function useCommunity(userId?: string) {
       queryClient.invalidateQueries({ queryKey: ["community"] });
       queryClient.invalidateQueries({ queryKey: ["user_likes", userId] });
     },
+    onError: () => toast.error("Could not update respect"),
+  });
+
+  /** Save / unsave — separate from like; variables are always `{ postId, saved }` (includes `user_id` for RLS). */
+  const toggleSave = useMutation({
+    mutationFn: async ({ postId, saved }: { postId: string; saved: boolean }) => {
+      if (!userId) throw new Error("Not authenticated");
+      if (saved) {
+        const { error } = await supabase.from("saved_posts").delete().eq("user_id", userId).eq("post_id", postId);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("saved_posts").insert({ user_id: userId, post_id: postId });
+        if (error) throw error;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["community"] });
+      queryClient.invalidateQueries({ queryKey: ["user_saves", userId] });
+    },
+    onError: () => {
+      toast.error("Could not save");
+    },
+  });
+
+  const deletePost = useMutation({
+    mutationFn: async (postId: string) => {
+      if (!userId) throw new Error("Not authenticated");
+      const { error } = await supabase.from("posts").delete().eq("id", postId).eq("user_id", userId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["community"] });
+    },
+    onError: () => toast.error("Could not delete post"),
   });
 
   const joinCircle = useMutation({
@@ -192,11 +242,14 @@ export function useCommunity(userId?: string) {
     dadsCount: communityStats?.dadsCount ?? 0,
     trendingTags: communityStats?.trendingTags ?? [],
     userLikedIds: userLikesQuery.data ?? new Set<string>(),
+    userSavedIds: userSavesQuery.data ?? new Set<string>(),
     circles: circlesQuery.data ?? [],
     userCircleIds: userCirclesQuery.data ?? [],
     loading: isLoading,
     createPost,
     toggleLike,
+    toggleSave,
+    deletePost,
     joinCircle,
   };
 }
