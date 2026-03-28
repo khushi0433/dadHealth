@@ -43,8 +43,8 @@ async function fetchDashboard(userId: string) {
   todayEnd.setHours(23, 59, 59, 999);
 
   const [dashboardRes, scoreRes, moodRes, workoutsRes, journalRes, milestonesRes, challengeRes, dadDatesRes, profileRes, bodyRes, todayWorkoutsRes] = await Promise.all([
-    supabase.from("dashboard_view").select("*").eq("user_id", userId).single(),
-    supabase.from("dad_score_view").select("mind_score, body_score, bond_score").eq("user_id", userId).single(),
+    supabase.from("dashboard_view").select("*").eq("user_id", userId).maybeSingle(),
+    supabase.from("dad_score_view").select("mind_score, body_score, bond_score").eq("user_id", userId).maybeSingle(),
     supabase
       .from("mood_logs")
       .select("date, mood_value")
@@ -87,9 +87,10 @@ async function fetchDashboard(userId: string) {
       .lte("performed_at", todayEnd.toISOString()),
   ]);
 
-  const dashboard = dashboardRes.data;
+  // Views may be missing in DB or blocked by RLS — fall back without failing the whole dashboard.
+  const dashboard = dashboardRes.error ? null : dashboardRes.data;
   const profile = profileRes.data;
-  const score = scoreRes.data;
+  const score = scoreRes.error ? null : scoreRes.data;
   const moodLogs = moodRes.data ?? [];
   const monthWorkouts = workoutsRes.count ?? 0;
   const journalCount = journalRes.count ?? 0;
@@ -115,7 +116,7 @@ async function fetchDashboard(userId: string) {
   const activeTodayMin = todayWorkouts.reduce((sum, w) => sum + (w.duration_minutes ?? 0), 0);
 
   return {
-    ...dashboard,
+    ...(dashboard ?? {}),
     display_name: profile?.display_name,
     mind_score: mind,
     body_score: body,

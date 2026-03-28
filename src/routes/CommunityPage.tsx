@@ -6,7 +6,9 @@ import SitePageShell from "@/components/SitePageShell";
 import SiteFooter from "@/components/SiteFooter";
 import LimeButton from "@/components/LimeButton";
 import { EXPERTS } from "@/lib/constants";
+import { CheckIcon } from "@heroicons/react/24/outline";
 import { useAuth } from "@/contexts/AuthContext";
+import CommunityFeedPost from "@/components/CommunityFeedPost";
 import { useCommunity } from "@/hooks/useCommunity";
 import { useUserProfile } from "@/hooks/useUserProfile";
 
@@ -14,7 +16,20 @@ const CommunityPage = () => {
   const router = useRouter();
   const { user, openAuthModal } = useAuth();
   const { data: profile } = useUserProfile(user?.id);
-  const { posts, dadsCount, trendingTags, userLikedIds, circles, userCircleIds, createPost, toggleLike, joinCircle } = useCommunity(user?.id);
+  const {
+    posts,
+    dadsCount,
+    trendingTags,
+    userLikedIds,
+    userSavedIds,
+    circles,
+    userCircleIds,
+    createPost,
+    toggleLike,
+    toggleSave,
+    deletePost,
+    joinCircle,
+  } = useCommunity(user?.id);
 
   const [postBody, setPostBody] = useState("");
   const [postTag, setPostTag] = useState("FITNESS");
@@ -83,7 +98,13 @@ const CommunityPage = () => {
                         disabled={joinCircle.isPending}
                         className="font-heading text-[9px] font-bold text-primary uppercase tracking-wider cursor-pointer bg-transparent border-none"
                       >
-                        {joined ? "JOINED ✓" : "JOIN"}
+                        {joined ? (
+                          <span className="inline-flex items-center gap-0.5 font-heading text-[9px] font-bold text-primary uppercase tracking-wider">
+                            JOINED <CheckIcon className="w-3 h-3" aria-hidden />
+                          </span>
+                        ) : (
+                          "JOIN"
+                        )}
                       </button>
                     )}
                   </div>
@@ -137,69 +158,19 @@ const CommunityPage = () => {
           </div>
 
           {/* Posts */}
-          {displayPosts.length > 0 ? displayPosts.map((p: Record<string, unknown>) => {
-            const isAnon = p.anonymous === true;
-            return (
-              <div key={String(p.id)} className="px-5 py-4 border-b border-border last:border-b-0">
-                <div className="flex items-center gap-2.5 mb-2.5">
-                  <div
-                    className={`w-9 h-9 flex items-center justify-center font-heading text-xs font-extrabold shrink-0 ${
-                      isAnon
-                        ? "bg-white/[0.08] border border-white/15 text-muted-foreground"
-                        : "bg-primary/10 border border-primary text-primary"
-                    }`}
-                  >
-                    {(p.author_initials ?? p.initials ?? "?") as string}
-                  </div>
-                  <div className="flex-1">
-                    <div className="font-heading text-[13px] font-bold text-foreground tracking-wide flex items-center gap-1.5">
-                      {(p.author_name ?? p.name ?? "Dad") as string}
-                      {isAnon && (
-                        <span className="bg-white/[0.08] border border-white/10 font-heading text-[9px] font-bold tracking-wider text-muted-foreground px-1.5 py-0.5 uppercase">
-                          ANON
-                        </span>
-                      )}
-                    </div>
-                    <div className="text-[10px] text-muted-foreground uppercase tracking-wide">
-                      {(p.author_meta ?? p.meta ?? "") as string}
-                    </div>
-                  </div>
-                  <span className="tag-pill">{(p.tag ?? "FITNESS") as string}</span>
-                </div>
-                <p className="text-[13px] text-foreground/70 leading-relaxed mb-3">{(p.body ?? p.content ?? "") as string}</p>
-                <div className="flex gap-3.5">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (!user) { openAuthModal(); return; }
-                      if (typeof p.id === "string") {
-                        const liked = userLikedIds.has(p.id);
-                        toggleLike.mutate({ postId: p.id, liked });
-                      }
-                    }}
-                    disabled={toggleLike.isPending}
-                    className="post-action"
-                  >
-                    👊 {(p.likes_count ?? p.respect ?? 0) as number} RESPECT
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => !user && openAuthModal()}
-                    className="post-action"
-                  >
-                    💬 {(p.replies_count ?? p.replies ?? 0) as number} REPLIES
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => !user && openAuthModal()}
-                    className="post-action"
-                  >
-                    🔖 SAVE
-                  </button>
-                </div>
-              </div>
-            );
-          }) : (
+          {displayPosts.length > 0 ? displayPosts.map((p: Record<string, unknown>) => (
+            <CommunityFeedPost
+              key={String(p.id)}
+              p={p}
+              user={user}
+              userLikedIds={userLikedIds}
+              userSavedIds={userSavedIds}
+              toggleLike={toggleLike}
+              toggleSave={toggleSave}
+              deletePost={deletePost}
+              openAuthModal={openAuthModal}
+            />
+          )) : (
             <div className="px-5 py-8 text-center">
               <p className="text-sm text-muted-foreground">No posts yet. Be the first to share!</p>
             </div>

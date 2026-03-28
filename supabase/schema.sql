@@ -214,6 +214,15 @@ create table if not exists comments (
   created_at timestamptz default now()
 );
 
+-- saved posts (bookmarks)
+create table if not exists saved_posts (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references auth.users(id) on delete cascade not null,
+  post_id uuid references posts(id) on delete cascade not null,
+  created_at timestamptz default now(),
+  unique(user_id, post_id)
+);
+
 -- circles
 create table if not exists circles (
   id uuid primary key default gen_random_uuid(),

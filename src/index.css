@@ -152,7 +152,7 @@
   }
 
   .post-action {
-    @apply bg-transparent border-none font-heading text-[11px] font-bold tracking-wide text-muted-foreground cursor-pointer p-0 uppercase transition-colors duration-150 hover:text-primary;
+    @apply bg-transparent border-none font-heading text-[11px] font-bold tracking-wide text-muted-foreground cursor-pointer py-1.5 px-1 uppercase transition-colors duration-150 hover:text-primary disabled:opacity-50 disabled:pointer-events-none;
   }
 
   .circle-card {

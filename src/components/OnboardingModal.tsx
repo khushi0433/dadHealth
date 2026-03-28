@@ -4,6 +4,7 @@ import { useState } from "react";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -54,18 +55,27 @@ export default function OnboardingModal({
   };
 
   return (
-    <Dialog open={open} onOpenChange={() => {}}>
-      <DialogContent className="sm:max-w-lg" onPointerDownOutside={(e) => e.preventDefault()}>
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        if (!next) onClose();
+      }}
+    >
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="font-heading text-xl font-extrabold uppercase tracking-wide">
             {step === 1 ? "PICK YOUR GOALS" : "PRIORITISE YOUR PILLARS"}
           </DialogTitle>
+          <DialogDescription className="sr-only">
+            Choose your goals and pillar order to personalise Dad Health.
+          </DialogDescription>
         </DialogHeader>
         {step === 1 ? (
           <div className="space-y-3 mt-4">
             <p className="text-sm text-muted-foreground">Select what matters most to you.</p>
             {GOAL_OPTIONS.map((g) => (
               <button
+                type="button"
                 key={g}
                 onClick={() => toggleGoal(g)}
                 className={`w-full text-left px-4 py-3 border font-heading text-sm font-bold tracking-wide transition-colors ${
@@ -77,9 +87,18 @@ export default function OnboardingModal({
                 {g}
               </button>
             ))}
-            <LimeButton full onClick={() => setStep(2)} className="mt-4">
-              NEXT →
-            </LimeButton>
+            <div className="flex flex-col gap-2 mt-4">
+              <LimeButton full type="button" onClick={() => setStep(2)}>
+                NEXT →
+              </LimeButton>
+              <button
+                type="button"
+                onClick={onClose}
+                className="font-heading text-[11px] font-bold tracking-wider uppercase text-muted-foreground hover:text-foreground bg-transparent border-none cursor-pointer py-2"
+              >
+                Skip for now
+              </button>
+            </div>
           </div>
         ) : (
           <div className="space-y-3 mt-4">
@@ -95,16 +114,26 @@ export default function OnboardingModal({
                 <span className="font-heading text-sm font-bold">{p}</span>
               </div>
             ))}
-            <div className="flex gap-2 mt-4">
+            <div className="flex flex-col gap-2 mt-4">
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setStep(1)}
+                  className="flex-1 font-heading text-xs font-bold tracking-wider uppercase text-muted-foreground hover:text-foreground bg-transparent border-none cursor-pointer"
+                >
+                  BACK
+                </button>
+                <LimeButton full type="button" onClick={handleComplete} disabled={updateProfile.isPending}>
+                  {updateProfile.isPending ? "..." : "COMPLETE"}
+                </LimeButton>
+              </div>
               <button
-                onClick={() => setStep(1)}
-                className="flex-1 font-heading text-xs font-bold tracking-wider uppercase text-muted-foreground hover:text-foreground"
+                type="button"
+                onClick={onClose}
+                className="font-heading text-[11px] font-bold tracking-wider uppercase text-muted-foreground hover:text-foreground bg-transparent border-none cursor-pointer py-2"
               >
-                BACK
+                Skip for now
               </button>
-              <LimeButton full onClick={handleComplete} disabled={updateProfile.isPending}>
-                {updateProfile.isPending ? "..." : "COMPLETE"}
-              </LimeButton>
             </div>
           </div>
         )}

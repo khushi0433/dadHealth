@@ -4,6 +4,7 @@ import { useState } from "react";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -109,6 +110,9 @@ if (oauthError) throw oauthError;
           <DialogTitle className="font-heading text-xl font-extrabold uppercase tracking-wide">
             {mode === "login" ? "SIGN IN" : "CREATE ACCOUNT"}
           </DialogTitle>
+          <DialogDescription className="sr-only">
+            {mode === "login" ? "Sign in with email or a provider." : "Create an account with email or a provider."}
+          </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 mt-4">
           {/* OAuth buttons */}

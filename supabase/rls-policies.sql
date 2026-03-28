@@ -14,6 +14,7 @@ alter table milestones enable row level security;
 alter table posts enable row level security;
 alter table likes enable row level security;
 alter table comments enable row level security;
+alter table saved_posts enable row level security;
 alter table user_circles enable row level security;
 alter table earned_badges enable row level security;
 
@@ -31,6 +32,7 @@ create policy "Users can CRUD own milestones" on milestones for all using (auth.
 
 create policy "Allow read posts" on posts for select using (true);
 create policy "Auth can insert posts" on posts for insert with check (true);
+create policy "Users can delete own posts" on posts for delete using (auth.uid() = user_id);
 
 create policy "Allow read likes" on likes for select using (true);
 create policy "Users can insert own likes" on likes for insert with check (auth.uid() = user_id);
@@ -38,6 +40,11 @@ create policy "Users can delete own likes" on likes for delete using (auth.uid()
 
 create policy "Allow read comments" on comments for select using (true);
 create policy "Users can insert own comments" on comments for insert with check (auth.uid() = user_id);
+create policy "Users can delete own comments" on comments for delete using (auth.uid() = user_id);
+
+create policy "Allow read saved_posts" on saved_posts for select using (true);
+create policy "Users can insert own saves" on saved_posts for insert with check (auth.uid() = user_id);
+create policy "Users can delete own saves" on saved_posts for delete using (auth.uid() = user_id);
 
 create policy "Users can CRUD own user_circles" on user_circles for all using (auth.uid() = user_id);
 create policy "Users can CRUD own earned_badges" on earned_badges for all using (auth.uid() = user_id);
