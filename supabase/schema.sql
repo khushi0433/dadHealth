@@ -204,11 +204,12 @@ create table if not exists likes (
   unique(user_id, post_id)
 );
 
--- comments
+-- comments (parent_id null = top-level; parent_id = comment.id = one-level reply)
 create table if not exists comments (
   id uuid primary key default gen_random_uuid(),
   user_id uuid references auth.users(id) on delete cascade not null,
   post_id uuid references posts(id) on delete cascade not null,
+  parent_id uuid references comments(id) on delete cascade,
   content text not null,
   anonymous boolean default false,
   created_at timestamptz default now()
@@ -474,3 +475,27 @@ drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
 after insert on auth.users
 for each row execute function handle_new_user();
+
+-- =========================
+-- COMMUNITY: trending tags (RPC for GROUP BY over all posts)
+-- =========================
+create or replace function public.trending_post_tags(limit_n int default 5)
+returns table(tag text, count bigint)
+language sql
+stable
+security invoker
+as $$
+  select p.tag, count(*)::bigint
+  from public.posts p
+  group by p.tag
+  order by count(*) desc
+  limit greatest(1, coalesce(limit_n, 5));
+$$;
+
+grant execute on function public.trending_post_tags(int) to anon, authenticated;
+
+-- =========================
+-- MIGRATION: comment threading (existing DBs)
+-- =========================
+alter table comments add column if not exists parent_id uuid references comments(id) on delete cascade;
+create index if not exists idx_comments_post_parent on comments(post_id, parent_id);
