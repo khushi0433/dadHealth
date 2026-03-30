@@ -175,12 +175,30 @@ export default function CommunityFeedPost({
       const ai = safeString(p.author_initials ?? p.initials, "?");
       return ai !== "?" && ai.length > 0 ? ai.slice(0, 2).toUpperCase() : "?";
     }
-    const raw = safeString(p.author_initials ?? p.initials, "");
-    if (raw && raw !== "?" && raw.length > 0) {
+    const raw = safeString(p.author_initials ?? p.initials, "").trim();
+    const storedLooksValid =
+      raw.length > 0 &&
+      raw !== "?" &&
+      raw !== "??" &&
+      !/^[\?]+$/.test(raw);
+    if (storedLooksValid) {
       return raw.slice(0, 2).toUpperCase();
     }
-    return initialsFromDisplayName(displayTitle, isOwner ? user?.email : undefined);
-  }, [isAnon, isOwner, p.author_initials, p.initials, displayTitle, user?.email]);
+    const nameForAvatar =
+      storedName && storedName !== "Dad" ? storedName : displayTitle;
+    return initialsFromDisplayName(nameForAvatar, isOwner ? user?.email : undefined);
+  }, [isAnon, isOwner, p.author_initials, p.initials, displayTitle, storedName, user?.email]);
+
+  const shortHandle = useMemo(() => {
+    if (isAnon) return null;
+    const t = displayTitle.trim();
+    if (!t || t === DEFAULT_DISPLAY_FALLBACK) return null;
+    const first = t.split(/\s+/).filter(Boolean)[0];
+    return first ? first.toLowerCase() : null;
+  }, [isAnon, displayTitle]);
+
+  const hasCommentsOrStatus =
+    commentsLoading || (roots.length === 0 && replyCount > 0) || roots.length > 0;
 
   const likeBusy = toggleLike.isPending && toggleLike.variables?.postId === postId;
 
@@ -246,14 +264,15 @@ export default function CommunityFeedPost({
   };
 
   return (
-    <div className="relative isolate px-5 py-4 border-b border-border last:border-b-0">
+    <div className="relative isolate px-4 sm:px-5 py-3.5 border-b border-border last:border-b-0">
       <div className="flex items-center gap-2.5 mb-2.5">
         <div
-          className={`w-9 h-9 flex items-center justify-center font-heading text-xs font-extrabold shrink-0 ${
+          className={`w-9 h-9 flex items-center justify-center font-heading text-xs font-extrabold shrink-0 tracking-tight ${
             isAnon
               ? "bg-white/[0.08] border border-white/15 text-muted-foreground"
               : "bg-primary/10 border border-primary text-primary"
           }`}
+          title={!isAnon ? displayTitle : undefined}
         >
           {avatarInitials}
         </div>
@@ -268,6 +287,11 @@ export default function CommunityFeedPost({
           </div>
           <div className="text-[10px] text-muted-foreground uppercase tracking-wide">
             {safeString(p.author_meta ?? p.meta, isAnon ? "Anonymous · " : COMMUNITY_POST_SUBLINE)}
+            {!isAnon && shortHandle && (
+              <span className="text-primary/75 normal-case font-heading font-bold tracking-wide ml-1">
+                @{shortHandle}
+              </span>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
@@ -345,7 +369,7 @@ export default function CommunityFeedPost({
       {expanded && postId && (
         <div
           id={`post-thread-${postId}`}
-          className="mt-4 pt-4 border-t border-border space-y-3"
+          className="mt-2 rounded-md border border-border/60 bg-white/[0.03] p-2.5"
           role="region"
           aria-label="Comments and replies"
         >
@@ -353,8 +377,8 @@ export default function CommunityFeedPost({
             <p className="text-xs text-muted-foreground">Loading replies…</p>
           ) : roots.length === 0 && replyCount > 0 ? (
             <p className="text-xs text-muted-foreground">Couldn’t load replies. Refresh the page.</p>
-          ) : (
-            <ul className="space-y-4">
+          ) : roots.length > 0 ? (
+            <ul className="list-none m-0 p-0 space-y-4 mb-2">
               {roots.map((c: EnrichedComment, rootIdx: number) => {
                 const cid = safeString(c.id);
                 const name = sameUser(c.user_id, user?.id) && !c.anonymous
@@ -363,19 +387,19 @@ export default function CommunityFeedPost({
                 const childReplies = repliesByParentId.get(threadIdKey(c.id)) ?? [];
                 const createdLabel = safeFormatDate(c.created_at, "d MMM, h:mm a");
                 return (
-                  <li key={cid || `root-${rootIdx}`} className="rounded-sm border border-border/50 bg-white/[0.02] p-3 space-y-2">
-                    <div className="flex gap-2 justify-between items-start text-[12px]">
-                      <div className="flex-1 min-w-0 space-y-1">
-                        <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0">
-                          <span className="font-heading font-bold text-foreground/90">{name}</span>
-                          {createdLabel && (
-                            <span className="text-[10px] text-muted-foreground font-normal tabular-nums">
-                              {createdLabel}
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-foreground/80 leading-relaxed">{safeString(c.content)}</p>
-                      </div>
+                  <li key={cid || `root-${rootIdx}`} className="rounded-sm border border-border/50 bg-white/[0.02] p-3">
+  <div className="flex gap-2 justify-between items-start text-[12px]">
+    <div className="flex-1 min-w-0">
+      <div className="flex flex-wrap items-baseline gap-x-1 gap-y-0">
+        <span className="font-heading font-bold text-foreground/90">{name}</span>
+        {createdLabel && (
+          <span className="text-[10px] text-muted-foreground font-normal tabular-nums">
+            {createdLabel}
+          </span>
+        )}
+      </div>
+      <p className="text-foreground/80 leading-snug m-0 mt-0.5">{safeString(c.content)}</p>
+    </div>
                       {sameUser(user?.id, c.user_id) && (
                         <button
                           type="button"
@@ -471,9 +495,11 @@ export default function CommunityFeedPost({
                 );
               })}
             </ul>
-          )}
+          ) : null}
           {user && (
-            <div className="flex flex-col gap-2 pt-3 mt-1 border-t border-border/60">
+            <div
+              className={`flex flex-col gap-1.5 ${hasCommentsOrStatus ? "pt-1.5 mt-1 border-t border-border/40" : "pt-0"}`}
+            >
               <span className="text-[10px] text-muted-foreground uppercase tracking-wide font-heading">
                 Add a comment
               </span>
@@ -482,12 +508,12 @@ export default function CommunityFeedPost({
                 onChange={(e) => setDraft(e.target.value)}
                 placeholder="What's on your mind?"
                 rows={2}
-                className="w-full bg-white/[0.04] border border-border p-2 text-foreground text-xs resize-none outline-none focus:border-primary placeholder:text-muted-foreground/40"
+                className="w-full bg-white/[0.04] border border-border px-2 py-1.5 text-foreground text-xs leading-snug resize-none outline-none focus:border-primary placeholder:text-muted-foreground/40 min-h-[2.5rem]"
               />
               <LimeButton
                 small
                 type="button"
-                className="self-start"
+                className="self-start mt-0.5"
                 onClick={handleSubmitTopComment}
                 disabled={!draft.trim() || addComment.isPending}
               >

@@ -5,12 +5,10 @@ import SitePageShell from "@/components/SitePageShell";
 import SiteFooter from "@/components/SiteFooter";
 import LimeButton from "@/components/LimeButton";
 import { ProGate } from "@/components/ProProvider";
-import { EXERCISES } from "@/lib/constants";
+import { EXERCISES, MEALS } from "@/lib/constants";
 import { IMAGES } from "@/lib/images";
 import { useAuth } from "@/contexts/AuthContext";
 import { useFitness } from "@/hooks/useFitness";
-
-const FITNESS_DURATION = 22 * 60;
 
 const FitnessPage = () => {
   const { user } = useAuth();
@@ -18,7 +16,6 @@ const FitnessPage = () => {
 
   const [timerSec, setTimerSec] = useState(0);
   const [timerRunning, setTimerRunning] = useState(false);
-  const [currentEx, setCurrentEx] = useState(0);
 
   useEffect(() => {
     const stored = typeof localStorage !== "undefined" ? localStorage.getItem("dadHealth_workout_timer") : null;
@@ -71,7 +68,8 @@ const FitnessPage = () => {
     { value: timerSec > 0 ? formatTime(timerSec) : "0 min", label: "ACTIVE TODAY" },
   ];
 
-  const meals = mealPlans;
+  const defaultWeekMeals = MEALS.map(({ day, name, kcal }) => ({ day, name, kcal }));
+  const meals = mealPlans.length > 0 ? mealPlans : defaultWeekMeals;
 
   const handleCompleteWorkout = () => {
     const totalMin = Math.ceil(timerSec / 60) || 22;
@@ -106,19 +104,28 @@ const FitnessPage = () => {
               WORKOUT TIMER · 6 EXERCISES
             </div>
           </div>
-          <div className="flex gap-3">
+          <div className="flex flex-wrap gap-3 items-center">
             <LimeButton small onClick={() => setTimerRunning(!timerRunning)}>
               {timerRunning ? "PAUSE" : "START"} →
             </LimeButton>
             <button
-              onClick={() => {
-                if (currentEx < EXERCISES.length - 1) setCurrentEx((c) => c + 1);
-                else handleCompleteWorkout();
-              }}
-              className="bg-transparent text-foreground border border-foreground py-2.5 px-4 font-heading font-bold text-xs tracking-wider uppercase cursor-pointer hover:border-primary hover:text-primary transition-colors"
+              type="button"
+              disabled
+              title="Follow the list on the left — full step-through is coming soon"
+              aria-disabled="true"
+              className="bg-transparent text-foreground/40 border border-foreground/25 py-2.5 px-4 font-heading font-bold text-xs tracking-wider uppercase cursor-not-allowed"
             >
-              {currentEx >= EXERCISES.length - 1 ? "COMPLETE" : "NEXT EXERCISE"}
+              NEXT EXERCISE
             </button>
+            <LimeButton
+              small
+              type="button"
+              onClick={handleCompleteWorkout}
+              disabled={!user || saveWorkout.isPending}
+              className="!bg-transparent !text-primary border border-primary hover:!brightness-110"
+            >
+              {saveWorkout.isPending ? "..." : "LOG SESSION →"}
+            </LimeButton>
           </div>
         </div>
       </section>

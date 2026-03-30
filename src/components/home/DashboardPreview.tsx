@@ -183,7 +183,9 @@ const DashboardPreview = () => {
           <>
             <div className="bg-card p-5">
               <div className="mb-4">
-                <span className="section-label !p-0">GOOD MORNING</span>
+                <span className="block text-[10px] font-heading font-bold tracking-[2px] text-muted-foreground uppercase !p-0">
+                  good morning dads
+                </span>
                 <div className="font-heading text-[24px] font-extrabold text-foreground uppercase leading-tight mt-1">
                   {(user ? displayNameShort : "—").toUpperCase()}
                   <br />

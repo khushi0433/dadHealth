@@ -213,10 +213,13 @@ const CommunityPage = () => {
 
         {/* Right — expert sessions: no mock data; add CMS or table later */}
         <div className="px-5 lg:px-8 py-8">
-          <span className="section-label !p-0 mb-4 block">EXPERT Q&A</span>
+          <span className="section-label !p-0 mb-4 block">LIVE SESSIONS</span>
           <div className="border border-border border-dashed p-4 mb-3 rounded-sm bg-white/[0.02]">
-            <p className="text-sm text-muted-foreground">
-              Live sessions and guest experts will appear here when scheduled. Pro members get priority booking.
+            <p className="text-sm text-foreground/85 leading-relaxed">
+              Scheduled live Q&amp;As and guest experts will be listed here — nothing on the calendar yet.
+            </p>
+            <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
+              Pro members get priority booking when sessions go live (same membership as full workout library and meal planner).
             </p>
             <button
               type="button"
