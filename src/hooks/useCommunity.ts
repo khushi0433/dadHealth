@@ -4,67 +4,127 @@ import { useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/utils/supabaseClient";
+import { communityQueryKey } from "@/lib/communityQueryKey";
+import {
+  ANONYMOUS_AUTHOR_NAME,
+  DEFAULT_DISPLAY_FALLBACK,
+  communityPostMeta,
+  initialsFromDisplayName,
+} from "@/lib/userDisplay";
+
+/** Legacy denormalized values from older clients / DB defaults. */
+function normalizeStoredAuthorName(raw: string, anonymous: boolean): string {
+  const s = raw.trim();
+  if (anonymous) {
+    if (!s || s === "Anonymous Dad") return ANONYMOUS_AUTHOR_NAME;
+    return s;
+  }
+  if (!s || s === "Dad") return DEFAULT_DISPLAY_FALLBACK;
+  return s;
+}
+
+/** Normalize denormalized author fields; recompute initials from resolved name (matches avatar + title). */
+function enrichCommunityPostRow(p: Record<string, unknown>): Record<string, unknown> {
+  const anon = p.anonymous === true;
+  const name = normalizeStoredAuthorName(String(p.author_name ?? ""), anon);
+  const initials = anon
+    ? String(p.author_initials ?? "?").slice(0, 2).toUpperCase()
+    : initialsFromDisplayName(name, undefined);
+  return {
+    ...p,
+    author_name: name,
+    author_initials: initials,
+    body: p.content ?? p.body,
+  };
+}
 
 async function fetchPosts() {
   const { data, error } = await supabase
     .from("posts")
-    .select("*")
+    .select("id, user_id, content, tag, anonymous, author_initials, author_name, author_meta, created_at")
     .order("created_at", { ascending: false })
     .limit(50);
   if (error) throw error;
-  const posts = data ?? [];
-  const postIds = posts.map((p: { id: string }) => p.id);
-  if (postIds.length === 0) return posts;
+  const posts = (data ?? []) as Record<string, unknown>[];
+  const postIds = posts.map((p: { id: unknown }) => String(p.id)).filter((id) => id.length > 0 && id !== "undefined" && id !== "null");
+  if (postIds.length === 0) {
+    return posts.map((p: Record<string, unknown>) => {
+      const enriched = enrichCommunityPostRow(p);
+      return { ...enriched, likes_count: 0, replies_count: 0 };
+    });
+  }
   const [likesRes, commentsRes] = await Promise.all([
     supabase.from("likes").select("post_id").in("post_id", postIds),
     supabase.from("comments").select("post_id").in("post_id", postIds),
   ]);
+  if (likesRes.error) throw likesRes.error;
+  if (commentsRes.error) throw commentsRes.error;
+
   const likeCounts: Record<string, number> = {};
-  (likesRes.data ?? []).forEach((r: { post_id: string }) => {
-    likeCounts[r.post_id] = (likeCounts[r.post_id] ?? 0) + 1;
+  (likesRes.data ?? []).forEach((r: { post_id: unknown }) => {
+    const pid = String(r.post_id);
+    likeCounts[pid] = (likeCounts[pid] ?? 0) + 1;
   });
   const commentCounts: Record<string, number> = {};
-  (commentsRes.data ?? []).forEach((r: { post_id: string }) => {
-    commentCounts[r.post_id] = (commentCounts[r.post_id] ?? 0) + 1;
+  (commentsRes.data ?? []).forEach((r: { post_id: unknown }) => {
+    const pid = String(r.post_id);
+    commentCounts[pid] = (commentCounts[pid] ?? 0) + 1;
   });
-  return posts.map((p: Record<string, unknown>) => ({
-    ...p,
-    body: p.content ?? p.body,
-    likes_count: likeCounts[p.id as string] ?? 0,
-    replies_count: commentCounts[p.id as string] ?? 0,
-  }));
+  return posts.map((p: Record<string, unknown>) => {
+    const id = String(p.id);
+    const enriched = enrichCommunityPostRow(p);
+    return {
+      ...enriched,
+      likes_count: likeCounts[id] ?? 0,
+      replies_count: commentCounts[id] ?? 0,
+    };
+  });
 }
 
-async function fetchCommunityStats(posts: { tag?: string }[]) {
+function aggregateTrendingFromPosts(posts: { tag?: string }[]) {
   const tagCounts: Record<string, number> = {};
   posts.forEach((p) => {
     const tag = p.tag ? `#${p.tag}` : "#FITNESS";
     tagCounts[tag] = (tagCounts[tag] ?? 0) + 1;
   });
-  const trendingTags = Object.entries(tagCounts)
+  return Object.entries(tagCounts)
     .map(([tag, count]) => ({ tag, count }))
     .sort((a, b) => b.count - a.count)
     .slice(0, 5);
+}
 
-  const { count: dadsCount, error } = await supabase
-    .from("user_profile")
-    .select("id", { count: "exact", head: true });
+/** Dads count + trending tags from DB (RPC over all posts); falls back to last page of posts if RPC missing. */
+async function fetchCommunityStats() {
+  const [{ count: dadsCount, error: dadsError }, rpcRes] = await Promise.all([
+    supabase.from("user_profile").select("id", { count: "exact", head: true }),
+    supabase.rpc("trending_post_tags", { limit_n: 5 }),
+  ]);
 
-  return { dadsCount: error ? 0 : (dadsCount ?? 0), trendingTags };
+  let trendingTags: { tag: string; count: number }[] = [];
+  if (!rpcRes.error && rpcRes.data && (rpcRes.data as { tag: string; count: number }[]).length > 0) {
+    trendingTags = (rpcRes.data as { tag: string; count: number }[]).map((r) => ({
+      tag: `#${r.tag}`,
+      count: Number(r.count),
+    }));
+  } else {
+    const posts = await fetchPosts();
+    trendingTags = aggregateTrendingFromPosts(posts as { tag?: string }[]);
+  }
+
+  return { dadsCount: dadsError ? 0 : (dadsCount ?? 0), trendingTags };
 }
 
 export function useCommunity(userId?: string) {
   const queryClient = useQueryClient();
 
   const { data: postsData, isLoading } = useQuery({
-    queryKey: ["community"],
+    queryKey: communityQueryKey(userId),
     queryFn: fetchPosts,
   });
 
   const { data: communityStats } = useQuery({
-    queryKey: ["community_stats", postsData?.length],
-    queryFn: () => fetchCommunityStats(postsData ?? []),
-    enabled: postsData !== undefined,
+    queryKey: ["community_stats"],
+    queryFn: fetchCommunityStats,
   });
 
   const userLikesQuery = useQuery({
@@ -73,7 +133,7 @@ export function useCommunity(userId?: string) {
       if (!userId) return new Set<string>();
       const { data, error } = await supabase.from("likes").select("post_id").eq("user_id", userId);
       if (error) throw error;
-      return new Set((data ?? []).map((r) => r.post_id));
+      return new Set((data ?? []).map((r: { post_id: unknown }) => String(r.post_id)));
     },
     enabled: !!userId,
   });
@@ -87,7 +147,7 @@ export function useCommunity(userId?: string) {
       if (error) {
         return new Set<string>();
       }
-      return new Set((data ?? []).map((r) => r.post_id));
+      return new Set((data ?? []).map((r: { post_id: unknown }) => String(r.post_id)));
     },
     enabled: !!userId,
   });
@@ -113,17 +173,25 @@ export function useCommunity(userId?: string) {
   });
 
   useEffect(() => {
+    const invalidateCommunity = () => {
+      queryClient.invalidateQueries({ queryKey: ["community"] });
+      queryClient.invalidateQueries({ queryKey: ["community_stats"] });
+    };
     const channel = supabase
       .channel("community-posts")
-      .on("postgres_changes", { event: "*", schema: "public", table: "posts" }, () => {
-        queryClient.invalidateQueries({ queryKey: ["community"] });
-      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "posts" }, invalidateCommunity)
       .on("postgres_changes", { event: "*", schema: "public", table: "likes" }, () => {
-        queryClient.invalidateQueries({ queryKey: ["community"] });
+        invalidateCommunity();
         queryClient.invalidateQueries({ queryKey: ["user_likes", userId] });
       })
-      .on("postgres_changes", { event: "*", schema: "public", table: "comments" }, () => {
-        queryClient.invalidateQueries({ queryKey: ["community"] });
+      .on("postgres_changes", { event: "*", schema: "public", table: "comments" }, invalidateCommunity)
+      .on("postgres_changes", { event: "*", schema: "public", table: "saved_posts" }, () => {
+        invalidateCommunity();
+        queryClient.invalidateQueries({ queryKey: ["user_saves", userId] });
+      })
+      .on("postgres_changes", { event: "*", schema: "public", table: "user_circles" }, () => {
+        queryClient.invalidateQueries({ queryKey: ["user_circles", userId] });
+        queryClient.invalidateQueries({ queryKey: ["circles"] });
       })
       .subscribe();
     return () => {
@@ -147,6 +215,15 @@ export function useCommunity(userId?: string) {
       author_name?: string;
       author_meta?: string;
     }) => {
+      const resolvedName = anonymous
+        ? ANONYMOUS_AUTHOR_NAME
+        : (author_name?.trim() || DEFAULT_DISPLAY_FALLBACK);
+      const resolvedMeta = (author_meta?.trim() || communityPostMeta(!!anonymous)) as string;
+      const resolvedInitials = anonymous
+        ? "?"
+        : String(author_initials ?? "").trim().length > 0
+          ? String(author_initials).slice(0, 2).toUpperCase()
+          : initialsFromDisplayName(resolvedName, undefined);
       const { data, error } = await supabase
         .from("posts")
         .insert({
@@ -154,9 +231,9 @@ export function useCommunity(userId?: string) {
           content: body,
           tag,
           anonymous: !!anonymous,
-          author_initials: anonymous ? "?" : author_initials,
-          author_name: anonymous ? "Anonymous Dad" : author_name,
-          author_meta: author_meta ?? "",
+          author_initials: resolvedInitials,
+          author_name: resolvedName,
+          author_meta: resolvedMeta,
         })
         .select()
         .single();
@@ -164,7 +241,8 @@ export function useCommunity(userId?: string) {
       return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["community"] });
+      queryClient.invalidateQueries({ queryKey: communityQueryKey(userId) });
+      queryClient.invalidateQueries({ queryKey: ["community_stats"] });
     },
   });
 
@@ -172,30 +250,60 @@ export function useCommunity(userId?: string) {
   const toggleLike = useMutation({
     mutationFn: async ({ postId, liked }: { postId: string; liked: boolean }) => {
       if (!userId) throw new Error("Not authenticated");
+      const pid = String(postId);
       if (liked) {
-        const { error } = await supabase.from("likes").delete().eq("user_id", userId).eq("post_id", postId);
+        const { error } = await supabase.from("likes").delete().eq("user_id", userId).eq("post_id", pid);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("likes").insert({ user_id: userId, post_id: postId });
+        const { error } = await supabase.from("likes").insert({ user_id: userId, post_id: pid });
         if (error) throw error;
       }
     },
-    onSuccess: () => {
+    onMutate: async ({ postId, liked }) => {
+      const pid = String(postId);
+      const ck = communityQueryKey(userId);
+      await queryClient.cancelQueries({ queryKey: ck });
+      await queryClient.cancelQueries({ queryKey: ["user_likes", userId] });
+      const prevPosts = queryClient.getQueryData<Record<string, unknown>[]>(ck);
+      const prevLikes = queryClient.getQueryData<Set<string>>(["user_likes", userId]);
+      queryClient.setQueryData<Record<string, unknown>[]>(ck, (old) => {
+        if (!old) return old;
+        return old.map((row) => {
+          if (String(row.id) !== pid) return row;
+          const n = Number(row.likes_count ?? 0);
+          const delta = liked ? -1 : 1;
+          return { ...row, likes_count: Math.max(0, n + delta) };
+        });
+      });
+      queryClient.setQueryData<Set<string>>(["user_likes", userId], (old) => {
+        const next = new Set(old ?? []);
+        if (liked) next.delete(pid);
+        else next.add(pid);
+        return next;
+      });
+      return { prevPosts, prevLikes };
+    },
+    onError: (_err, _vars, ctx) => {
+      if (ctx?.prevPosts !== undefined) queryClient.setQueryData(communityQueryKey(userId), ctx.prevPosts);
+      if (ctx?.prevLikes !== undefined) queryClient.setQueryData(["user_likes", userId], ctx.prevLikes);
+      toast.error("Could not update respect");
+    },
+    onSettled: () => {
       queryClient.invalidateQueries({ queryKey: ["community"] });
       queryClient.invalidateQueries({ queryKey: ["user_likes", userId] });
     },
-    onError: () => toast.error("Could not update respect"),
   });
 
   /** Save / unsave — separate from like; variables are always `{ postId, saved }` (includes `user_id` for RLS). */
   const toggleSave = useMutation({
     mutationFn: async ({ postId, saved }: { postId: string; saved: boolean }) => {
       if (!userId) throw new Error("Not authenticated");
+      const pid = String(postId);
       if (saved) {
-        const { error } = await supabase.from("saved_posts").delete().eq("user_id", userId).eq("post_id", postId);
+        const { error } = await supabase.from("saved_posts").delete().eq("user_id", userId).eq("post_id", pid);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("saved_posts").insert({ user_id: userId, post_id: postId });
+        const { error } = await supabase.from("saved_posts").insert({ user_id: userId, post_id: pid });
         if (error) throw error;
       }
     },
@@ -216,6 +324,7 @@ export function useCommunity(userId?: string) {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["community"] });
+      queryClient.invalidateQueries({ queryKey: ["community_stats"] });
     },
     onError: () => toast.error("Could not delete post"),
   });
