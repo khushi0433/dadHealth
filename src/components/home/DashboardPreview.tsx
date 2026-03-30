@@ -3,12 +3,15 @@
 import Logo from "@/components/Logo";
 import { Flame, LifeBuoy } from "lucide-react";
 import { DashboardIcon } from "@/components/DashboardIcon";
-import { MOOD_WEEK, DAYS, MEALS, CIRCLES, FEED_POSTS } from "@/lib/constants";
+import { MOOD_WEEK, DAYS, MEALS, CIRCLES } from "@/lib/constants";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useDashboard } from "@/hooks/useDashboard";
+import { useCommunity } from "@/hooks/useCommunity";
+import { useUserProfile } from "@/hooks/useUserProfile";
 import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
+import { DEFAULT_DISPLAY_FALLBACK, greetingDisplayName, initialsFromDisplayName } from "@/lib/userDisplay";
 
 const SIDEBAR_ITEMS = [
   { iconKey: "home", label: "HOME", id: "HOME" as const },
@@ -54,7 +57,9 @@ const DEFAULT_DAD_DATES = [
 
 const DashboardPreview = () => {
   const { user } = useAuth();
+  const { data: profile } = useUserProfile(user?.id);
   const { data: dashboard, loading, dadDates = [], dadsCount, checkIn } = useDashboard(user?.id);
+  const { posts: communityPosts = [], loading: communityLoading } = useCommunity(user?.id);
   const [activeScreen, setActiveScreen] = useState<"HOME" | "FITNESS" | "MIND" | "BOND" | "COMMUNITY" | "PROGRESS">("HOME");
 
   const today = new Date().toISOString().slice(0, 10);
@@ -87,13 +92,17 @@ const DashboardPreview = () => {
   });
   const moodMap = new Map(moodLogs.map((m: { date: string; mood_value: number }) => [m.date, m.mood_value]));
   const moodWeek = last7.map((d) => moodMap.get(d) ?? 3);
-  const displayName = dashboard?.display_name?.split(" ")[0] ?? user?.user_metadata?.display_name?.split(" ")[0] ?? user?.email?.split("@")[0] ?? null;
+  const greetingName = greetingDisplayName(
+    { display_name: profile?.display_name ?? dashboard?.display_name },
+    user
+  );
+  const displayNameShort = greetingName.split(/\s+/)[0] ?? greetingName;
   const tasks = DEFAULT_GOALS;
 
   const workouts = dashboard?.today_workouts ? [{ count: dashboard.today_workouts }] : [];
   const monthWorkouts = dashboard?.month_workouts ?? 0;
   const dates = dadDates.length > 0 ? dadDates.slice(0, 3) : DEFAULT_DAD_DATES;
-  const displayPosts = FEED_POSTS.slice(0, 3);
+  const displayPosts = communityPosts.slice(0, 3) as Record<string, unknown>[];
   const displayCircles = CIRCLES.slice(0, 3);
   const reportStatsList = dashboard?.reportStats
     ? [[String(dashboard.reportStats.workouts), "Workouts"], [String(dashboard.reportStats.journal), "Journal"], [String(dashboard.reportStats.dadDates), "Dad dates"]]
@@ -119,10 +128,12 @@ const DashboardPreview = () => {
           <Logo className="mb-5" />
           <div className="flex items-center gap-3 mb-6">
             <div className="w-10 h-10 bg-primary/20 border border-primary rounded-full flex items-center justify-center font-heading text-sm font-bold text-primary">
-              {displayName ? displayName.slice(0, 2).toUpperCase() : "—"}
+              {user
+                ? initialsFromDisplayName(greetingName, user.email)
+                : "—"}
             </div>
             <div>
-              <div className="font-heading text-sm font-bold text-foreground">{displayName ?? "—"}</div>
+              <div className="font-heading text-sm font-bold text-foreground">{user ? greetingName : "—"}</div>
               <div className="text-xs text-muted-foreground flex items-center gap-1.5">
                 {user ? (
                   <>
@@ -174,7 +185,9 @@ const DashboardPreview = () => {
               <div className="mb-4">
                 <span className="section-label !p-0">GOOD MORNING</span>
                 <div className="font-heading text-[24px] font-extrabold text-foreground uppercase leading-tight mt-1">
-                  {(displayName ?? "—").toUpperCase()},<br />{format(new Date(), "EEEE")}
+                  {(user ? displayNameShort : "—").toUpperCase()}
+                  <br />
+                  {format(new Date(), "EEEE")}
                 </div>
                 <div className="flex items-center gap-2 mt-1">
                   <span className="tag-pill">PRO</span>
@@ -446,20 +459,28 @@ const DashboardPreview = () => {
                 <>
                   <span className="section-label !p-0">COMMUNITY</span>
                   <div className="font-heading text-[24px] font-extrabold text-foreground uppercase leading-tight mt-1 mb-4">
-                    DAD FEED
+                    COMMUNITY FEED
                   </div>
                   <span className="section-label !p-0 mb-2 block">RECENT POSTS</span>
-                  {displayPosts.map((p: Record<string, unknown>, i: number) => (
-                    <div key={i} className="py-3 border-b border-primary/20 last:border-b-0">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="tag-pill text-[9px]">{(p.tag ?? "FITNESS") as string}</span>
-                        <span className="text-[10px] text-muted-foreground">
-                          {(p.author_name ?? p.name ?? "Dad") as string}
-                        </span>
+                  {communityLoading ? (
+                    <p className="text-[11px] text-muted-foreground py-2">Loading…</p>
+                  ) : displayPosts.length === 0 ? (
+                    <p className="text-[11px] text-muted-foreground py-2">
+                      {user ? "No posts yet. Open the Community tab to share." : "Sign in to see the live feed."}
+                    </p>
+                  ) : (
+                    displayPosts.map((p: Record<string, unknown>, i: number) => (
+                      <div key={String(p.id ?? i)} className="py-3 border-b border-primary/20 last:border-b-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="tag-pill text-[9px]">{(p.tag ?? "FITNESS") as string}</span>
+                          <span className="text-[10px] text-muted-foreground">
+                            {String(p.author_name ?? p.name ?? "").trim() || DEFAULT_DISPLAY_FALLBACK}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-foreground/70 line-clamp-2">{(p.body ?? p.content ?? "") as string}</p>
                       </div>
-                      <p className="text-[11px] text-foreground/70 line-clamp-2">{(p.body ?? "") as string}</p>
-                    </div>
-                  ))}
+                    ))
+                  )}
                 </>
               )}
               {activeScreen === "PROGRESS" && (
