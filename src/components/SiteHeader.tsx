@@ -7,18 +7,17 @@ import { NAV_LINKS } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useUserProfile } from "@/hooks/useUserProfile";
+import { initialsFromDisplayName, resolveDisplayName } from "@/lib/userDisplay";
 
 const SiteHeader = () => {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const { user, signOut, openAuthModal } = useAuth();
+  const { data: profile } = useUserProfile(user?.id);
 
-  const displayName = user?.user_metadata?.display_name
-    ?.split(" ")
-    .map((n: string) => n[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2) || user?.email?.slice(0, 2).toUpperCase() || "?";
+  const resolvedName = resolveDisplayName(profile, user);
+  const avatarInitials = initialsFromDisplayName(resolvedName, user?.email);
 
   return (
     <header className="sticky top-0 z-50 w-full shrink-0 bg-black border-b border-white/10">
@@ -57,7 +56,7 @@ const SiteHeader = () => {
                 href="/progress"
                 className="w-9 h-9 bg-primary/20 border border-primary rounded-full flex items-center justify-center font-heading text-sm font-bold text-primary"
               >
-                {displayName}
+                {avatarInitials}
               </Link>
               <button
                 onClick={() => signOut()}
