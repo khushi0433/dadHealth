@@ -1,6 +1,24 @@
 "use client";
 
-import { useState } from "react";
+/**
+ * Single feed post: parent passes like/save/delete-post + auth only.
+ *
+ * Comments, nested replies, add/remove comment are **fully internal** via
+ * `useComments`, `useAddComment`, `useDeleteComment` — no `reply` / `addComment` props.
+ * Expand the thread with the REPLIES control; top-level composer and per-comment Reply
+ * require sign-in at submit time.
+ */
+
+import { useState, useEffect, useMemo, useRef } from "react";
+import { COMMUNITY_POST_SUBLINE } from "@/lib/constants";
+import {
+  ANONYMOUS_AUTHOR_NAME,
+  DEFAULT_DISPLAY_FALLBACK,
+  initialsFromDisplayName,
+  resolveDisplayName,
+  type ProfileDisplay,
+} from "@/lib/userDisplay";
+import { format } from "date-fns";
 import {
   BookmarkIcon,
   ChatBubbleLeftRightIcon,
@@ -8,7 +26,14 @@ import {
   TrashIcon,
 } from "@heroicons/react/24/outline";
 import { BookmarkIcon as BookmarkSolidIcon } from "@heroicons/react/24/solid";
-import { useComments, useAddComment, useDeleteComment } from "@/hooks/useComments";
+import {
+  useComments,
+  useAddComment,
+  useDeleteComment,
+  groupCommentThreads,
+  threadIdKey,
+  type EnrichedComment,
+} from "@/hooks/useComments";
 import type { User } from "@supabase/supabase-js";
 import LimeButton from "@/components/LimeButton";
 
@@ -25,6 +50,28 @@ function safeNumber(val: unknown, fallback = 0): number {
   return Number.isNaN(n) ? fallback : n;
 }
 
+/** Names / labels from Supabase or enriched comments — never pass through to the DOM raw. */
+function safeDisplayName(val: unknown, fallback = DEFAULT_DISPLAY_FALLBACK): string {
+  const s = safeString(val, fallback).trim();
+  return s.length > 0 ? s : fallback;
+}
+
+function safeFormatDate(value: unknown, fmt: string): string | null {
+  if (value == null || value === "") return null;
+  const d = new Date(value as string | number | Date);
+  if (Number.isNaN(d.getTime())) return null;
+  try {
+    return format(d, fmt);
+  } catch {
+    return null;
+  }
+}
+
+function sameUser(a: unknown, b: unknown): boolean {
+  if (a == null || b == null) return false;
+  return String(a) === String(b);
+}
+
 type FeedPost = Record<string, unknown>;
 
 type ToggleLikeMutation = {
@@ -39,6 +86,7 @@ type ToggleSaveMutation = {
   variables?: { postId: string; saved: boolean };
 };
 
+/** Props from `CommunityPage` — thread/reply behaviour is not passed in from the parent. */
 interface CommunityFeedPostProps {
   p: FeedPost;
   user: User | null;
@@ -48,6 +96,8 @@ interface CommunityFeedPostProps {
   toggleSave: ToggleSaveMutation;
   deletePost: { mutate: (id: string) => void; isPending: boolean };
   openAuthModal: () => void;
+  /** Current user profile — keeps your posts’ title in sync with settings without refetching every row. */
+  viewerProfile?: ProfileDisplay;
 }
 /** Supabase / JSON may return `id` as string or another serializable type — avoid strict typeof === "string" only. */
 function resolvePostId(p: FeedPost): string | null {
@@ -69,35 +119,85 @@ export default function CommunityFeedPost({
   toggleSave,
   deletePost,
   openAuthModal,
+  viewerProfile,
 }: CommunityFeedPostProps) {
   const postId = resolvePostId(p);
-  const [expanded, setExpanded] = useState(false);
+  const replyCount = safeNumber(p.replies_count ?? p.replies);
+  const [expanded, setExpanded] = useState(() => replyCount > 0);
+  const prevReplyCount = useRef(replyCount);
   const [draft, setDraft] = useState("");
+  const [replyingToId, setReplyingToId] = useState<string | null>(null);
+  const [inlineDraft, setInlineDraft] = useState("");
 
-  const { data: comments = [], isLoading: commentsLoading } = useComments(expanded ? postId : null);
-  const addComment = useAddComment();
+  useEffect(() => {
+    if (replyCount > 0 && prevReplyCount.current === 0) {
+      setExpanded(true);
+    }
+    prevReplyCount.current = replyCount;
+  }, [replyCount]);
+
+  const { data: comments = [], isLoading: commentsLoading } = useComments(expanded && postId ? postId : null);
+  const { roots, repliesByParentId } = groupCommentThreads(comments);
+  const replyingToLabel = useMemo(() => {
+    if (!replyingToId) return null;
+    const t = comments.find((x) => String(x.id) === String(replyingToId));
+    if (!t) return null;
+    if (sameUser(t.user_id, user?.id) && !t.anonymous) return "You";
+    return safeDisplayName(t.author_label, DEFAULT_DISPLAY_FALLBACK);
+  }, [replyingToId, comments, user?.id]);
+  const addComment = useAddComment(user?.id);
   const deleteComment = useDeleteComment();
 
   const isAnon = p.anonymous === true;
   const liked = postId ? userLikedIds.has(postId) : false;
   const saved = postId ? userSavedIds.has(postId) : false;
-  const authorUserId = p.user_id != null ? String(p.user_id) : null;
-  const isOwner = !!(user?.id && authorUserId && authorUserId === String(user.id));
+  const ownerRaw = p.user_id ?? p.author_id;
+  const authorUserId =
+    ownerRaw != null && ownerRaw !== "" ? safeString(ownerRaw) : null;
+  const isOwner = !!(user?.id && authorUserId && sameUser(authorUserId, user.id));
+
+  const storedName = safeString(p.author_name ?? p.name, "").trim();
+  const displayTitle = useMemo(() => {
+    if (isAnon) {
+      const s = storedName;
+      if (!s || s === "Anonymous Dad") return ANONYMOUS_AUTHOR_NAME;
+      return s;
+    }
+    if (isOwner) {
+      return resolveDisplayName(viewerProfile, user);
+    }
+    if (!storedName || storedName === "Dad") return DEFAULT_DISPLAY_FALLBACK;
+    return storedName;
+  }, [isAnon, isOwner, viewerProfile, storedName, user]);
+
+  const avatarInitials = useMemo(() => {
+    if (isAnon) {
+      const ai = safeString(p.author_initials ?? p.initials, "?");
+      return ai !== "?" && ai.length > 0 ? ai.slice(0, 2).toUpperCase() : "?";
+    }
+    const raw = safeString(p.author_initials ?? p.initials, "");
+    if (raw && raw !== "?" && raw.length > 0) {
+      return raw.slice(0, 2).toUpperCase();
+    }
+    return initialsFromDisplayName(displayTitle, isOwner ? user?.email : undefined);
+  }, [isAnon, isOwner, p.author_initials, p.initials, displayTitle, user?.email]);
 
   const likeBusy = toggleLike.isPending && toggleLike.variables?.postId === postId;
 
+  useEffect(() => {
+    if (!expanded) {
+      setReplyingToId(null);
+      setInlineDraft("");
+    }
+  }, [expanded]);
+
+  /** Toggle thread visibility — works without login so comments/replies can be read. */
   const handleReplyClick = () => {
-    if (!user) {
-      openAuthModal();
-      return;
-    }
-    if (!postId) {
-      return;
-    }
+    if (!postId) return;
     setExpanded((e) => !e);
   };
 
-  const handleSubmitComment = () => {
+  const handleSubmitTopComment = () => {
     if (!postId) {
       return;
     }
@@ -107,9 +207,42 @@ export default function CommunityFeedPost({
     }
     if (!draft.trim()) return;
     addComment.mutate(
-      { postId, content: draft.trim(), userId: user.id },
+      { postId, content: draft.trim(), userId: user.id, parentId: null },
       { onSuccess: () => setDraft("") }
     );
+  };
+
+  const handleSubmitInlineReply = () => {
+    if (!postId || !replyingToId) return;
+    if (!user?.id) {
+      openAuthModal();
+      return;
+    }
+    if (!inlineDraft.trim()) return;
+    addComment.mutate(
+      { postId, content: inlineDraft.trim(), userId: user.id, parentId: replyingToId },
+      {
+        onSuccess: () => {
+          setInlineDraft("");
+          setReplyingToId(null);
+        },
+      }
+    );
+  };
+
+  const toggleReplyTo = (commentId: string) => {
+    if (!user) {
+      openAuthModal();
+      return;
+    }
+    setReplyingToId((prev) => {
+      if (prev === commentId) {
+        setInlineDraft("");
+        return null;
+      }
+      setInlineDraft("");
+      return commentId;
+    });
   };
 
   return (
@@ -122,11 +255,11 @@ export default function CommunityFeedPost({
               : "bg-primary/10 border border-primary text-primary"
           }`}
         >
-          {safeString(p.author_initials ?? p.initials, "?")}
+          {avatarInitials}
         </div>
         <div className="flex-1 min-w-0">
           <div className="font-heading text-[13px] font-bold text-foreground tracking-wide flex items-center gap-1.5">
-            {safeString(p.author_name ?? p.name, "Dad")}
+            {displayTitle}
             {isAnon && (
               <span className="bg-white/[0.08] border border-white/10 font-heading text-[9px] font-bold tracking-wider text-muted-foreground px-1.5 py-0.5 uppercase">
                 ANON
@@ -134,7 +267,7 @@ export default function CommunityFeedPost({
             )}
           </div>
           <div className="text-[10px] text-muted-foreground uppercase tracking-wide">
-            {safeString(p.author_meta ?? p.meta)}
+            {safeString(p.author_meta ?? p.meta, isAnon ? "Anonymous · " : COMMUNITY_POST_SUBLINE)}
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
@@ -177,11 +310,13 @@ export default function CommunityFeedPost({
         <button
           type="button"
           onClick={handleReplyClick}
+          aria-expanded={expanded}
+          aria-controls={postId ? `post-thread-${postId}` : undefined}
           className={`post-action inline-flex items-center gap-1.5 min-h-9 ${expanded ? "text-primary" : ""} ${!postId ? "opacity-50" : ""}`}
         >
           <ChatBubbleLeftRightIcon className="w-4 h-4 shrink-0" aria-hidden />
-          <span>
-            {safeNumber(p.replies_count ?? p.replies)} REPLIES
+                  <span>
+            {replyCount} REPLIES
           </span>
         </button>
         <button
@@ -208,48 +343,155 @@ export default function CommunityFeedPost({
       </div>
 
       {expanded && postId && (
-        <div className="mt-4 pt-4 border-t border-border space-y-3">
+        <div
+          id={`post-thread-${postId}`}
+          className="mt-4 pt-4 border-t border-border space-y-3"
+          role="region"
+          aria-label="Comments and replies"
+        >
           {commentsLoading ? (
             <p className="text-xs text-muted-foreground">Loading replies…</p>
+          ) : roots.length === 0 && replyCount > 0 ? (
+            <p className="text-xs text-muted-foreground">Couldn’t load replies. Refresh the page.</p>
           ) : (
-            <ul className="space-y-2">
-              {comments.map((c: { id: string; user_id: string; content: string }) => (
-                <li key={c.id} className="flex gap-2 justify-between text-[12px] text-foreground/80">
-                  <span className="flex-1">
-                    <span className="font-heading font-bold text-foreground/90 mr-2">
-                      {c.user_id === user?.id ? "You" : "Dad"}
-                    </span>
-                    {safeString(c.content)}
-                  </span>
-                  {user?.id === c.user_id && (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (!user?.id) return;
-                        deleteComment.mutate({ commentId: c.id, postId, userId: user.id });
-                      }}
-                      disabled={deleteComment.isPending}
-                      className="shrink-0 p-1 text-muted-foreground hover:text-destructive rounded-sm"
-                      aria-label="Delete comment"
-                    >
-                      <TrashIcon className="w-3.5 h-3.5" aria-hidden />
-                    </button>
-                  )}
-                </li>
-              ))}
+            <ul className="space-y-4">
+              {roots.map((c: EnrichedComment, rootIdx: number) => {
+                const cid = safeString(c.id);
+                const name = sameUser(c.user_id, user?.id) && !c.anonymous
+                  ? "You"
+                  : safeDisplayName(c.author_label, DEFAULT_DISPLAY_FALLBACK);
+                const childReplies = repliesByParentId.get(threadIdKey(c.id)) ?? [];
+                const createdLabel = safeFormatDate(c.created_at, "d MMM, h:mm a");
+                return (
+                  <li key={cid || `root-${rootIdx}`} className="rounded-sm border border-border/50 bg-white/[0.02] p-3 space-y-2">
+                    <div className="flex gap-2 justify-between items-start text-[12px]">
+                      <div className="flex-1 min-w-0 space-y-1">
+                        <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0">
+                          <span className="font-heading font-bold text-foreground/90">{name}</span>
+                          {createdLabel && (
+                            <span className="text-[10px] text-muted-foreground font-normal tabular-nums">
+                              {createdLabel}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-foreground/80 leading-relaxed">{safeString(c.content)}</p>
+                      </div>
+                      {sameUser(user?.id, c.user_id) && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (!user?.id) return;
+                            deleteComment.mutate({ commentId: cid, postId, userId: user.id });
+                          }}
+                          disabled={deleteComment.isPending}
+                          className="shrink-0 p-1 text-muted-foreground hover:text-destructive rounded-sm"
+                          aria-label="Delete comment"
+                        >
+                          <TrashIcon className="w-3.5 h-3.5" aria-hidden />
+                        </button>
+                      )}
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => toggleReplyTo(cid)}
+                        className="font-heading text-[9px] font-bold uppercase tracking-wider text-primary hover:underline"
+                      >
+                        {replyingToId === cid ? "Cancel" : "Reply"}
+                      </button>
+                    </div>
+                    {replyingToId === cid && user && (
+                      <div className="flex flex-col gap-1.5 pt-0.5">
+                        {replyingToLabel && (
+                          <p className="text-[10px] text-muted-foreground font-heading uppercase tracking-wide">
+                            Replying to{" "}
+                            <span className="text-primary">{safeDisplayName(replyingToLabel, DEFAULT_DISPLAY_FALLBACK)}</span>
+                          </p>
+                        )}
+                        <textarea
+                          value={inlineDraft}
+                          onChange={(e) => setInlineDraft(e.target.value)}
+                          placeholder="Write a reply…"
+                          rows={2}
+                          className="w-full bg-white/[0.04] border border-border p-2 text-foreground text-xs resize-none outline-none focus:border-primary placeholder:text-muted-foreground/40"
+                        />
+                        <LimeButton
+                          small
+                          type="button"
+                          className="self-start"
+                          onClick={handleSubmitInlineReply}
+                          disabled={!inlineDraft.trim() || addComment.isPending}
+                        >
+                          {addComment.isPending ? "..." : "REPLY"}
+                        </LimeButton>
+                      </div>
+                    )}
+                    {childReplies.length > 0 && (
+                      <ul className="mt-2 ml-5 pl-3 border-l border-border/70 space-y-3">
+                        {childReplies.map((r: EnrichedComment, replyIdx: number) => {
+                          const rid = safeString(r.id);
+                          const rName =
+                            sameUser(r.user_id, user?.id) && !r.anonymous
+                              ? "You"
+                              : safeDisplayName(r.author_label, DEFAULT_DISPLAY_FALLBACK);
+                          const rCreated = safeFormatDate(r.created_at, "d MMM, h:mm a");
+                          return (
+                            <li key={rid || `reply-${rootIdx}-${replyIdx}`} className="flex gap-2 justify-between items-start text-[11px] text-foreground/75">
+                              <span className="flex-1 min-w-0 space-y-1">
+                                <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0">
+                                  <span className="font-heading font-bold text-foreground/85">{rName}</span>
+                                  {rCreated && (
+                                    <span className="text-[9px] text-muted-foreground font-normal tabular-nums">
+                                      {rCreated}
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-foreground/75 leading-relaxed">{safeString(r.content)}</p>
+                              </span>
+                              {sameUser(user?.id, r.user_id) && (
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    if (!user?.id) return;
+                                    deleteComment.mutate({ commentId: rid, postId, userId: user.id });
+                                  }}
+                                  disabled={deleteComment.isPending}
+                                  className="shrink-0 p-1 text-muted-foreground hover:text-destructive rounded-sm"
+                                  aria-label="Delete reply"
+                                >
+                                  <TrashIcon className="w-3 h-3" aria-hidden />
+                                </button>
+                              )}
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
           )}
           {user && (
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-2 pt-3 mt-1 border-t border-border/60">
+              <span className="text-[10px] text-muted-foreground uppercase tracking-wide font-heading">
+                Add a comment
+              </span>
               <textarea
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
-                placeholder="Write a reply…"
+                placeholder="What's on your mind?"
                 rows={2}
                 className="w-full bg-white/[0.04] border border-border p-2 text-foreground text-xs resize-none outline-none focus:border-primary placeholder:text-muted-foreground/40"
               />
-              <LimeButton small type="button" onClick={handleSubmitComment} disabled={!draft.trim() || addComment.isPending}>
-                {addComment.isPending ? "..." : "REPLY"}
+              <LimeButton
+                small
+                type="button"
+                className="self-start"
+                onClick={handleSubmitTopComment}
+                disabled={!draft.trim() || addComment.isPending}
+              >
+                {addComment.isPending ? "..." : "POST"}
               </LimeButton>
             </div>
           )}
