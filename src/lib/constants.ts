@@ -8,6 +8,9 @@ export const NAV_LINKS = [
   { label: "Pricing", href: "/pricing" },
 ] as const;
 
+/** Subtitle under community post author (role line — not the person’s name). */
+export const COMMUNITY_POST_SUBLINE = "Member · ";
+
 export const STATS = [
   { value: "4.2M", label: "UK men with mental health issues" },
   { value: "1 IN 8", label: "Have experienced symptoms" },
@@ -77,63 +80,6 @@ export const CIRCLES = [
   { iconKey: "fitness", name: "Fit dads", members: 1204 },
   { iconKey: "bond", name: "Single dads", members: 623 },
   { iconKey: "grad", name: "Teen dad club", members: 412 },
-] as const;
-
-export const FEED_POSTS = [
-  {
-    initials: "MK",
-    name: "Marcus K.",
-    meta: "Dad of 2 · 14 min ago",
-    tag: "FITNESS",
-    body: "First time I've hit 4 workouts in a week since my youngest was born. 20 mins before the school run. If I can do it, anyone can.",
-    respect: 48,
-    replies: 12,
-  },
-  {
-    initials: "?",
-    name: "Anonymous Dad",
-    meta: "Dad of 1 · 1 hr ago",
-    tag: "MENTAL HEALTH",
-    anon: true,
-    body: "Hard week. Work stress bleeding into home life and I feel short with the kids. Anyone been through this? What helped?",
-    respect: 93,
-    replies: 31,
-  },
-  {
-    initials: "DL",
-    name: "Dan L.",
-    meta: "Dad of 3 · 2 hr ago",
-    tag: "PARENTING",
-    body: "Screen-free Sunday was a success. Board games, long walk, and my 8-year-old talked to me for 40 minutes straight. Highly recommend.",
-    respect: 211,
-    replies: 44,
-  },
-  {
-    initials: "SJ",
-    name: "Sam J.",
-    meta: "New dad · 4 hr ago",
-    tag: "NUTRITION",
-    body: "Baby is 6 weeks old. Running on fumes. But I looked at him this morning and thought — this is it. This is the whole thing.",
-    respect: 389,
-    replies: 67,
-  },
-] as const;
-
-export const EXPERTS = [
-  {
-    initials: "MC",
-    name: "Dr. Matt Collins",
-    role: "Clinical Psychologist",
-    topic: "Tackling dad anxiety — live",
-    time: "Thu 7pm",
-  },
-  {
-    initials: "JB",
-    name: "Jack Barratt",
-    role: "Strength coach",
-    topic: "Training as a busy dad",
-    time: "Sat 10am",
-  },
 ] as const;
 
 export const THERAPISTS = [
