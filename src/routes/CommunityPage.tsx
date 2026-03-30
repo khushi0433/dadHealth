@@ -1,19 +1,28 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import SitePageShell from "@/components/SitePageShell";
 import SiteFooter from "@/components/SiteFooter";
 import LimeButton from "@/components/LimeButton";
-import { EXPERTS } from "@/lib/constants";
 import { CheckIcon } from "@heroicons/react/24/outline";
 import { useAuth } from "@/contexts/AuthContext";
 import CommunityFeedPost from "@/components/CommunityFeedPost";
 import { useCommunity } from "@/hooks/useCommunity";
 import { useUserProfile } from "@/hooks/useUserProfile";
+import { supabase } from "@/utils/supabaseClient";
+import { communityQueryKey } from "@/lib/communityQueryKey";
+import {
+  ANONYMOUS_AUTHOR_NAME,
+  communityPostMeta,
+  initialsFromDisplayName,
+  resolveDisplayName,
+} from "@/lib/userDisplay";
 
 const CommunityPage = () => {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const { user, openAuthModal } = useAuth();
   const { data: profile } = useUserProfile(user?.id);
   const {
@@ -31,6 +40,30 @@ const CommunityPage = () => {
     joinCircle,
   } = useCommunity(user?.id);
 
+  useEffect(() => {
+    const channel = supabase
+      .channel("community-realtime")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "posts" },
+        () => {
+          queryClient.invalidateQueries({ queryKey: communityQueryKey(user?.id) });
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "likes" },
+        () => {
+          queryClient.invalidateQueries({ queryKey: communityQueryKey(user?.id) });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient, user?.id]);
+
   const [postBody, setPostBody] = useState("");
   const [postTag, setPostTag] = useState("FITNESS");
   const [postAnon, setPostAnon] = useState(false);
@@ -40,15 +73,15 @@ const CommunityPage = () => {
 
   const handlePost = () => {
     if (!postBody.trim()) return;
-    const initials = user?.email?.slice(0, 2).toUpperCase() ?? "?";
-    const name = profile?.display_name ?? user?.user_metadata?.display_name ?? "Dad";
+    const name = resolveDisplayName(profile, user);
+    const initials = postAnon ? "?" : initialsFromDisplayName(name, user?.email);
     createPost.mutate({
       body: postBody.trim(),
       tag: postTag,
       anonymous: postAnon,
-      author_initials: postAnon ? "?" : initials,
-      author_name: postAnon ? "Anonymous Dad" : name,
-      author_meta: postAnon ? "Anonymous · " : `Dad · `,
+      author_initials: initials,
+      author_name: postAnon ? ANONYMOUS_AUTHOR_NAME : name,
+      author_meta: communityPostMeta(postAnon),
     });
     setPostBody("");
   };
@@ -63,12 +96,12 @@ const CommunityPage = () => {
           </span>
           <div className="flex items-end justify-between flex-wrap gap-4">
             <h1 className="font-heading text-[42px] lg:text-[56px] font-extrabold uppercase leading-none tracking-wide">
-              DAD FEED
+              COMMUNITY FEED
             </h1>
             <div className="flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-primary-foreground" />
               <span className="font-heading text-[11px] font-bold tracking-wider uppercase opacity-70">
-                {dadsCount > 0 ? dadsCount.toLocaleString() : "—"} DADS IN COMMUNITY
+                {dadsCount > 0 ? dadsCount.toLocaleString() : "—"} MEMBERS
               </span>
             </div>
           </div>
@@ -78,7 +111,7 @@ const CommunityPage = () => {
       <div className="max-w-[1400px] mx-auto grid grid-cols-1 lg:grid-cols-3 gap-0">
         {/* Left - Circles */}
         <div className="px-5 lg:px-8 py-8 border-r border-border">
-          <span className="section-label !p-0 mb-4 block">DAD CIRCLES</span>
+          <span className="section-label !p-0 mb-4 block">CIRCLES</span>
           <div className="space-y-3">
             {displayCircles.length > 0 ? displayCircles.map((c: { id: string; icon?: string; name: string; members_count?: number }) => {
               const joined = user && userCircleIds.includes(c.id);
@@ -121,7 +154,7 @@ const CommunityPage = () => {
           {/* Compose */}
           <div className="px-5 py-4 border-b border-border">
             <textarea
-              placeholder="What's on your mind, dad?"
+              placeholder="Share something with the community…"
               value={postBody}
               onChange={(e) => setPostBody(e.target.value)}
               className="w-full bg-white/[0.04] border border-border p-3 text-foreground text-sm resize-none h-[60px] outline-none focus:border-primary transition-colors placeholder:text-muted-foreground/40 mb-2"
@@ -157,12 +190,13 @@ const CommunityPage = () => {
             </div>
           </div>
 
-          {/* Posts */}
+          {/* Posts — each row owns comments/replies via hooks; no reply/addComment props */}
           {displayPosts.length > 0 ? displayPosts.map((p: Record<string, unknown>) => (
             <CommunityFeedPost
               key={String(p.id)}
               p={p}
               user={user}
+              viewerProfile={profile ?? undefined}
               userLikedIds={userLikedIds}
               userSavedIds={userSavedIds}
               toggleLike={toggleLike}
@@ -177,33 +211,21 @@ const CommunityPage = () => {
           )}
         </div>
 
-        {/* Right - Expert Q&A */}
+        {/* Right — expert sessions: no mock data; add CMS or table later */}
         <div className="px-5 lg:px-8 py-8">
-          <span className="section-label !p-0 mb-4 block">EXPERT Q&A THIS WEEK</span>
-          {EXPERTS.map((e) => (
-            <div key={e.name} className="border border-border p-4 mb-3">
-              <div className="flex items-start gap-3">
-                <div className="w-10 h-10 bg-card border border-border flex items-center justify-center font-heading text-sm font-extrabold text-primary shrink-0">
-                  {e.initials}
-                </div>
-                <div className="flex-1">
-                  <div className="font-heading text-[13px] font-extrabold text-foreground tracking-wide">{e.name}</div>
-                  <div className="text-[11px] text-muted-foreground">{e.role}</div>
-                  <p className="text-xs text-foreground/60 mt-1">{e.topic}</p>
-                </div>
-              </div>
-              <div className="flex justify-between items-center mt-3">
-                <span className="font-heading text-[11px] font-bold text-primary">{e.time}</span>
-                <button
-                  type="button"
-                  onClick={() => router.push("/pricing")}
-                  className="bg-background text-foreground border border-foreground font-heading font-bold text-[10px] tracking-wider uppercase px-3 py-1.5 cursor-pointer hover:border-primary hover:text-primary transition-colors"
-                >
-                  BOOK SESSION
-                </button>
-              </div>
-            </div>
-          ))}
+          <span className="section-label !p-0 mb-4 block">EXPERT Q&A</span>
+          <div className="border border-border border-dashed p-4 mb-3 rounded-sm bg-white/[0.02]">
+            <p className="text-sm text-muted-foreground">
+              Live sessions and guest experts will appear here when scheduled. Pro members get priority booking.
+            </p>
+            <button
+              type="button"
+              onClick={() => router.push("/pricing")}
+              className="mt-3 font-heading font-bold text-[10px] tracking-wider uppercase text-primary border border-primary px-3 py-1.5 hover:bg-primary hover:text-primary-foreground transition-colors"
+            >
+              View Pro
+            </button>
+          </div>
 
           {/* Trending */}
           <div className="mt-6">
