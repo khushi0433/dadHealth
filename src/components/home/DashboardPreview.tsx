@@ -75,9 +75,13 @@ const DashboardPreview = () => {
     }
   }, [dashboard?.mood_value, dashboard?.sleep_hours]);
 
-  const score = dashboard?.total_score ?? (user ? 74 : "—");
+  const score = typeof dashboard?.total_score === 'number' ? Math.round(dashboard.total_score) : (dashboard?.total_score ?? (user ? 74 : "—"));
   const breakdown = user && dashboard
-    ? { mind: dashboard.mind_score ?? 72, body: dashboard.body_score ?? 81, bond: dashboard.bond_score ?? 68 }
+    ? { 
+        mind: Math.min(100, Math.round(dashboard.mind_score ?? 72)), 
+        body: Math.min(100, Math.round(dashboard.body_score ?? 81)), 
+        bond: Math.min(100, Math.round(dashboard.bond_score ?? 68)) 
+      }
     : { mind: 0, body: 0, bond: 0 };
   const SCORE_ITEMS = [
     { label: "MIND", value: breakdown.mind },
