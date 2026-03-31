@@ -56,7 +56,7 @@ const DEFAULT_DAD_DATES = [
 ];
 
 const DashboardPreview = () => {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { data: profile } = useUserProfile(user?.id);
   const { data: dashboard, loading, dadDates = [], dadsCount, checkIn } = useDashboard(user?.id);
   const { posts: communityPosts = [], loading: communityLoading } = useCommunity(user?.id);
@@ -107,6 +107,17 @@ const DashboardPreview = () => {
   const reportStatsList = dashboard?.reportStats
     ? [[String(dashboard.reportStats.workouts), "Workouts"], [String(dashboard.reportStats.journal), "Journal"], [String(dashboard.reportStats.dadDates), "Dad dates"]]
     : [["—", "Workouts"], ["—", "Journal"], ["—", "Dad dates"]];
+
+  if (authLoading) {
+    return (
+      <section className="bg-background pt-16 lg:pt-20 pb-8 min-h-[600px] flex flex-col gap-4 items-center justify-center">
+        <div className="w-8 h-8 rounded-full border-4 border-primary border-t-transparent animate-spin" />
+        <p className="text-primary font-heading text-[11px] font-bold tracking-widest uppercase">
+          Loading Preview...
+        </p>
+      </section>
+    );
+  }
 
   return (
   <section className="bg-background pt-16 lg:pt-20 pb-8">
