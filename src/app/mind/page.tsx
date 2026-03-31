@@ -1,8 +1,240 @@
 "use client";
 
-import MindPage from "@/routes/MindPage";
+import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
+import { PenLine, BarChart2, Stethoscope, LifeBuoy } from "lucide-react";
+import SitePageShell from "@/components/SitePageShell";
+import SiteFooter from "@/components/SiteFooter";
+import LimeButton from "@/components/LimeButton";
+import { ProGate } from "@/components/ProProvider";
+import { useAuth } from "@/contexts/AuthContext";
+import { useMind } from "@/hooks/useMind";
 
-export default function MindRoute() {
-  return <MindPage />;
-}
+const JOURNAL_PROMPTS = [
+  "One moment today I showed up as the dad I want to be…",
+  "Something small I'm grateful for…",
+  "One thing I'll do better tomorrow…",
+  "Something I want to let go of…",
+] as const;
 
+const MindPage = () => {
+  const router = useRouter();
+  const { user, openAuthModal } = useAuth();
+  const { moodLogs, therapists, saveJournal } = useMind(user?.id);
+
+  const [journalText, setJournalText] = useState("");
+  const [breathPhase, setBreathPhase] = useState<"inhale" | "hold" | "exhale">("inhale");
+  const [breathCount, setBreathCount] = useState(4);
+  const [breathActive, setBreathActive] = useState(false);
+
+  const last7 = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - (6 - i));
+    return d.toISOString().slice(0, 10);
+  });
+  const moodMap = new Map(moodLogs.map((m: { date: string; mood_value: number }) => [m.date, m.mood_value]));
+  const moodWeekData = last7.map((d) => moodMap.get(d) ?? 0);
+  const displayMood = user ? moodWeekData : [0, 0, 0, 0, 0, 0, 0];
+  const avgMoodValue = displayMood.filter((v) => v > 0).length > 0
+    ? displayMood.reduce((a, b) => a + b, 0) / displayMood.filter((v) => v > 0).length
+    : 0;
+  const avgMoodLabel = avgMoodValue >= 3.5 ? "Great" : avgMoodValue >= 3 ? "Good" : avgMoodValue >= 2 ? "Okay" : avgMoodValue > 0 ? "Low" : "—";
+
+  const breathRef = useRef({ count: 4, phaseIdx: 0 });
+
+  useEffect(() => {
+    if (!breathActive) return;
+    const phases: Array<"inhale" | "hold" | "exhale"> = ["inhale", "hold", "exhale"];
+    breathRef.current = { count: 4, phaseIdx: 0 };
+    setBreathPhase(phases[0]);
+    setBreathCount(4);
+    const id = setInterval(() => {
+      const { count, phaseIdx } = breathRef.current;
+      const nextCount = count - 1;
+      if (nextCount < 1) {
+        const nextPhaseIdx = (phaseIdx + 1) % 3;
+        breathRef.current = { count: 4, phaseIdx: nextPhaseIdx };
+        setBreathPhase(phases[nextPhaseIdx]);
+        setBreathCount(4);
+      } else {
+        breathRef.current = { count: nextCount, phaseIdx };
+        setBreathCount(nextCount);
+      }
+    }, 1000);
+    return () => clearInterval(id);
+  }, [breathActive]);
+
+  const therapistsList = therapists;
+
+  return (
+    <SitePageShell>
+      {/* Hero */}
+      <section className="bg-background w-full">
+        <div className="max-w-[1400px] mx-auto px-5 lg:px-8 py-12">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
+          <div>
+            <span className="section-label mb-2 block">MENTAL HEALTH</span>
+            <h1 className="font-heading text-[42px] lg:text-[56px] font-extrabold text-foreground uppercase leading-none tracking-wide mb-6">
+              MENTAL HEALTH
+            </h1>
+            <p className="text-sm text-muted-foreground leading-[1.75] mb-4">
+              Listen chaps, mental health is just as important for men as it is for women. Opening
+              up about feelings and seeking help is not a sign of weakness, but of strength.
+            </p>
+            <p className="text-sm text-muted-foreground leading-[1.75] mb-8">
+              It's okay to not be okay; reaching out for help is a vital step in maintaining mental
+              wellness. Inhale 4 · Hold 4 · Exhale 4. Reduces cortisol.
+            </p>
+            <a
+              href="https://www.samaritans.org"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="w-full lg:w-auto bg-destructive/10 text-primary border border-destructive/30 px-4 py-3 font-heading font-bold text-xs tracking-wider uppercase cursor-pointer flex items-center justify-between hover:bg-destructive/20 transition-colors"
+            >
+              <span className="flex items-center gap-2">
+                <LifeBuoy className="h-4 w-4 shrink-0 text-primary" strokeWidth={1.5} aria-hidden="true" />
+                CRISIS SUPPORT — SAMARITANS · CALM · MIND
+              </span>
+            </a>
+          </div>
+
+          {/* Breathing circle - client only */}
+          <div className="flex flex-col items-center">
+            <div className="w-[200px] h-[200px] border-4 border-primary rounded-full flex flex-col items-center justify-center">
+              <span className="font-heading text-lg font-extrabold text-primary uppercase tracking-wide">{breathPhase.toUpperCase()}</span>
+              <span className="font-heading text-[56px] font-extrabold text-primary leading-none">{breathCount}</span>
+            </div>
+            <p className="text-xs text-muted-foreground text-center mt-4">
+              Inhale 4 · Hold 4 · Exhale 4.<br />Reduces cortisol.
+            </p>
+            <button
+              onClick={() => setBreathActive(!breathActive)}
+              className="mt-6 bg-background text-foreground border-2 border-foreground px-8 py-3 font-heading font-extrabold text-sm tracking-wider uppercase cursor-pointer hover:border-primary hover:text-primary transition-colors"
+            >
+              {breathActive ? "STOP" : "BEGIN"}
+            </button>
+          </div>
+        </div>
+        </div>
+      </section>
+
+      {/* Feature cards */}
+      <section className="bg-card border-t border-border">
+        <div className="max-w-[1400px] mx-auto grid grid-cols-1 md:grid-cols-3 gap-px bg-border">
+          {/* Journal */}
+          <div className="bg-card p-6">
+            <PenLine className="h-8 w-8 mb-3 text-primary" strokeWidth={1.5} aria-hidden="true" />
+            <h3 className="font-heading text-lg font-extrabold text-foreground uppercase tracking-wide mb-2">
+              EVENING JOURNAL
+            </h3>
+            <p className="text-xs text-muted-foreground leading-relaxed mb-2">
+              Pick a starter below or write freely — this is just for you.
+            </p>
+            <ul className="flex flex-wrap gap-1.5 mb-3" aria-label="Journal prompts">
+              {JOURNAL_PROMPTS.map((line) => (
+                <li key={line}>
+                  <button
+                    type="button"
+                    onClick={() => setJournalText((prev) => (prev ? `${prev}\n\n${line} ` : `${line} `))}
+                    className="text-left text-[10px] font-heading font-bold uppercase tracking-wide px-2 py-1.5 rounded-sm border border-border/80 bg-white/[0.03] text-primary/90 hover:border-primary hover:bg-primary/10 transition-colors max-w-full"
+                  >
+                    {line.replace(/…$/, "")}
+                  </button>
+                </li>
+              ))}
+            </ul>
+            <textarea
+              placeholder="Write freely..."
+              value={journalText}
+              onChange={(e) => setJournalText(e.target.value)}
+              className="w-full bg-white/[0.04] border border-border p-3 text-foreground text-sm resize-none h-[100px] outline-none focus:border-primary transition-colors placeholder:text-muted-foreground/40"
+            />
+            <LimeButton
+              small
+              className="mt-3"
+              onClick={() => {
+                if (!journalText.trim()) return;
+                if (!user) {
+                  openAuthModal();
+                  return;
+                }
+                saveJournal.mutate(journalText);
+                setJournalText("");
+              }}
+              disabled={!journalText.trim() || saveJournal.isPending}
+            >
+              {saveJournal.isPending ? "..." : "SAVE ENTRY"} →
+            </LimeButton>
+          </div>
+
+          {/* Mood Trend - Pro gated */}
+          <ProGate featureName="Mood trend graphs" lockMessage="Your mood today is one data point. Your mood over 30 days is a pattern. Patterns change lives.">
+            <div className="bg-card p-6">
+              <BarChart2 className="h-8 w-8 mb-3 text-primary" strokeWidth={1.5} aria-hidden="true" />
+              <h3 className="font-heading text-lg font-extrabold text-foreground uppercase tracking-wide mb-2">
+                MOOD TREND
+              </h3>
+              <p className="text-xs text-muted-foreground leading-relaxed mb-4">
+                Your 7-day mood pattern — tracked daily and correlated with sleep data to spot what's affecting you.
+              </p>
+              <div className="flex items-end gap-1.5 h-[80px] mb-2">
+                {displayMood.map((v: number, i: number) => {
+                  const h = v > 0 ? Math.round((v / 4) * 68) + 8 : 8;
+                  return (
+                    <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                      <div
+                        className={`w-full transition-all ${v >= 3 ? "bg-primary" : v > 0 ? "bg-muted" : "bg-muted/50"}`}
+                        style={{ height: `${h}px` }}
+                      />
+                    </div>
+                  );
+                })}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Avg: <span className="text-primary font-semibold">{avgMoodLabel}</span>
+                {user && avgMoodValue > 0 ? ` (${avgMoodValue.toFixed(1)}/4)` : ""}
+              </p>
+            </div>
+          </ProGate>
+
+          {/* Find a Therapist - Pro gated */}
+          <ProGate featureName="Therapist booking" lockMessage="The gap between 'I should talk to someone' and actually doing it is where most men get stuck. We close that gap.">
+            <div className="bg-card p-6">
+              <Stethoscope className="h-8 w-8 mb-3 text-primary" strokeWidth={1.5} aria-hidden="true" />
+              <h3 className="font-heading text-lg font-extrabold text-foreground uppercase tracking-wide mb-2">
+                FIND A THERAPIST
+              </h3>
+              <p className="text-xs text-muted-foreground leading-relaxed mb-4">
+                Filtered for dad-friendly sessions, evening & weekend slots. Verified by the Dad Health community.
+              </p>
+              {therapistsList.length > 0 ? therapistsList.map((t: { name: string; spec?: string; slots?: string; price?: string }) => (
+                <div key={t.name} className="therapist-card mb-2 last:mb-0">
+                  <div className="w-2.5 h-2.5 rounded-full bg-primary shrink-0 mt-1" />
+                  <div className="flex-1">
+                    <div className="font-heading text-sm font-extrabold text-foreground">{t.name}</div>
+                    <div className="text-[11px] text-muted-foreground mt-0.5">
+                      {t.spec ?? "—"} · {t.slots ?? "—"} · {t.price ?? "—"}
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => router.push("/pricing")}
+                    className="bg-transparent text-foreground border border-foreground font-heading font-bold text-[10px] tracking-wider uppercase px-3 py-1.5 cursor-pointer shrink-0 hover:border-primary hover:text-primary transition-colors"
+                  >
+                    Book
+                  </button>
+                </div>
+              )) : (
+                <p className="text-xs text-muted-foreground">No therapists available yet.</p>
+              )}
+            </div>
+          </ProGate>
+        </div>
+      </section>
+
+      <SiteFooter />
+    </SitePageShell>
+  );
+};
+
+export default MindPage;

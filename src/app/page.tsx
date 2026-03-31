@@ -1,8 +1,31 @@
-"use client";
+import Logo from "@/components/Logo";
+import LimeButton from "@/components/LimeButton";
+import OutlineButton from "@/components/OutlineButton";
+import SitePageShell from "@/components/SitePageShell";
+import SiteFooter from "@/components/SiteFooter";
+import { PILLARS } from "@/lib/constants";
+import { IMAGES } from "@/lib/images";
+import HeroSection from "@/components/home/HeroSection";
+import StatsBar from "@/components/home/StatsBar";
+import WhoWeAre from "@/components/home/WhoWeAre";
+import PillarsSection from "@/components/home/PillarsSection";
+import DashboardPreview from "@/components/home/DashboardPreview";
+import DadStrengthSection from "@/components/home/DadStrengthSection";
 
-import Index from "@/routes/Index";
+const PILLAR_IMAGES = [IMAGES.gym, IMAGES.run, IMAGES.food, IMAGES.bond];
 
-export default function HomePage() {
-  return <Index />;
-}
+const Index = () => {
+  return (
+    <SitePageShell>
+      <HeroSection heroImg={IMAGES.hero} />
+      <WhoWeAre gymImg={IMAGES.gym} />
+      <StatsBar />
+      <PillarsSection pillarImages={PILLAR_IMAGES} />
+      <DashboardPreview />
+      <DadStrengthSection workoutImg={IMAGES.workout} />
+      <SiteFooter />
+    </SitePageShell>
+  );
+};
 
+export default Index;
