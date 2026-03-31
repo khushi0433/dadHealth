@@ -59,8 +59,11 @@ const PaywallModal = ({ featureName, onClose, onStartTrial }: PaywallModalProps)
   const [plan, setPlan] = useState<"monthly" | "annual">("annual");
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/80 backdrop-blur-sm" onClick={onClose}>
-      <div className="bg-card border border-border p-6 max-w-sm w-full mx-4 relative" onClick={(e) => e.stopPropagation()}>
+    <div
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-background/60 backdrop-blur-[2px]"
+      onClick={onClose}
+    >
+      <div className="bg-card border border-border p-6 max-w-sm w-full mx-4 relative shadow-lg" onClick={(e) => e.stopPropagation()}>
         <button
           type="button"
           onClick={onClose}
