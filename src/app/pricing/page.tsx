@@ -7,6 +7,8 @@ import Logo from "@/components/Logo";
 import LimeButton from "@/components/LimeButton";
 import OutlineButton from "@/components/OutlineButton";
 import { useProStatus } from "@/components/ProProvider";
+import { useAuth } from "@/contexts/AuthContext";
+import LoginPromptModal from "@/components/LoginPromptModal";
 import { PRICING_PLANS, TESTIMONIALS, FAQ_ITEMS } from "@/lib/constants";
 import {
   Accordion,
@@ -15,12 +17,30 @@ import {
   AccordionContent,
 } from "@/components/ui/accordion";
 
+
 const PricingPage = () => {
   const [plan, setPlan] = useState<"monthly" | "annual">("annual");
   const [previewPlan, setPreviewPlan] = useState<"monthly" | "annual">("annual");
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+  const { user, openAuthModal } = useAuth();
   const { isPro, isSubscribed, setPro, setSubscribed, showPaywall } = useProStatus();
+  const isActivePro = !!user && isPro;
+  const isActiveSubscribed = !!user && isSubscribed;
 
   const handleStartTrial = () => {
+    if (!user) {
+      openAuthModal();
+      return;
+    }
+    setPro(true);
+    setSubscribed(true);
+  };
+
+  const handleMonthlyClick = () => {
+    if (!user) {
+      setShowLoginPrompt(true);
+      return;
+    }
     setPro(true);
     setSubscribed(true);
   };
@@ -39,7 +59,7 @@ const PricingPage = () => {
           </p>
 
           {/* Pro confirmed state - only for paid subscribers */}
-          {isSubscribed && (
+          {isActiveSubscribed && (
             <div className="mt-6 border border-primary bg-primary/5 p-6 max-w-sm mx-auto">
               <div className="font-heading text-[22px] font-extrabold text-primary uppercase mb-2">
                 You're a Pro Dad.
@@ -47,7 +67,7 @@ const PricingPage = () => {
               <p className="text-sm text-muted-foreground">You have full access to every Dad Health feature. Keep showing up.</p>
               <button
                 type="button"
-                onClick={() => setPro(false)}
+                onClick={() => { setPro(false); setSubscribed(false); }}
                 className="mt-4 text-[10px] text-muted-foreground underline cursor-pointer bg-transparent border-none hover:text-foreground transition-colors"
               >
                 Cancel subscription
@@ -56,7 +76,7 @@ const PricingPage = () => {
           )}
 
           {/* Plan toggle */}
-          {!isPro && (
+          {!isActivePro && (
             <div className="flex max-w-xs mx-auto mt-8 bg-white/5 border border-border p-1 gap-1">
               {(["monthly", "annual"] as const).map((id) => (
                 <button
@@ -82,7 +102,7 @@ const PricingPage = () => {
       </section>
 
       {/* Pricing cards */}
-      {!isPro && (
+      {!isActivePro && (
         <section className="bg-background">
           <div className="max-w-[1400px] mx-auto px-5 lg:px-8 py-12">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
@@ -231,16 +251,13 @@ const PricingPage = () => {
                   {previewPlan === "annual" ? "PER MONTH · BILLED £49.99/YEAR" : "PER MONTH"}
                 </div>
               </div>
-              <LimeButton type="button" full onClick={handleStartTrial}>
+              <LimeButton
+                type="button"
+                full
+                onClick={previewPlan === "monthly" ? handleMonthlyClick : handleStartTrial}
+              >
                 START {previewPlan === "annual" ? "ANNUAL" : "MONTHLY"} PLAN →
               </LimeButton>
-              <button
-                type="button"
-                onClick={handleStartTrial}
-                className="block w-full mt-2 text-[11px] text-muted-foreground text-center cursor-pointer bg-transparent border-none hover:text-primary transition-colors"
-              >
-                7-day free trial · Cancel anytime
-              </button>
             </div>
           </div>
         </div>
@@ -294,6 +311,12 @@ const PricingPage = () => {
       </section>
 
       <SiteFooter />
+      {showLoginPrompt && (
+        <LoginPromptModal
+          onClose={() => setShowLoginPrompt(false)}
+          onLogin={openAuthModal}
+        />
+      )}
     </SitePageShell>
   );
 };
