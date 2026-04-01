@@ -6,7 +6,7 @@ interface WhoWeAreProps {
 }
 
 const WhoWeAre = ({ gymImg }: WhoWeAreProps) => (
-  <section className="bg-black border-b-4 border-primary pt-8 lg:pt-10 pb-16 lg:pb-20">
+  <section className="bg-black pt-8 lg:pt-10 pb-16 lg:pb-20">
     <div className="max-w-[1400px] mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-0 lg:items-stretch px-5 lg:px-8">
       <div className="relative min-h-[300px] lg:min-h-0 lg:h-full rounded-2xl overflow-hidden">
         <img
