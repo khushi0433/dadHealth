@@ -24,10 +24,9 @@ const Index = () => {
     <SitePageShell>
       <HeroSection heroImg={IMAGES.hero} />
       <WhoWeAre gymImg={IMAGES.gym} />
-      {!loading && user && <DashboardPreview />}
+      {!loading && <DashboardPreview />}
       <StatsBar />
       <PillarsSection pillarImages={PILLAR_IMAGES} />
-      {!loading && !user && <DashboardPreview />}
       <DadStrengthSection workoutImg={IMAGES.workout} />
       <SiteFooter />
     </SitePageShell>

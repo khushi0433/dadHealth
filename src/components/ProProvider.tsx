@@ -170,7 +170,7 @@ export const ProGate = ({ children, featureName, lockMessage }: ProGateProps) =>
         </div>
         <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/60 backdrop-blur-[2px]">
         <Lock
-  className="h-16 w-16 text-primary mb-1"
+  className="h-8 w-8 text-primary mb-1"
   strokeWidth={2.5}
  aria-hidden="true" />
           <div className="font-heading text-[11px] font-bold tracking-wider uppercase text-primary">

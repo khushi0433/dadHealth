@@ -53,7 +53,11 @@ const BondPage = () => {
     <SitePageShell>
       {/* Hero */}
       <section className="relative w-full min-w-0 h-[320px] lg:h-[400px]">
-        <img src={IMAGES.bond} alt="Parenting" className="absolute inset-0 w-full h-full object-cover object-top" />
+      <img
+  src={IMAGES.bond}
+  alt="Parenting"
+  className="absolute inset-0 w-full h-full object-cover object-[50%_35%]"
+/>
         <div className="absolute inset-0 bg-background/65" />
         <div className="relative z-10 flex flex-col justify-center items-start h-full max-w-[1400px] mx-auto px-5 lg:px-8">
           <span className="section-label text-primary mb-2">THE BOND</span>

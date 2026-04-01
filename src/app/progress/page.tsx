@@ -99,7 +99,6 @@ const ProgressPage = () => {
             </div>
             <ProGate
               featureName="Dad Health Score breakdown"
-              lockMessage="Your Dad Health Score breakdown is a PRO Feature. Unlock it to see your breakdown."
             >
                 <div className="w-full min-w-[220px] flex-1">
                   {[

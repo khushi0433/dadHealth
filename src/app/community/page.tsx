@@ -108,22 +108,7 @@ const CommunityPage = () => {
         </div>
       </section>
 
-      <div className="relative">
-        {!user && (
-          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center text-center px-5 bg-background/70 backdrop-blur-[3px]">
-            <div className="font-heading text-[11px] font-bold tracking-[2px] uppercase text-primary mb-3">DAD HEALTH COMMUNITY</div>
-            <h2 className="font-heading text-[28px] font-extrabold text-foreground uppercase leading-none mb-3">Sign in to join<br />the community</h2>
-            <p className="text-sm text-muted-foreground max-w-xs mb-5">Read posts, join circles and share with other dads.</p>
-            <button
-              type="button"
-              onClick={openAuthModal}
-              className="bg-primary text-primary-foreground font-heading font-bold text-[11px] tracking-wider uppercase px-6 py-3 hover:brightness-110 transition-all border-none cursor-pointer"
-            >
-              SIGN IN →
-            </button>
-          </div>
-        )}
-        <div className="max-w-[1400px] mx-auto grid grid-cols-1 lg:grid-cols-3 gap-0">
+      <div className="max-w-[1400px] mx-auto grid grid-cols-1 lg:grid-cols-3 gap-0">
         {/* Left - Circles */}
         <div className="px-5 lg:px-8 py-8 border-r border-border">
           <span className="section-label !p-0 mb-4 block">CIRCLES</span>
@@ -162,6 +147,7 @@ const CommunityPage = () => {
               <p className="text-sm text-muted-foreground">No circles yet.</p>
             )}
           </div>
+        </div>
 
         {/* Center - Feed */}
         <div className="border-r border-border">
@@ -256,8 +242,6 @@ const CommunityPage = () => {
               <p className="text-sm text-muted-foreground">No trending tags yet.</p>
             )}
           </div>
-        </div>
-      </div>
         </div>
       </div>
 
