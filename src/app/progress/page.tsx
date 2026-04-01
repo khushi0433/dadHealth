@@ -99,29 +99,29 @@ const ProgressPage = () => {
             </div>
             <ProGate
               featureName="Dad Health Score breakdown"
-              lockMessage="Free users see the number. Pro shows you exactly what's dragging it down — and how to fix it."
+              lockMessage="Your Dad Health Score breakdown is a PRO Feature. Unlock it to see your breakdown."
             >
-              <div className="w-full min-w-[220px] flex-1">
-                {[
-                  { label: "Mind", value: breakdown.mind },
-                  { label: "Body", value: breakdown.body },
-                  { label: "Bond", value: breakdown.bond },
-                ].map((item) => {
-                  const numVal = typeof item.value === "number" ? item.value : 0;
-                  const displayVal = typeof item.value === "number" ? `${item.value}%` : "—";
-                  return (
-                    <div key={item.label} className="mb-2.5">
-                      <div className="flex justify-between font-heading text-[11px] font-bold uppercase text-muted-foreground tracking-wide mb-1">
-                        <span>{item.label}</span>
-                        <span className="text-primary">{displayVal}</span>
+                <div className="w-full min-w-[220px] flex-1">
+                  {[
+                    { label: "Mind", value: breakdown.mind },
+                    { label: "Body", value: breakdown.body },
+                    { label: "Bond", value: breakdown.bond },
+                  ].map((item) => {
+                    const numVal = typeof item.value === "number" ? item.value : 0;
+                    const displayVal = typeof item.value === "number" ? `${item.value}%` : "—";
+                    return (
+                      <div key={item.label} className="mb-2.5">
+                        <div className="flex justify-between font-heading text-[11px] font-bold uppercase text-muted-foreground tracking-wide mb-1">
+                          <span>{item.label}</span>
+                          <span className="text-primary">{displayVal}</span>
+                        </div>
+                        <div className="bar-track">
+                          <div className="bar-fill" style={{ width: `${numVal}%` }} />
+                        </div>
                       </div>
-                      <div className="bar-track">
-                        <div className="bar-fill" style={{ width: `${numVal}%` }} />
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
+                    );
+                  })}
+                </div>
             </ProGate>
           </div>
         </div>
@@ -186,8 +186,7 @@ const ProgressPage = () => {
                   return (
                     <div key={i} className="flex-1 flex flex-col items-center gap-1">
                       <div
-                        className={`w-full transition-all ${s.hrs >= 7 ? "bg-primary" : s.hrs >= 6 ? "bg-primary/40" : "bg-muted"
-                          }`}
+                        className={`w-full transition-all ${s.hrs >= 7 ? "bg-primary" : s.hrs >= 6 ? "bg-primary/40" : "bg-muted"}`}
                         style={{ height: `${h}px` }}
                       />
                       <span className="font-heading text-[9px] font-bold text-muted-foreground">{s.day}</span>
