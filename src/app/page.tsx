@@ -1,3 +1,5 @@
+'use client';
+
 import Logo from "@/components/Logo";
 import LimeButton from "@/components/LimeButton";
 import OutlineButton from "@/components/OutlineButton";
@@ -11,17 +13,21 @@ import WhoWeAre from "@/components/home/WhoWeAre";
 import PillarsSection from "@/components/home/PillarsSection";
 import DashboardPreview from "@/components/home/DashboardPreview";
 import DadStrengthSection from "@/components/home/DadStrengthSection";
+import { useAuth } from "@/contexts/AuthContext";
 
 const PILLAR_IMAGES = [IMAGES.gym, IMAGES.run, IMAGES.food, IMAGES.bond];
 
 const Index = () => {
+  const { user, loading } = useAuth();
+
   return (
     <SitePageShell>
+      {!loading && user && <DashboardPreview />}
       <HeroSection heroImg={IMAGES.hero} />
       <WhoWeAre gymImg={IMAGES.gym} />
       <StatsBar />
       <PillarsSection pillarImages={PILLAR_IMAGES} />
-      <DashboardPreview />
+      {!loading && !user && <DashboardPreview />}
       <DadStrengthSection workoutImg={IMAGES.workout} />
       <SiteFooter />
     </SitePageShell>
