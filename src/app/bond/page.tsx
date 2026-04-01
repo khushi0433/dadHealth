@@ -52,8 +52,8 @@ const BondPage = () => {
   return (
     <SitePageShell>
       {/* Hero */}
-      <section className="relative w-full min-w-0 h-[580px] lg:h-[580px]">
-        <img src={IMAGES.bond} alt="Parenting" className="absolute inset-0 w-full h-full object-cover" />
+      <section className="relative w-full min-w-0 h-[320px] lg:h-[400px]">
+        <img src={IMAGES.bond} alt="Parenting" className="absolute inset-0 w-full h-full object-cover object-top" />
         <div className="absolute inset-0 bg-background/65" />
         <div className="relative z-10 flex flex-col justify-center items-start h-full max-w-[1400px] mx-auto px-5 lg:px-8">
           <span className="section-label text-primary mb-2">THE BOND</span>
@@ -146,7 +146,7 @@ const BondPage = () => {
             </div>
           ) : (
             <div className="flex flex-col items-center p-4 bg-background/50 border border-border rounded-lg text-center gap-2">
-              <Lock className="h-8 w-8 text-primary" strokeWidth={1.5} aria-hidden="true" />
+              <Lock className="h-12 w-12 text-primary" strokeWidth={1.5} aria-hidden="true" />
               <p className="text-xs font-bold text-foreground">Pro Feature</p>
               <p className="text-[10px] text-muted-foreground">Words are good. Photos last forever.</p>
               <button
