@@ -75,10 +75,14 @@ const DadStrengthSection = ({ workoutImg }: DadStrengthSectionProps) => {
             WORKOUT TIMER · 6 EXERCISES
           </div>
           <div className="flex gap-3 mt-4">
-            <LimeButton small>START →</LimeButton>
-            <button className="bg-transparent text-foreground border border-foreground py-2 px-3.5 font-heading font-bold text-[11px] tracking-wider uppercase cursor-pointer hover:border-primary hover:text-primary transition-colors">
-              NEXT EXERCISE
-            </button>
+            <Link href="/fitness">
+              <LimeButton small>START →</LimeButton>
+            </Link>
+            <Link href="/fitness">
+              <button className="bg-transparent text-foreground border border-foreground py-2 px-3.5 font-heading font-bold text-[11px] tracking-wider uppercase cursor-pointer hover:border-primary hover:text-primary transition-colors">
+                NEXT EXERCISE
+              </button>
+            </Link>
           </div>
         </div>
 
