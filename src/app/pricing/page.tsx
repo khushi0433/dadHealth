@@ -18,7 +18,12 @@ import {
 const PricingPage = () => {
   const [plan, setPlan] = useState<"monthly" | "annual">("annual");
   const [previewPlan, setPreviewPlan] = useState<"monthly" | "annual">("annual");
-  const { isPro, isSubscribed, setPro, showPaywall } = useProStatus();
+  const { isPro, isSubscribed, setPro, setSubscribed, showPaywall } = useProStatus();
+
+  const handleStartTrial = () => {
+    setPro(true);
+    setSubscribed(true);
+  };
 
   return (
     <SitePageShell>
@@ -128,7 +133,7 @@ const PricingPage = () => {
                     <button
                       type="button"
                       onClick={() => {
-                        if (isPopular) setPro(true);
+                        if (isPopular) handleStartTrial();
                       }}
                       className={`w-full py-3 font-heading font-bold text-[13px] tracking-wider uppercase cursor-pointer transition-all ${
                         isPopular
@@ -141,7 +146,7 @@ const PricingPage = () => {
                     {isPopular && (
                       <button
                         type="button"
-                        onClick={() => setPro(true)}
+                        onClick={handleStartTrial}
                         className="block w-full mt-2 text-[11px] text-muted-foreground text-center cursor-pointer bg-transparent border-none hover:text-foreground transition-colors"
                       >
                         No card until trial ends · Cancel anytime
@@ -226,12 +231,12 @@ const PricingPage = () => {
                   {previewPlan === "annual" ? "PER MONTH · BILLED £49.99/YEAR" : "PER MONTH"}
                 </div>
               </div>
-              <LimeButton type="button" full onClick={() => setPro(true)}>
+              <LimeButton type="button" full onClick={handleStartTrial}>
                 START {previewPlan === "annual" ? "ANNUAL" : "MONTHLY"} PLAN →
               </LimeButton>
               <button
                 type="button"
-                onClick={() => setPro(true)}
+                onClick={handleStartTrial}
                 className="block w-full mt-2 text-[11px] text-muted-foreground text-center cursor-pointer bg-transparent border-none hover:text-primary transition-colors"
               >
                 7-day free trial · Cancel anytime
@@ -276,10 +281,10 @@ const PricingPage = () => {
 
           {/* Final CTA */}
           <div className="text-center mt-12">
-            <LimeButton type="button" onClick={() => setPro(true)}>START 7-DAY FREE TRIAL →</LimeButton>
+            <LimeButton type="button" onClick={handleStartTrial}>START 7-DAY FREE TRIAL →</LimeButton>
             <button
               type="button"
-              onClick={() => setPro(true)}
+              onClick={handleStartTrial}
               className="block w-full mt-3 text-[11px] text-muted-foreground cursor-pointer bg-transparent border-none hover:text-primary transition-colors"
             >
               No card until trial ends · Cancel anytime · Full access immediately
