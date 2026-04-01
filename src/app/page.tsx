@@ -22,9 +22,9 @@ const Index = () => {
 
   return (
     <SitePageShell>
-      {!loading && user && <DashboardPreview />}
       <HeroSection heroImg={IMAGES.hero} />
       <WhoWeAre gymImg={IMAGES.gym} />
+      {!loading && user && <DashboardPreview />}
       <StatsBar />
       <PillarsSection pillarImages={PILLAR_IMAGES} />
       {!loading && !user && <DashboardPreview />}
