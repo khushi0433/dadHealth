@@ -97,10 +97,9 @@ const ProgressPage = () => {
               <div className="font-heading text-[36px] font-extrabold text-primary leading-none">{dadScore}</div>
               <div className="font-heading text-[9px] font-bold tracking-wider uppercase text-muted-foreground">{user ? "out of 100" : ""}</div>
             </div>
-            <ProGate
-              featureName="Dad Health Score breakdown"
-            >
-                <div className="w-full min-w-[220px] flex-1">
+            <div className="relative flex-1 min-w-[220px]">
+              <ProGate featureName="Dad Health Score breakdown">
+                <div className="w-full">
                   {[
                     { label: "Mind", value: breakdown.mind },
                     { label: "Body", value: breakdown.body },
@@ -121,7 +120,8 @@ const ProgressPage = () => {
                     );
                   })}
                 </div>
-            </ProGate>
+              </ProGate>
+            </div>
           </div>
         </div>
       </section>
@@ -174,30 +174,32 @@ const ProgressPage = () => {
         {/* Sleep - Pro gated */}
         <div className="py-8 border-t border-border">
           <span className="section-label !p-0 mb-4 block">SLEEP QUALITY THIS WEEK</span>
-          <ProGate
-            featureName="Sleep tracker"
-            lockMessage="Your sleep is connected to your mood, your patience and your energy. This shows you exactly how."
-          >
-            <div>
-              <div className="flex items-end gap-1.5 h-[80px] mb-3">
-                {displaySleep.map((s: { day: string; hrs: number }, i: number) => {
-                  const h = Math.round((s.hrs / 10) * 70) + 4;
-                  return (
-                    <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                      <div
-                        className={`w-full transition-all ${s.hrs >= 7 ? "bg-primary" : s.hrs >= 6 ? "bg-primary/40" : "bg-muted"}`}
-                        style={{ height: `${h}px` }}
-                      />
-                      <span className="font-heading text-[9px] font-bold text-muted-foreground">{s.day}</span>
-                    </div>
-                  );
-                })}
+          <div className="relative">
+            <ProGate
+              featureName="Sleep tracker"
+              lockMessage="Your sleep is connected to your mood, your patience and your energy. This shows you exactly how."
+            >
+              <div>
+                <div className="flex items-end gap-1.5 h-[80px] mb-3">
+                  {displaySleep.map((s: { day: string; hrs: number }, i: number) => {
+                    const h = Math.round((s.hrs / 10) * 70) + 4;
+                    return (
+                      <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                        <div
+                          className={`w-full transition-all ${s.hrs >= 7 ? "bg-primary" : s.hrs >= 6 ? "bg-primary/40" : "bg-muted"}`}
+                          style={{ height: `${h}px` }}
+                        />
+                        <span className="font-heading text-[9px] font-bold text-muted-foreground">{s.day}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+                <div className="p-3 bg-primary/[0.06] border border-primary/15 text-xs text-muted-foreground leading-relaxed">
+                  <span className="text-primary font-semibold">Pattern spotted:</span> Your mood is 40% higher on days after 7+ hours sleep.
+                </div>
               </div>
-              <div className="p-3 bg-primary/[0.06] border border-primary/15 text-xs text-muted-foreground leading-relaxed">
-                <span className="text-primary font-semibold">Pattern spotted:</span> Your mood is 40% higher on days after 7+ hours sleep.
-              </div>
-            </div>
-          </ProGate>
+            </ProGate>
+          </div>
         </div>
 
         {/* Mood correlation */}

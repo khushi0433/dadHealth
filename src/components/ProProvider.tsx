@@ -164,7 +164,7 @@ export const ProGate = ({ children, featureName, lockMessage }: ProGateProps) =>
 
   return (
     <>
-      <div className="relative group cursor-pointer flex-1 min-w-0 w-full" onClick={handleUnlock}>
+      <div className="relative w-full group cursor-pointer" onClick={handleUnlock}>
         <div className="opacity-40 pointer-events-none blur-[1px]">
           {children}
         </div>
