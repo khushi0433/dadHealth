@@ -127,7 +127,7 @@ const ProgressPage = () => {
       </section>
 
       {/* Report card */}
-      <section className="bg-primary text-primary-foreground">
+      <section className="bg-primary text-primary-foreground overflow-hidden">
         <div className="max-w-[1400px] mx-auto px-5 lg:px-8 py-10">
           <h2 className="font-heading text-[22px] font-extrabold uppercase tracking-wide mb-4">{format(new Date(), "MMMM")} report card</h2>
           <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
@@ -144,7 +144,7 @@ const ProgressPage = () => {
         </div>
       </section>
 
-      <div className="max-w-[1400px] mx-auto px-5 lg:px-8">
+      <div className="w-full max-w-[1400px] mx-auto px-5 lg:px-8">
         {/* Badges */}
         <div className="py-8">
           <span className="section-label !p-0 mb-4 block">DH BADGES EARNED</span>
@@ -202,7 +202,7 @@ const ProgressPage = () => {
 
         {/* Mood correlation */}
         <div className="py-8 border-t border-border">
-          <div className="bg-primary text-primary-foreground p-5">
+          <div className="bg-primary text-primary-foreground p-5 w-full overflow-hidden">
             <h3 className="font-heading text-lg font-extrabold uppercase tracking-wide mb-3">Mood correlation</h3>
             <div className="flex gap-3 mb-3">
               {displaySleep.map((s: { day: string; hrs: number }, i: number) => (
