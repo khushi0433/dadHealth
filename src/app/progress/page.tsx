@@ -97,37 +97,39 @@ const ProgressPage = () => {
               <div className="font-heading text-[36px] font-extrabold text-primary leading-none">{dadScore}</div>
               <div className="font-heading text-[9px] font-bold tracking-wider uppercase text-muted-foreground">{user ? "out of 100" : ""}</div>
             </div>
-            <div className="relative flex-1 min-w-[220px]">
-              <ProGate featureName="Dad Health Score breakdown">
-                <div className="w-full">
-                  {[
-                    { label: "Mind", value: breakdown.mind },
-                    { label: "Body", value: breakdown.body },
-                    { label: "Bond", value: breakdown.bond },
-                  ].map((item) => {
-                    const numVal = typeof item.value === "number" ? item.value : 0;
-                    const displayVal = typeof item.value === "number" ? `${item.value}%` : "—";
-                    return (
-                      <div key={item.label} className="mb-2.5">
-                        <div className="flex justify-between font-heading text-[11px] font-bold uppercase text-muted-foreground tracking-wide mb-1">
-                          <span>{item.label}</span>
-                          <span className="text-primary">{displayVal}</span>
-                        </div>
-                        <div className="bar-track">
-                          <div className="bar-fill" style={{ width: `${numVal}%` }} />
-                        </div>
+            <ProGate
+              featureName="Dad Health Score breakdown"
+              lockMessage="Free users see the number. Pro shows you exactly what's dragging it down — and how to fix it."
+              className="flex-1 min-w-[200px] w-full max-w-sm"
+            >
+              <div className="w-full min-w-[220px] flex-1">
+                {[
+                  { label: "Mind", value: breakdown.mind },
+                  { label: "Body", value: breakdown.body },
+                  { label: "Bond", value: breakdown.bond },
+                ].map((item) => {
+                  const numVal = typeof item.value === "number" ? item.value : 0;
+                  const displayVal = typeof item.value === "number" ? `${item.value}%` : "—";
+                  return (
+                    <div key={item.label} className="mb-2.5">
+                      <div className="flex justify-between font-heading text-[11px] font-bold uppercase text-muted-foreground tracking-wide mb-1">
+                        <span>{item.label}</span>
+                        <span className="text-primary">{displayVal}</span>
                       </div>
-                    );
-                  })}
-                </div>
-              </ProGate>
-            </div>
+                      <div className="bar-track">
+                        <div className="bar-fill" style={{ width: `${numVal}%` }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </ProGate>
           </div>
         </div>
       </section>
 
       {/* Report card */}
-      <section className="bg-primary text-primary-foreground overflow-hidden">
+      <section className="bg-primary text-primary-foreground">
         <div className="max-w-[1400px] mx-auto px-5 lg:px-8 py-10">
           <h2 className="font-heading text-[22px] font-extrabold uppercase tracking-wide mb-4">{format(new Date(), "MMMM")} report card</h2>
           <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
@@ -144,7 +146,7 @@ const ProgressPage = () => {
         </div>
       </section>
 
-      <div className="w-full max-w-[1400px] mx-auto px-5 lg:px-8">
+      <div className="max-w-[1400px] mx-auto px-5 lg:px-8">
         {/* Badges */}
         <div className="py-8">
           <span className="section-label !p-0 mb-4 block">DH BADGES EARNED</span>
@@ -174,37 +176,36 @@ const ProgressPage = () => {
         {/* Sleep - Pro gated */}
         <div className="py-8 border-t border-border">
           <span className="section-label !p-0 mb-4 block">SLEEP QUALITY THIS WEEK</span>
-          <div className="relative">
-            <ProGate
-              featureName="Sleep tracker"
-              lockMessage="Your sleep is connected to your mood, your patience and your energy. This shows you exactly how."
-            >
-              <div>
-                <div className="flex items-end gap-1.5 h-[80px] mb-3">
-                  {displaySleep.map((s: { day: string; hrs: number }, i: number) => {
-                    const h = Math.round((s.hrs / 10) * 70) + 4;
-                    return (
-                      <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                        <div
-                          className={`w-full transition-all ${s.hrs >= 7 ? "bg-primary" : s.hrs >= 6 ? "bg-primary/40" : "bg-muted"}`}
-                          style={{ height: `${h}px` }}
-                        />
-                        <span className="font-heading text-[9px] font-bold text-muted-foreground">{s.day}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-                <div className="p-3 bg-primary/[0.06] border border-primary/15 text-xs text-muted-foreground leading-relaxed">
-                  <span className="text-primary font-semibold">Pattern spotted:</span> Your mood is 40% higher on days after 7+ hours sleep.
-                </div>
+          <ProGate
+            featureName="Sleep tracker"
+            lockMessage="Your sleep is connected to your mood, your patience and your energy. This shows you exactly how."
+          >
+            <div>
+              <div className="flex items-end gap-1.5 h-[80px] mb-3">
+                {displaySleep.map((s: { day: string; hrs: number }, i: number) => {
+                  const h = Math.round((s.hrs / 10) * 70) + 4;
+                  return (
+                    <div key={i} className="flex-1 flex flex-col items-center gap-1">
+                      <div
+                        className={`w-full transition-all ${s.hrs >= 7 ? "bg-primary" : s.hrs >= 6 ? "bg-primary/40" : "bg-muted"
+                          }`}
+                        style={{ height: `${h}px` }}
+                      />
+                      <span className="font-heading text-[9px] font-bold text-muted-foreground">{s.day}</span>
+                    </div>
+                  );
+                })}
               </div>
-            </ProGate>
-          </div>
+              <div className="p-3 bg-primary/[0.06] border border-primary/15 text-xs text-muted-foreground leading-relaxed">
+                <span className="text-primary font-semibold">Pattern spotted:</span> Your mood is 40% higher on days after 7+ hours sleep.
+              </div>
+            </div>
+          </ProGate>
         </div>
 
         {/* Mood correlation */}
         <div className="py-8 border-t border-border">
-          <div className="bg-primary text-primary-foreground p-5 w-full overflow-hidden">
+          <div className="bg-primary text-primary-foreground p-5">
             <h3 className="font-heading text-lg font-extrabold uppercase tracking-wide mb-3">Mood correlation</h3>
             <div className="flex gap-3 mb-3">
               {displaySleep.map((s: { day: string; hrs: number }, i: number) => (
