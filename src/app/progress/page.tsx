@@ -92,7 +92,7 @@ const ProgressPage = () => {
       <section className="bg-background border-b border-border">
         <div className="max-w-[1400px] mx-auto px-5 lg:px-8 py-10">
           <span className="section-label !p-0 mb-4 block">YOUR DAD HEALTH SCORE</span>
-          <div className="flex flex-wrap gap-8 items-center">
+          <div className="flex flex-col lg:flex-row gap-8 items-start lg:items-center">
             <div className="w-[100px] h-[100px] border-4 border-primary rounded-full flex flex-col items-center justify-center shrink-0">
               <div className="font-heading text-[36px] font-extrabold text-primary leading-none">{dadScore}</div>
               <div className="font-heading text-[9px] font-bold tracking-wider uppercase text-muted-foreground">{user ? "out of 100" : ""}</div>
@@ -100,7 +100,7 @@ const ProgressPage = () => {
             <ProGate
               featureName="Dad Health Score breakdown"
             >
-                <div className="w-full min-w-[220px] flex-1">
+                <div className="w-full flex-1 min-w-0">
                   {[
                     { label: "Mind", value: breakdown.mind },
                     { label: "Body", value: breakdown.body },
@@ -177,7 +177,7 @@ const ProgressPage = () => {
             featureName="Sleep tracker"
             lockMessage="Your sleep is connected to your mood, your patience and your energy. This shows you exactly how."
           >
-            <div>
+            <div className="w-full">
               <div className="flex items-end gap-1.5 h-[80px] mb-3">
                 {displaySleep.map((s: { day: string; hrs: number }, i: number) => {
                   const h = Math.round((s.hrs / 10) * 70) + 4;
