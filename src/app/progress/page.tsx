@@ -127,10 +127,9 @@ const ProgressPage = () => {
       </section>
 
       {/* Report card */}
-      <section className="bg-primary text-primary-foreground">
-        <div className="max-w-[1400px] mx-auto px-5 lg:px-8 py-10">
-          <h2 className="font-heading text-[22px] font-extrabold uppercase tracking-wide mb-4">{format(new Date(), "MMMM")} report card</h2>
-          <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
+      <section className="bg-primary text-primary-foreground border-b border-border">
+        <div className="max-w-[1400px] mx-auto px-5 lg:px-8 py-8">
+          <div className="grid grid-cols-2 lg:grid-cols-6 gap-3 mb-6">
             {reportStatsList.map(([n, l]) => (
               <div key={l} className="bg-primary-foreground/[0.07] p-3.5">
                 <div className="font-heading text-[22px] font-extrabold leading-none">{n}</div>
@@ -138,7 +137,7 @@ const ProgressPage = () => {
               </div>
             ))}
           </div>
-          <div className="mt-4">
+          <div>
             <OutlineButton dark onClick={handleShareReport}>Share report card</OutlineButton>
           </div>
         </div>
