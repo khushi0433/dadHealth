@@ -12,7 +12,7 @@ const HeroSection = ({ heroImg }: HeroSectionProps) => (
     <img
       src={heroImg}
       alt="Dad with child"
-       className="absolute inset-0 w-full h-full object-cover object-[center_top]"
+       className="absolute inset-0 w-full h-full object-cover object-[30%_top]"
     />
     <div className="absolute inset-0 bg-black/50" />
     <div className="absolute top-5 right-5 lg:top-8 lg:right-8 z-20">

@@ -145,6 +145,7 @@ interface ProGateProps {
   children: ReactNode;
   featureName: string;
   lockMessage?: string;
+  className?: string;
 }
 
 export const ProGate = ({ children, featureName, lockMessage }: ProGateProps) => {
