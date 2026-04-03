@@ -7,7 +7,10 @@ export async function GET(request: Request) {
   const next = searchParams.get("next") ?? "/";
   
   const url = new URL(request.url);
-  const origin = process.env.NEXTAUTH_URL ?? `${url.protocol}//${url.host}`;
+  const origin =
+  process.env.NODE_ENV === "development"
+    ? `${url.protocol}//${url.host}`
+    : process.env.NEXTAUTH_URL!;
 
   if (!code) {
     return NextResponse.redirect(`${origin}/?error=auth_callback_error`);

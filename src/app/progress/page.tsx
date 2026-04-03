@@ -146,10 +146,10 @@ const ProgressPage = () => {
         </div>
       </section>
 
-      <div className="max-w-[1400px] mx-auto px-5 lg:px-8 py-10 lg:py-16">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-10 lg:gap-12">
+      <div className="max-w-[1400px] mx-auto px-5 lg:px-8 w-full">
+        <div className="flex flex-col w-full">
           {/* Badges */}
-          <div className="flex flex-col">
+          <div className="py-8 w-full">
             <span className="section-label !p-0 mb-4 block">DH BADGES EARNED</span>
           <div className="flex gap-3 flex-wrap">
             {displayBadges.length > 0 ? displayBadges.map((b: { icon: string; name: string }) => (
@@ -175,7 +175,7 @@ const ProgressPage = () => {
         </div>
 
         {/* Sleep - Pro gated */}
-        <div className="pt-10 border-t border-border lg:pt-0 lg:border-none flex flex-col">
+        <div className="py-8 border-t border-border w-full">
           <span className="section-label !p-0 mb-4 block">SLEEP QUALITY THIS WEEK</span>
           <ProGate
             featureName="Sleep tracker"
@@ -205,8 +205,8 @@ const ProgressPage = () => {
         </div>
 
         {/* Mood correlation */}
-        <div className="pt-10 border-t border-border lg:pt-0 lg:border-none flex flex-col">
-          <div className="bg-primary text-primary-foreground p-5 h-full rounded-sm flex flex-col justify-between">
+        <div className="py-8 border-t border-border w-full">
+          <div className="bg-primary text-primary-foreground p-5 w-full">
             <h3 className="font-heading text-lg font-extrabold uppercase tracking-wide mb-3">Mood correlation</h3>
             <div className="flex gap-3 mb-3">
               {displaySleep.map((s: { day: string; hrs: number }, i: number) => (
