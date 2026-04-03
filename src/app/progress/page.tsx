@@ -99,28 +99,30 @@ const ProgressPage = () => {
             </div>
             <ProGate
               featureName="Dad Health Score breakdown"
+              lockMessage="Free users see the number. Pro shows you exactly what's dragging it down — and how to fix it."
+              className="flex-1 min-w-[200px] w-full max-w-sm"
             >
-                <div className="w-full min-w-[220px] flex-1">
-                  {[
-                    { label: "Mind", value: breakdown.mind },
-                    { label: "Body", value: breakdown.body },
-                    { label: "Bond", value: breakdown.bond },
-                  ].map((item) => {
-                    const numVal = typeof item.value === "number" ? item.value : 0;
-                    const displayVal = typeof item.value === "number" ? `${item.value}%` : "—";
-                    return (
-                      <div key={item.label} className="mb-2.5">
-                        <div className="flex justify-between font-heading text-[11px] font-bold uppercase text-muted-foreground tracking-wide mb-1">
-                          <span>{item.label}</span>
-                          <span className="text-primary">{displayVal}</span>
-                        </div>
-                        <div className="bar-track">
-                          <div className="bar-fill" style={{ width: `${numVal}%` }} />
-                        </div>
+              <div className="w-full min-w-[220px] flex-1">
+                {[
+                  { label: "Mind", value: breakdown.mind },
+                  { label: "Body", value: breakdown.body },
+                  { label: "Bond", value: breakdown.bond },
+                ].map((item) => {
+                  const numVal = typeof item.value === "number" ? item.value : 0;
+                  const displayVal = typeof item.value === "number" ? `${item.value}%` : "—";
+                  return (
+                    <div key={item.label} className="mb-2.5">
+                      <div className="flex justify-between font-heading text-[11px] font-bold uppercase text-muted-foreground tracking-wide mb-1">
+                        <span>{item.label}</span>
+                        <span className="text-primary">{displayVal}</span>
                       </div>
-                    );
-                  })}
-                </div>
+                      <div className="bar-track">
+                        <div className="bar-fill" style={{ width: `${numVal}%` }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </ProGate>
           </div>
         </div>
@@ -181,11 +183,12 @@ const ProgressPage = () => {
             <div>
               <div className="flex items-end gap-1.5 h-[80px] mb-3">
                 {displaySleep.map((s: { day: string; hrs: number }, i: number) => {
-                  const h = Math.round((s.hrs / 10) * 70) + 4;
+                  const h = Math.min(Math.round((s.hrs / 10) * 70) + 4, 65);
                   return (
                     <div key={i} className="flex-1 flex flex-col items-center gap-1">
                       <div
-                        className={`w-full transition-all ${s.hrs >= 7 ? "bg-primary" : s.hrs >= 6 ? "bg-primary/40" : "bg-muted"}`}
+                        className={`w-full transition-all ${s.hrs >= 7 ? "bg-primary" : s.hrs >= 6 ? "bg-primary/40" : "bg-muted"
+                          }`}
                         style={{ height: `${h}px` }}
                       />
                       <span className="font-heading text-[9px] font-bold text-muted-foreground">{s.day}</span>
@@ -207,16 +210,16 @@ const ProgressPage = () => {
             <div className="flex gap-3 mb-3">
               {displaySleep.map((s: { day: string; hrs: number }, i: number) => (
                 <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                  <div className="w-full h-10 bg-primary-foreground/[0.08] relative">
+                  <div className="w-full h-10 bg-primary-foreground/[0.08] relative overflow-hidden">
                     <div
                       className="absolute bottom-0 left-0 right-0 bg-primary-foreground/60"
-                      style={{ height: `${Math.round((s.hrs / 10) * 100)}%` }}
+                      style={{ height: `${Math.min(Math.round((s.hrs / 10) * 100), 100)}%` }}
                     />
                   </div>
-                  <div className="w-full h-10 bg-primary-foreground/[0.08] relative">
+                  <div className="w-full h-10 bg-primary-foreground/[0.08] relative overflow-hidden">
                     <div
                       className="absolute bottom-0 left-0 right-0 bg-primary-foreground/35"
-                      style={{ height: `${Math.round(((displayMood[i] ?? 3) / 4) * 100)}%` }}
+                      style={{ height: `${Math.min(Math.round(((displayMood[i] ?? 3) / 4) * 100), 100)}%` }}
                     />
                   </div>
                   <span className="font-heading text-[9px] font-bold opacity-50">{s.day}</span>
