@@ -2,6 +2,8 @@ import { useState, createContext, useContext, ReactNode } from "react";
 import { Lock } from "lucide-react";
 import Logo from "@/components/Logo";
 import LimeButton from "@/components/LimeButton";
+import { useAuth } from "@/contexts/AuthContext";
+import LoginPromptModal from "@/components/LoginPromptModal";
 
 interface ProContextType {
   isPro: boolean;
@@ -143,34 +145,55 @@ interface ProGateProps {
   children: ReactNode;
   featureName: string;
   lockMessage?: string;
-  className?: string;
 }
 
-export const ProGate = ({ children, featureName, lockMessage, className }: ProGateProps) => {
+export const ProGate = ({ children, featureName, lockMessage }: ProGateProps) => {
   const { isPro, showPaywall } = useProStatus();
+  const { user, openAuthModal } = useAuth();
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
 
-  if (isPro) return <>{children}</>;
+  if (isPro && user) return <>{children}</>;
+
+  const handleUnlock = () => {
+    if (!user) {
+      setShowLoginPrompt(true);
+    } else {
+      showPaywall(featureName);
+    }
+  };
 
   return (
-    <div className={`relative group cursor-pointer ${className || 'w-full'}`.trim()} onClick={() => showPaywall(featureName)}>
-      <div className="opacity-40 pointer-events-none blur-[1px]">
-        {children}
-      </div>
-      <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/60 backdrop-blur-[2px]">
-        <Lock className="h-8 w-8 mx-auto mb-2 text-primary" strokeWidth={1.5} aria-hidden="true" />
-        <div className="font-heading text-[11px] font-bold tracking-wider uppercase text-primary">
-          PRO FEATURE
+    <>
+      <div className="relative group cursor-pointer flex-1 min-w-[200px] w-full max-w-sm" onClick={handleUnlock}>
+        <div className="opacity-40 pointer-events-none blur-[1px]">
+          {children}
         </div>
-        {lockMessage && (
-          <p className="text-[10px] text-muted-foreground text-center mt-1 px-2 max-w-[260px]">
-            {lockMessage}
-          </p>
-        )}
-        <button type="button" className="mt-2 bg-primary text-primary-foreground font-heading font-bold text-[9px] tracking-wider uppercase px-3 py-1.5 border-none cursor-pointer hover:brightness-110 transition-all">
-          Unlock →
-        </button>
+        <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/60 backdrop-blur-[2px]">
+        <Lock
+  className="h-8 w-8 text-primary mb-1"
+  strokeWidth={2.5}
+ aria-hidden="true" />
+          <div className="font-heading text-[11px] font-bold tracking-wider uppercase text-primary">
+            {user ? "PRO FEATURE" : "LOGIN REQUIRED"}
+          </div>
+          {lockMessage && (
+            <p className="text-[10px] text-muted-foreground text-center mt-1 px-2 max-w-[260px]">
+              {lockMessage}
+            </p>
+          )}
+          <button type="button" onClick={handleUnlock} className="mt-2 bg-primary text-primary-foreground font-heading font-bold text-[9px] tracking-wider uppercase px-3 py-1.5 border-none cursor-pointer hover:brightness-110 transition-all">
+            {user ? "Unlock →" : "Sign in →"}
+          </button>
+        </div>
       </div>
-    </div>
+      {showLoginPrompt && (
+        <LoginPromptModal
+          onClose={() => setShowLoginPrompt(false)}
+          onLogin={openAuthModal}
+          message="Sign in or create a free account to access this feature."
+        />
+      )}
+    </>
   );
 };
 
