@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { toast } from "sonner";
 import SitePageShell from "@/components/SitePageShell";
 import SiteFooter from "@/components/SiteFooter";
 import Logo from "@/components/Logo";
@@ -23,17 +24,25 @@ const PricingPage = () => {
   const [previewPlan, setPreviewPlan] = useState<"monthly" | "annual">("annual");
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const { user, openAuthModal } = useAuth();
-  const { isPro, isSubscribed, setPro, setSubscribed, showPaywall } = useProStatus();
+  const { isPro, isSubscribed, startCheckout, refreshSubscription } = useProStatus();
   const isActivePro = !!user && isPro;
   const isActiveSubscribed = !!user && isSubscribed;
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("checkout") === "success") {
+      toast.success("Welcome to Dad Health Pro");
+      void refreshSubscription();
+      window.history.replaceState({}, "", "/pricing");
+    }
+  }, [refreshSubscription]);
 
   const handleStartTrial = () => {
     if (!user) {
       openAuthModal();
       return;
     }
-    setPro(true);
-    setSubscribed(true);
+    void startCheckout(plan);
   };
 
   const handleMonthlyClick = () => {
@@ -41,8 +50,17 @@ const PricingPage = () => {
       setShowLoginPrompt(true);
       return;
     }
-    setPro(true);
-    setSubscribed(true);
+    void startCheckout("monthly");
+  };
+
+  const handleManageBilling = async () => {
+    const res = await fetch("/api/stripe/portal", { method: "POST" });
+    const data = (await res.json()) as { error?: string; url?: string };
+    if (!res.ok) {
+      toast.error(typeof data.error === "string" ? data.error : "Could not open billing portal");
+      return;
+    }
+    if (data.url) window.location.href = data.url;
   };
 
   return (
@@ -67,10 +85,10 @@ const PricingPage = () => {
               <p className="text-sm text-muted-foreground">You have full access to every Dad Health feature. Keep showing up.</p>
               <button
                 type="button"
-                onClick={() => { setPro(false); setSubscribed(false); }}
+                onClick={() => void handleManageBilling()}
                 className="mt-4 text-[10px] text-muted-foreground underline cursor-pointer bg-transparent border-none hover:text-foreground transition-colors"
               >
-                Cancel subscription
+                Manage subscription
               </button>
             </div>
           )}

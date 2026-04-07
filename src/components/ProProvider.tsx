@@ -1,5 +1,6 @@
-import { useState, createContext, useContext, ReactNode } from "react";
+import { useState, createContext, useContext, ReactNode, useEffect, useCallback } from "react";
 import { Lock } from "lucide-react";
+import { toast } from "sonner";
 import Logo from "@/components/Logo";
 import LimeButton from "@/components/LimeButton";
 import { useAuth } from "@/contexts/AuthContext";
@@ -11,6 +12,8 @@ interface ProContextType {
   setPro: (val: boolean) => void;
   setSubscribed: (val: boolean) => void;
   showPaywall: (featureName: string) => void;
+  refreshSubscription: () => Promise<void>;
+  startCheckout: (plan: "monthly" | "annual") => Promise<void>;
 }
 
 const ProContext = createContext<ProContextType>({
@@ -19,14 +22,58 @@ const ProContext = createContext<ProContextType>({
   setPro: () => {},
   setSubscribed: () => {},
   showPaywall: () => {},
+  refreshSubscription: async () => {},
+  startCheckout: async () => {},
 });
 
 export const useProStatus = () => useContext(ProContext);
 
 export const ProProvider = ({ children }: { children: ReactNode }) => {
+  const { user, openAuthModal } = useAuth();
   const [isPro, setIsPro] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [paywallFeature, setPaywallFeature] = useState<string | null>(null);
+
+  const refreshSubscription = useCallback(async () => {
+    if (!user) {
+      setIsPro(false);
+      setIsSubscribed(false);
+      return;
+    }
+    const res = await fetch("/api/stripe/subscription");
+    const data = (await res.json()) as { isPro?: boolean; isSubscribed?: boolean };
+    setIsPro(!!data.isPro);
+    setIsSubscribed(!!data.isSubscribed);
+  }, [user]);
+
+  useEffect(() => {
+    refreshSubscription();
+  }, [refreshSubscription]);
+
+  const startCheckout = useCallback(
+    async (plan: "monthly" | "annual") => {
+      if (!user) {
+        openAuthModal();
+        return;
+      }
+      const res = await fetch("/api/stripe/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan }),
+      });
+      const data = (await res.json()) as { error?: string; url?: string };
+      if (res.status === 401) {
+        openAuthModal();
+        return;
+      }
+      if (!res.ok) {
+        toast.error(typeof data.error === "string" ? data.error : "Checkout unavailable");
+        return;
+      }
+      if (data.url) window.location.href = data.url;
+    },
+    [user, openAuthModal]
+  );
 
   const showPaywall = (featureName: string) => {
     if (!isPro) {
@@ -35,16 +82,23 @@ export const ProProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <ProContext.Provider value={{ isPro, isSubscribed, setPro: setIsPro, setSubscribed: setIsSubscribed, showPaywall }}>
+    <ProContext.Provider
+      value={{
+        isPro,
+        isSubscribed,
+        setPro: setIsPro,
+        setSubscribed: setIsSubscribed,
+        showPaywall,
+        refreshSubscription,
+        startCheckout,
+      }}
+    >
       {children}
       {paywallFeature && (
         <PaywallModal
           featureName={paywallFeature}
           onClose={() => setPaywallFeature(null)}
-          onStartTrial={() => {
-            setIsPro(true);
-            setPaywallFeature(null);
-          }}
+          onStartCheckout={startCheckout}
         />
       )}
     </ProContext.Provider>
@@ -54,10 +108,10 @@ export const ProProvider = ({ children }: { children: ReactNode }) => {
 interface PaywallModalProps {
   featureName: string;
   onClose: () => void;
-  onStartTrial: () => void;
+  onStartCheckout: (plan: "monthly" | "annual") => void | Promise<void>;
 }
 
-const PaywallModal = ({ featureName, onClose, onStartTrial }: PaywallModalProps) => {
+const PaywallModal = ({ featureName, onClose, onStartCheckout }: PaywallModalProps) => {
   const [plan, setPlan] = useState<"monthly" | "annual">("annual");
 
   return (
@@ -122,7 +176,7 @@ const PaywallModal = ({ featureName, onClose, onStartTrial }: PaywallModalProps)
           </div>
         </div>
 
-        <LimeButton type="button" full onClick={onStartTrial}>
+        <LimeButton type="button" full onClick={() => void onStartCheckout(plan)}>
           START {plan === "annual" ? "ANNUAL" : "MONTHLY"} PLAN →
         </LimeButton>
         <p className="text-[11px] text-muted-foreground text-center mt-2">
