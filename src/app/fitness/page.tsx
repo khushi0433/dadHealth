@@ -164,11 +164,11 @@ const FitnessPage = () => {
       </section>
 
       {/* Content grid */}
-      <div className="max-w-[1400px] mx-auto px-5 lg:px-8">
-        <div className="bg-card border-2 border-primary rounded-xl overflow-hidden">
-          <div className="grid grid-cols-1 lg:grid-cols-[1fr_auto_1fr] gap-0">
+      <div className="max-w-[1400px] mx-auto w-full px-5 lg:px-8">
+        <div className="bg-card border-2 border-primary rounded-xl overflow-hidden w-full">
+          <div className="grid w-full min-w-0 grid-cols-1 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] gap-0">
             {/* Exercise list */}
-            <div className="p-5 lg:p-8">
+            <div className="p-5 lg:p-8 min-w-0">
               <span className="section-label !p-0 mb-4 block">TODAY'S MOVES</span>
               {EXERCISES.map((ex, i) => (
                 <div
@@ -195,7 +195,7 @@ const FitnessPage = () => {
             <div className="hidden lg:block w-px bg-primary/30 rounded-full self-stretch shrink-0 min-h-[200px]" />
 
             {/* Right side */}
-            <div className="p-5 lg:p-8">
+            <div className="p-5 lg:p-8 min-w-0">
               {/* Progress */}
               <span className="section-label !p-0 mb-4 block">PROGRESS THIS MONTH</span>
               <div className="grid grid-cols-2 gap-3 mb-8">
