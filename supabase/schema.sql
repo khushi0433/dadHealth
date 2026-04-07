@@ -85,6 +85,11 @@ create table if not exists user_profile (
 alter table user_profile add column if not exists client_id uuid references clients(id) on delete set null;
 update user_profile set client_id = '00000000-0000-0000-0000-000000000001'::uuid where client_id is null;
 
+-- Stripe Billing (synced from webhooks)
+alter table user_profile add column if not exists stripe_customer_id text;
+alter table user_profile add column if not exists stripe_subscription_id text;
+alter table user_profile add column if not exists subscription_status text;
+
 -- user_streaks
 create table if not exists user_streaks (
   id uuid primary key default gen_random_uuid(),

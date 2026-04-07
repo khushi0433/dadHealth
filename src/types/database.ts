@@ -24,6 +24,12 @@ export interface UserProfile {
   pillar_order?: string[] | null;
   onboarding_complete?: boolean;
   display_name?: string | null;
+  /** Stripe Customer id (cus_…) */
+  stripe_customer_id?: string | null;
+  /** Stripe Subscription id (sub_…) */
+  stripe_subscription_id?: string | null;
+  /** Stripe subscription.status (active, trialing, canceled, …) */
+  subscription_status?: string | null;
   created_at?: string;
   updated_at?: string;
 }
