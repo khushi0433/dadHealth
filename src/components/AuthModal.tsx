@@ -50,23 +50,25 @@ export default function AuthModal({ open, onClose, onSuccess }: AuthModalProps) 
   const handleOAuthSignIn = async (provider: Provider) => {
     setError(null);
     setOauthLoading(provider);
-try {
-   const redirectTo =
-  typeof window !== "undefined"
-    ? `${window.location.origin}/auth/callback`
-    : undefined;
+    try {
+      const redirectTo =
+        typeof window !== "undefined"
+          ? `${window.location.origin}/auth/callback`
+          : undefined;
 
-const { error: oauthError } = await supabase.auth.signInWithOAuth({
-  provider,
-  options: { redirectTo },
-});
+      const { data, error: oauthError } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: { redirectTo },
+      });
 
-if (oauthError) throw oauthError;
       if (oauthError) throw oauthError;
-      handleClose();
+      if (data.url) {
+        window.location.href = data.url;
+        return;
+      }
+      setOauthLoading(null);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Something went wrong");
-    } finally {
       setOauthLoading(null);
     }
   };
