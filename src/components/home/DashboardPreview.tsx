@@ -227,7 +227,7 @@ const DashboardPreview = () => {
                           <button
                             key={v}
                             type="button"
-                            onClick={() => setCbtMood(v)}
+                            onClick={() => window.location.href = `/pricing`}
                             className={`min-w-[2rem] h-8 px-2 font-heading text-xs font-bold border cursor-pointer ${
                               cbtMood === v ? "bg-primary text-primary-foreground border-primary" : "border-border hover:border-primary"
                             }`}
