@@ -16,12 +16,6 @@ class StripeCheckoutConfigError extends Error {
   }
 }
 
-function isStripeLikeError(
-  err: unknown
-): err is { type?: string; code?: string; message?: string; requestId?: string; statusCode?: number } {
-  return Boolean(err && typeof err === "object" && ("type" in err || "code" in err || "requestId" in err));
-}
-
 async function resolveCheckoutPriceId(
   rawIdentifier: string,
   plan: "monthly" | "annual",
@@ -73,10 +67,10 @@ async function resolveCheckoutPriceId(
 export async function POST(request: Request) {
   try {
     if (!process.env.STRIPE_SECRET_KEY) {
-      return NextResponse.json({ error: "Stripe secret key is missing in server config." }, { status: 503 });
+      return NextResponse.json({ error: "Checkout unavailable" }, { status: 503 });
     }
     if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-      return NextResponse.json({ error: "Supabase server env is missing." }, { status: 503 });
+      return NextResponse.json({ error: "Checkout unavailable" }, { status: 503 });
     }
 
     const body = (await request.json()) as { plan?: "monthly" | "annual" };
@@ -127,22 +121,6 @@ export async function POST(request: Request) {
     console.error("[stripe/checkout]", e);
     if (e instanceof StripeCheckoutConfigError) {
       return NextResponse.json({ error: "Stripe plan is misconfigured. Contact support." }, { status: 503 });
-    }
-    if (isStripeLikeError(e)) {
-      const detail = [
-        e.type ? `type=${e.type}` : null,
-        e.code ? `code=${e.code}` : null,
-        e.requestId ? `request_id=${e.requestId}` : null,
-      ]
-        .filter(Boolean)
-        .join(" ");
-      return NextResponse.json(
-        {
-          error: detail ? `Stripe checkout failed (${detail}).` : "Stripe checkout failed.",
-          message: typeof e.message === "string" ? e.message : undefined,
-        },
-        { status: typeof e.statusCode === "number" ? e.statusCode : 502 }
-      );
     }
     return NextResponse.json({ error: "Could not start checkout" }, { status: 500 });
   }
