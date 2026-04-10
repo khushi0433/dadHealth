@@ -8,12 +8,14 @@ import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserProfile } from "@/hooks/useUserProfile";
+import { useProStatus } from "@/components/ProProvider";
 import { initialsFromDisplayName, resolveDisplayName } from "@/lib/userDisplay";
 
 const SiteHeader = () => {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const { user, signOut, openAuthModal } = useAuth();
+  const { isPro } = useProStatus();
   const { data: profile } = useUserProfile(user?.id);
 
   const resolvedName = resolveDisplayName(profile, user);
@@ -44,12 +46,21 @@ const SiteHeader = () => {
         </nav>
 
         <div className="flex items-center gap-3">
-          <Link
-            href="/pricing"
-            className="hidden lg:inline-flex font-heading text-[10px] font-bold tracking-wider uppercase text-primary border border-primary px-2 py-0.5 hover:bg-primary hover:text-primary-foreground transition-all duration-200"
-          >
-            PRO
-          </Link>
+          {user && isPro ? (
+            <span
+              className="hidden lg:inline-flex font-heading text-[10px] font-bold tracking-wider uppercase text-primary-foreground bg-primary border border-primary px-2 py-0.5"
+              title="Dad Health Pro is active"
+            >
+              PRO
+            </span>
+          ) : (
+            <Link
+              href="/pricing"
+              className="hidden lg:inline-flex font-heading text-[10px] font-bold tracking-wider uppercase text-primary border border-primary px-2 py-0.5 hover:bg-primary hover:text-primary-foreground transition-all duration-200"
+            >
+              GO PRO
+            </Link>
+          )}
           {user ? (
             <div className="flex items-center gap-2">
               <Link

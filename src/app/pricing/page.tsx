@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { Trophy } from "lucide-react";
 import { toast } from "sonner";
 import SitePageShell from "@/components/SitePageShell";
 import SiteFooter from "@/components/SiteFooter";
@@ -23,18 +24,43 @@ const PricingPage = () => {
   const [plan, setPlan] = useState<"monthly" | "annual">("annual");
   const [previewPlan, setPreviewPlan] = useState<"monthly" | "annual">("annual");
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+  const [showCheckoutSuccess, setShowCheckoutSuccess] = useState(false);
   const { user, openAuthModal } = useAuth();
-  const { isPro, isSubscribed, startCheckout, refreshSubscription } = useProStatus();
+  const { isPro, startCheckout, refreshSubscription } = useProStatus();
   const isActivePro = !!user && isPro;
-  const isActiveSubscribed = !!user && isSubscribed;
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get("checkout") === "success") {
-      toast.success("Welcome to Dad Health Pro");
-      void refreshSubscription();
+    if (params.get("checkout") !== "success") return;
+
+    setShowCheckoutSuccess(true);
+    const sessionId = params.get("session_id");
+
+    void (async () => {
+      if (sessionId?.startsWith("cs_")) {
+        try {
+          const res = await fetch("/api/stripe/sync-checkout", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ sessionId }),
+          });
+          if (!res.ok) {
+            const err = (await res.json().catch(() => ({}))) as { error?: string };
+            console.error("[pricing] sync-checkout", err.error ?? res.status);
+          }
+        } catch (e) {
+          console.error("[pricing] sync-checkout", e);
+        }
+      }
+
+      let { isPro: unlocked } = await refreshSubscription();
+      for (let i = 0; i < 10 && !unlocked; i++) {
+        await new Promise((r) => setTimeout(r, 600));
+        ({ isPro: unlocked } = await refreshSubscription());
+      }
+
       window.history.replaceState({}, "", "/pricing");
-    }
+    })();
   }, [refreshSubscription]);
 
   const handleStartTrial = () => {
@@ -76,8 +102,35 @@ const PricingPage = () => {
             Unlock every tool we've built to help you be a stronger dad.
           </p>
 
-          {/* Pro confirmed state - only for paid subscribers */}
-          {isActiveSubscribed && (
+          {showCheckoutSuccess && (
+            <div
+              role="status"
+              aria-live="polite"
+              className="mt-8 max-w-lg mx-auto border border-primary bg-primary/5 p-5 flex flex-col sm:flex-row sm:items-center gap-4 text-left"
+            >
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-primary/15 mx-auto sm:mx-0">
+                <Trophy className="h-7 w-7 text-primary" strokeWidth={2} aria-hidden />
+              </div>
+              <div className="flex-1 min-w-0 text-center sm:text-left">
+                <p className="font-heading text-base font-extrabold uppercase tracking-wide text-foreground">
+                  Payment successful
+                </p>
+                <p className="text-sm text-muted-foreground mt-1.5 leading-relaxed">
+                  Your Dad Health Pro subscription is active. Every Pro feature is unlocked across the app—thank you for your support.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowCheckoutSuccess(false)}
+                className="shrink-0 font-heading text-[10px] font-bold tracking-wider uppercase text-muted-foreground border border-border px-3 py-2 bg-transparent cursor-pointer hover:text-foreground hover:border-primary transition-colors mx-auto sm:mx-0"
+              >
+                Dismiss
+              </button>
+            </div>
+          )}
+
+          {/* Pro confirmed — subscription row synced (return URL + webhook) */}
+          {isActivePro && (
             <div className="mt-6 border border-primary bg-primary/5 p-6 max-w-sm mx-auto">
               <div className="font-heading text-[22px] font-extrabold text-primary uppercase mb-2">
                 You're a Pro Dad.
