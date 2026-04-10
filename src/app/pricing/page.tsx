@@ -33,24 +33,28 @@ const PricingPage = () => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("checkout") !== "success") return;
 
-    setShowCheckoutSuccess(true);
     const sessionId = params.get("session_id");
+    // Stripe always adds session_id on success; avoid showing a false "Payment successful" for bare ?checkout=success
+    if (!sessionId?.startsWith("cs_")) {
+      window.history.replaceState({}, "", "/pricing");
+      return;
+    }
+
+    setShowCheckoutSuccess(true);
 
     void (async () => {
-      if (sessionId?.startsWith("cs_")) {
-        try {
-          const res = await fetch("/api/stripe/sync-checkout", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ sessionId }),
-          });
-          if (!res.ok) {
-            const err = (await res.json().catch(() => ({}))) as { error?: string };
-            console.error("[pricing] sync-checkout", err.error ?? res.status);
-          }
-        } catch (e) {
-          console.error("[pricing] sync-checkout", e);
+      try {
+        const res = await fetch("/api/stripe/sync-checkout", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ sessionId }),
+        });
+        if (!res.ok) {
+          const err = (await res.json().catch(() => ({}))) as { error?: string };
+          console.error("[pricing] sync-checkout", err.error ?? res.status);
         }
+      } catch (e) {
+        console.error("[pricing] sync-checkout", e);
       }
 
       let { isPro: unlocked } = await refreshSubscription();
@@ -129,8 +133,8 @@ const PricingPage = () => {
             </div>
           )}
 
-          {/* Pro confirmed — subscription row synced (return URL + webhook) */}
-          {isActivePro && (
+          {/* Pro status — hide while post-checkout banner is visible (same message) */}
+          {isActivePro && !showCheckoutSuccess && (
             <div className="mt-6 border border-primary bg-primary/5 p-6 max-w-sm mx-auto">
               <div className="font-heading text-[22px] font-extrabold text-primary uppercase mb-2">
                 You're a Pro Dad.
