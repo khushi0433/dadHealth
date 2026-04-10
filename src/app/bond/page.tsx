@@ -59,7 +59,7 @@ const BondPage = () => {
   className="absolute inset-0 w-full h-full object-cover object-[50%_35%]"
 />
         <div className="absolute inset-0 bg-background/65" />
-        <div className="relative z-10 flex flex-col justify-center items-start h-full max-w-[1400px] mx-auto px-5 lg:px-8">
+        <div className="relative z-10 flex flex-col justify-center items-start h-full w-full max-w-[1400px] mx-auto px-5 lg:px-8 min-w-0">
           <span className="section-label text-primary mb-2">THE BOND</span>
           <h1 className="font-heading text-[42px] lg:text-[56px] font-extrabold text-foreground uppercase leading-none tracking-wide">
             PARENTING
@@ -72,7 +72,7 @@ const BondPage = () => {
 
       {/* Present Dad Mode */}
       <section className="bg-primary/[0.06] border-y border-primary/20">
-        <div className="max-w-[1400px] mx-auto px-5 lg:px-8 py-4 flex items-center justify-between">
+        <div className="w-full max-w-[1400px] mx-auto px-5 lg:px-8 py-4 flex items-center justify-between min-w-0">
           <div>
             <h3 className="font-heading text-sm font-extrabold text-foreground uppercase tracking-wide">Present Dad Mode</h3>
             <p className="text-[11px] text-muted-foreground mt-0.5">Block distractions for 60 min</p>
@@ -90,82 +90,84 @@ const BondPage = () => {
         </div>
       </section>
 
-      <div className="max-w-[1400px] mx-auto px-5 lg:px-8">
-        {/* Dad date ideas */}
-        <div className="pt-8 pb-6">
-          <span className="section-label !p-0 mb-4 block">DAD DATE IDEAS</span>
-          <div className="flex gap-2 mb-4 flex-wrap">
-            {filters.map((f, i) => (
-              <button
-                key={f}
-                onClick={() => setDateFilter(i)}
-                className={`px-3 py-1.5 border font-heading text-[11px] font-bold tracking-wide uppercase cursor-pointer transition-all ${
-                  dateFilter === i
-                    ? "border-primary text-primary bg-primary/10"
-                    : "border-border text-muted-foreground hover:border-primary hover:text-primary"
-                }`}
-              >
-                {f}
-              </button>
-            ))}
+      <div className="w-full max-w-[1400px] mx-auto px-5 lg:px-8 min-w-0">
+        <div className="grid grid-cols-1 lg:grid-cols-12 lg:gap-x-10 xl:gap-x-14 lg:items-start">
+          {/* Dad date ideas */}
+          <div className="pt-8 pb-6 lg:col-span-7 lg:pb-10 min-w-0">
+            <span className="section-label !p-0 mb-4 block">DAD DATE IDEAS</span>
+            <div className="flex gap-2 mb-4 flex-wrap">
+              {filters.map((f, i) => (
+                <button
+                  key={f}
+                  onClick={() => setDateFilter(i)}
+                  className={`px-3 py-1.5 border font-heading text-[11px] font-bold tracking-wide uppercase cursor-pointer transition-all ${
+                    dateFilter === i
+                      ? "border-primary text-primary bg-primary/10"
+                      : "border-border text-muted-foreground hover:border-primary hover:text-primary"
+                  }`}
+                >
+                  {f}
+                </button>
+              ))}
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 w-full">
+              {filteredDates.length > 0 ? filteredDates.map((d) => (
+                <div
+                  key={d.name}
+                  className="border border-border p-3.5 cursor-pointer transition-all hover:border-primary group min-w-0"
+                >
+                  <div className="text-2xl mb-2">{d.icon}</div>
+                  <div className="font-heading text-[13px] font-extrabold text-foreground tracking-wide mb-1 group-hover:text-primary transition-colors">
+                    {d.name}
+                  </div>
+                  <div className="flex gap-1.5 flex-wrap">
+                    <span className="text-[10px] text-muted-foreground">Age {d.age_range ?? d.age ?? "—"}</span>
+                    <span className="text-[10px] text-primary">· {d.budget ?? "—"}</span>
+                    <span className="text-[10px] text-muted-foreground">· {d.time ?? "—"}</span>
+                  </div>
+                </div>
+              )) : (
+                <p className="text-sm text-muted-foreground col-span-full">No dad date ideas yet.</p>
+              )}
+            </div>
           </div>
-          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
-            {filteredDates.length > 0 ? filteredDates.map((d) => (
-              <div
-                key={d.name}
-                className="border border-border p-3.5 cursor-pointer transition-all hover:border-primary group"
-              >
-                <div className="text-2xl mb-2">{d.icon}</div>
-                <div className="font-heading text-[13px] font-extrabold text-foreground tracking-wide mb-1 group-hover:text-primary transition-colors">
-                  {d.name}
-                </div>
-                <div className="flex gap-1.5 flex-wrap">
-                  <span className="text-[10px] text-muted-foreground">Age {d.age_range ?? d.age ?? "—"}</span>
-                  <span className="text-[10px] text-primary">· {d.budget ?? "—"}</span>
-                  <span className="text-[10px] text-muted-foreground">· {d.time ?? "—"}</span>
-                </div>
+
+          {/* Milestones - Pro gated */}
+          <div className="py-8 border-t border-border lg:border-t-0 lg:border-l lg:border-border lg:pl-10 xl:pl-14 lg:col-span-5 lg:pt-10 min-w-0">
+            <span className="section-label !p-0 mb-12 block">MILESTONE TRACKER</span>
+            {isPro ? (
+              <div className="w-full">
+                {displayMilestones.length > 0 ? displayMilestones.map((m: { date: string; text: string; tag: string }) => (
+                  <div key={m.text} className="flex gap-3 items-start py-3 border-b border-border last:border-b-0">
+                    <span className="tag-pill shrink-0">{m.date ? format(new Date(m.date), "d MMM") : "—"}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm text-foreground/70 leading-relaxed">{m.text}</p>
+                      <span className="tag-pill-dark mt-2 inline-block">{m.tag}</span>
+                    </div>
+                  </div>
+                )) : (
+                  <p className="text-sm text-muted-foreground">No milestones yet.</p>
+                )}
               </div>
-            )) : (
-              <p className="text-sm text-muted-foreground col-span-full">No dad date ideas yet.</p>
+            ) : (
+              <div className="flex flex-col items-center p-6 lg:p-8 bg-background/50 border border-border rounded-lg text-center gap-2 w-full">
+                <Lock className="h-12 w-12 text-primary" strokeWidth={1.5} aria-hidden="true" />
+                <p className="text-xs font-bold text-foreground">Pro Feature</p>
+                <p className="text-[10px] text-muted-foreground max-w-sm">Words are good. Photos last forever.</p>
+                <button
+                  type="button"
+                  onClick={() => showPaywall("Milestone photo uploads")}
+                  className="px-3 py-1 text-[10px] bg-primary text-primary-foreground font-bold uppercase rounded cursor-pointer hover:brightness-110"
+                >
+                  Unlock →
+                </button>
+              </div>
             )}
           </div>
         </div>
 
-        {/* Milestones - Pro gated */}
-        <div className="py-8 border-t border-border">
-          <span className="section-label !p-0 mb-12 block">MILESTONE TRACKER</span>
-          {isPro ? (
-            <div>
-              {displayMilestones.length > 0 ? displayMilestones.map((m: { date: string; text: string; tag: string }) => (
-                <div key={m.text} className="flex gap-3 items-start py-3 border-b border-border last:border-b-0">
-                  <span className="tag-pill shrink-0">{m.date ? format(new Date(m.date), "d MMM") : "—"}</span>
-                  <div className="flex-1">
-                    <p className="text-sm text-foreground/70 leading-relaxed">{m.text}</p>
-                    <span className="tag-pill-dark mt-2 inline-block">{m.tag}</span>
-                  </div>
-                </div>
-              )) : (
-                <p className="text-sm text-muted-foreground">No milestones yet.</p>
-              )}
-            </div>
-          ) : (
-            <div className="flex flex-col items-center p-4 bg-background/50 border border-border rounded-lg text-center gap-2">
-              <Lock className="h-12 w-12 text-primary" strokeWidth={1.5} aria-hidden="true" />
-              <p className="text-xs font-bold text-foreground">Pro Feature</p>
-              <p className="text-[10px] text-muted-foreground">Words are good. Photos last forever.</p>
-              <button
-                type="button"
-                onClick={() => showPaywall("Milestone photo uploads")}
-                className="px-3 py-1 text-[10px] bg-primary text-primary-foreground font-bold uppercase rounded cursor-pointer hover:brightness-110"
-              >
-                Unlock →
-              </button>
-            </div>
-          )}
-        </div>
-
         {/* Conversation starters */}
-        <div className="py-8 border-t border-border">
+        <div className="py-8 border-t border-border w-full">
           <span className="section-label !p-0 mb-4 block">CONVERSATION STARTERS</span>
           {conversationStarters.length > 0 ? conversationStarters.map((q: string) => (
             <div
