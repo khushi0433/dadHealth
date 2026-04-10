@@ -1,18 +1,50 @@
 import { NextResponse } from "next/server";
 import { createServerSupabaseClient } from "@/utils/supabase/server";
 import { getStripe } from "@/lib/stripe/server";
-import { getPriceId, getTrialDays } from "@/lib/stripe/config";
+import {
+  getStripePlanIdentifier,
+  getTrialDays,
+  isStripePriceId,
+  isStripeProductId,
+} from "@/lib/stripe/config";
 import { getSiteUrl } from "@/lib/site-url";
+
+async function resolveCheckoutPriceId(
+  rawIdentifier: string,
+  stripe: ReturnType<typeof getStripe>
+): Promise<string> {
+  if (isStripePriceId(rawIdentifier)) return rawIdentifier;
+
+  if (isStripeProductId(rawIdentifier)) {
+    const product = await stripe.products.retrieve(rawIdentifier, { expand: ["default_price"] });
+    const defaultPrice = product.default_price;
+    if (typeof defaultPrice === "string" && defaultPrice.startsWith("price_")) {
+      return defaultPrice;
+    }
+    if (
+      defaultPrice &&
+      typeof defaultPrice === "object" &&
+      "id" in defaultPrice &&
+      typeof defaultPrice.id === "string" &&
+      defaultPrice.id.startsWith("price_")
+    ) {
+      return defaultPrice.id;
+    }
+    throw new Error(`Product ${rawIdentifier} has no default Stripe price`);
+  }
+
+  throw new Error(`Unsupported Stripe plan identifier: ${rawIdentifier}`);
+}
 
 export async function POST(request: Request) {
   try {
     const body = (await request.json()) as { plan?: "monthly" | "annual" };
     const plan = body.plan === "monthly" ? "monthly" : "annual";
-    const priceId = getPriceId(plan);
+    const rawIdentifier = getStripePlanIdentifier(plan);
 
-    if (!priceId) {
+    if (!rawIdentifier) {
       return NextResponse.json(
-        { error: "Stripe Price IDs are not configured (STRIPE_PRICE_PRO_MONTHLY / STRIPE_PRICE_PRO_ANNUAL)." },
+        { error: "Stripe pricing is not configured for this plan." },
         { status: 503 }
       );
     }
@@ -27,6 +59,7 @@ export async function POST(request: Request) {
     }
 
     const stripe = getStripe();
+    const priceId = await resolveCheckoutPriceId(rawIdentifier, stripe);
     const origin = getSiteUrl();
     const trialDays = getTrialDays();
 
