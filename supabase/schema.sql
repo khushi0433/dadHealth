@@ -340,49 +340,55 @@ $$;
 -- VIEWS
 -- =========================
 
-create or replace view dad_score_view as
+-- Base on public.user_profile (not auth.users) and use SECURITY INVOKER so RLS of the
+-- querying user applies. Safe for PostgREST (anon/authenticated).
+create or replace view dad_score_view
+  with (security_invoker = true)
+as
 select 
-  u.id as user_id,
+  p.user_id,
 
   coalesce((
-    select avg(mood_value) * 25
+    select avg(m.mood_value) * 25
     from mood_logs m
-    where m.user_id = u.id
+    where m.user_id = p.user_id
     and m.date >= current_date - 7
   ), 0) as mind_score,
 
   least((
     select count(*) * 20
     from workout_sessions w
-    where w.user_id = u.id
+    where w.user_id = p.user_id
     and w.performed_at >= now() - interval '7 days'
   ), 100) as body_score,
 
   least((
     select count(*) * 15
     from journal_entries j
-    where j.user_id = u.id
+    where j.user_id = p.user_id
     and j.created_at >= now() - interval '7 days'
   ), 100) as bond_score
 
-from auth.users u;
+from public.user_profile p;
 
-create or replace view dashboard_view as
+create or replace view dashboard_view
+  with (security_invoker = true)
+as
 select 
-  u.id as user_id,
+  p.user_id,
   m.mood_value,
   s.hours as sleep_hours,
   st.streak_count,
   (
     select count(*) 
     from workout_sessions w 
-    where w.user_id = u.id 
+    where w.user_id = p.user_id 
     and w.performed_at::date = current_date
   ) as today_workouts
-from auth.users u
-left join mood_logs m on m.user_id = u.id and m.date = current_date
-left join sleep_logs s on s.user_id = u.id and s.date = current_date
-left join user_streaks st on st.user_id = u.id;
+from public.user_profile p
+left join mood_logs m on m.user_id = p.user_id and m.date = current_date
+left join sleep_logs s on s.user_id = p.user_id and s.date = current_date
+left join user_streaks st on st.user_id = p.user_id;
 
 -- =========================
 -- TRIGGERS

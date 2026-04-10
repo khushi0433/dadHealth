@@ -9,8 +9,16 @@ import {
 } from "@/lib/stripe/config";
 import { getSiteUrl } from "@/lib/site-url";
 
+class StripeCheckoutConfigError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "StripeCheckoutConfigError";
+  }
+}
+
 async function resolveCheckoutPriceId(
   rawIdentifier: string,
+  plan: "monthly" | "annual",
   stripe: ReturnType<typeof getStripe>
 ): Promise<string> {
   if (isStripePriceId(rawIdentifier)) return rawIdentifier;
@@ -30,10 +38,30 @@ async function resolveCheckoutPriceId(
     ) {
       return defaultPrice.id;
     }
-    throw new Error(`Product ${rawIdentifier} has no default Stripe price`);
+
+    // Fallback for products that do not set default_price in Dashboard:
+    // pick an active recurring price matching the requested plan cadence.
+    const recurringInterval = plan === "monthly" ? "month" : "year";
+    const prices = await stripe.prices.list({
+      product: rawIdentifier,
+      active: true,
+      type: "recurring",
+      limit: 100,
+    });
+    const matched = prices.data.find(
+      (price) =>
+        price.recurring?.interval === recurringInterval &&
+        typeof price.id === "string" &&
+        price.id.startsWith("price_")
+    );
+    if (matched?.id) return matched.id;
+
+    throw new StripeCheckoutConfigError(
+      `Stripe product ${rawIdentifier} has no usable ${recurringInterval} recurring price`
+    );
   }
 
-  throw new Error(`Unsupported Stripe plan identifier: ${rawIdentifier}`);
+  throw new StripeCheckoutConfigError(`Unsupported Stripe plan identifier: ${rawIdentifier}`);
 }
 
 export async function POST(request: Request) {
@@ -59,7 +87,7 @@ export async function POST(request: Request) {
     }
 
     const stripe = getStripe();
-    const priceId = await resolveCheckoutPriceId(rawIdentifier, stripe);
+    const priceId = await resolveCheckoutPriceId(rawIdentifier, plan, stripe);
     const origin = getSiteUrl();
     const trialDays = getTrialDays();
 
@@ -84,6 +112,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ url: session.url });
   } catch (e) {
     console.error("[stripe/checkout]", e);
+    if (e instanceof StripeCheckoutConfigError) {
+      return NextResponse.json({ error: "Stripe plan is misconfigured. Contact support." }, { status: 503 });
+    }
     return NextResponse.json({ error: "Could not start checkout" }, { status: 500 });
   }
 }
