@@ -43,20 +43,6 @@ const PricingPage = () => {
     setShowCheckoutSuccess(true);
 
     void (async () => {
-      try {
-        const res = await fetch("/api/stripe/sync-checkout", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ sessionId }),
-        });
-        if (!res.ok) {
-          const err = (await res.json().catch(() => ({}))) as { error?: string };
-          console.error("[pricing] sync-checkout", err.error ?? res.status);
-        }
-      } catch (e) {
-        console.error("[pricing] sync-checkout", e);
-      }
-
       let { isPro: unlocked } = await refreshSubscription();
       for (let i = 0; i < 10 && !unlocked; i++) {
         await new Promise((r) => setTimeout(r, 600));
