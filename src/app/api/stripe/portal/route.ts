@@ -3,7 +3,7 @@ import { createServerSupabaseClient } from "@/utils/supabase/server";
 import { getStripe } from "@/lib/stripe/server";
 import { getSiteUrl } from "@/lib/site-url";
 
-export async function POST() {
+export async function POST(request: Request) {
   try {
     const supabase = await createServerSupabaseClient();
     const {
@@ -29,7 +29,12 @@ export async function POST() {
     }
 
     const stripe = getStripe();
-    const origin = getSiteUrl();
+    
+    // Use the request origin to ensure the return URL matches exactly
+    // where the user is visiting from (preventing vercel.app URLs if on custom domain)
+    const reqOrigin = request.headers.get("origin") || 
+      (request.headers.get("referer") ? new URL(request.headers.get("referer")!).origin : null);
+    const origin = reqOrigin || getSiteUrl();
 
     const session = await stripe.billingPortal.sessions.create({
       customer: customerId,

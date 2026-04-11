@@ -94,8 +94,14 @@ export async function POST(request: Request) {
     }
 
     const stripe = getStripe();
+    
+    // Use the request origin to ensure the cancel/success URLs match exactly
+    // where the user is visiting from (preventing vercel.app URLs if on custom domain)
+    const reqOrigin = request.headers.get("origin") || 
+      (request.headers.get("referer") ? new URL(request.headers.get("referer")!).origin : null);
+    const origin = reqOrigin || getSiteUrl();
+
     const priceId = await resolveCheckoutPriceId(rawIdentifier, plan, stripe);
-    const origin = getSiteUrl();
     const trialDays = getTrialDays();
 
     const session = await stripe.checkout.sessions.create({
