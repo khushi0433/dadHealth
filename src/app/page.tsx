@@ -1,11 +1,7 @@
 'use client';
 
-import Logo from "@/components/Logo";
-import LimeButton from "@/components/LimeButton";
-import OutlineButton from "@/components/OutlineButton";
 import SitePageShell from "@/components/SitePageShell";
 import SiteFooter from "@/components/SiteFooter";
-import { PILLARS } from "@/lib/constants";
 import { IMAGES } from "@/lib/images";
 import HeroSection from "@/components/home/HeroSection";
 import StatsBar from "@/components/home/StatsBar";
@@ -22,13 +18,23 @@ const Index = () => {
 
   return (
     <SitePageShell>
-      <HeroSection heroImg={IMAGES.hero} />
-      <WhoWeAre gymImg={IMAGES.gym} />
-      {!loading && <DashboardPreview />}
-      <StatsBar />
-      <PillarsSection pillarImages={PILLAR_IMAGES} />
-      <DadStrengthSection workoutImg={IMAGES.workout} />
-      <SiteFooter />
+      {loading ? (
+        <div className="flex min-h-[calc(100dvh-73px)] items-center justify-center">
+          <div className="w-8 h-8 rounded-full border-4 border-primary border-t-transparent animate-spin" />
+        </div>
+      ) : user ? (
+        <DashboardPreview variant="full" />
+      ) : (
+        <>
+          <HeroSection heroImg={IMAGES.hero} />
+          <WhoWeAre gymImg={IMAGES.gym} />
+          <DashboardPreview />
+          <StatsBar />
+          <PillarsSection pillarImages={PILLAR_IMAGES} />
+          <DadStrengthSection workoutImg={IMAGES.workout} />
+          <SiteFooter />
+        </>
+      )}
     </SitePageShell>
   );
 };

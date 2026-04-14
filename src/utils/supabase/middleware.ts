@@ -15,29 +15,15 @@ export async function updateSession(request: NextRequest) {
           return request.cookies.getAll();
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
-          supabaseResponse = NextResponse.next({
-            request,
-          });
-          cookiesToSet.forEach(({ name, value, options }) => supabaseResponse.cookies.set(name, value, options));
+          cookiesToSet.forEach(({ name, value }) =>
+            request.cookies.set(name, value)
+          );
         },
       },
     }
   );
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (request.nextUrl.pathname === "/" && user) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/progress";
-    const redirectResponse = NextResponse.redirect(url);
-    supabaseResponse.cookies.getAll().forEach(({ name, value, ...options }) => {
-      redirectResponse.cookies.set(name, value, options);
-    });
-    return redirectResponse;
-  }
+  await supabase.auth.getUser();
 
   return supabaseResponse;
 }

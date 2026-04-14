@@ -55,7 +55,11 @@ const DEFAULT_DAD_DATES = [
   { iconKey: "kickabout", name: "Park kickabout", age_range: "4+", budget: "Free" },
 ];
 
-const DashboardPreview = () => {
+type DashboardPreviewProps = {
+  variant?: "preview" | "full";
+};
+
+const DashboardPreview = ({ variant = "preview" }: DashboardPreviewProps) => {
   const { user, loading: authLoading } = useAuth();
   const { data: profile } = useUserProfile(user?.id);
   const { data: dashboard, loading, dadDates = [], dadsCount, checkIn } = useDashboard(user?.id);
@@ -111,10 +115,11 @@ const DashboardPreview = () => {
   const reportStatsList = dashboard?.reportStats
     ? [[String(dashboard.reportStats.workouts), "Workouts"], [String(dashboard.reportStats.journal), "Journal"], [String(dashboard.reportStats.dadDates), "Dad dates"]]
     : [["—", "Workouts"], ["—", "Journal"], ["—", "Dad dates"]];
+  const isFullDashboard = variant === "full";
 
   if (authLoading) {
     return (
-      <section className="bg-background pt-16 lg:pt-20 pb-8 min-h-[600px] flex flex-col gap-4 items-center justify-center">
+      <section className={`bg-background flex flex-col gap-4 items-center justify-center ${isFullDashboard ? "min-h-[calc(100dvh-73px)] py-6" : "pt-16 lg:pt-20 pb-8 min-h-[600px]"}`}>
         <div className="w-8 h-8 rounded-full border-4 border-primary border-t-transparent animate-spin" />
         <p className="text-primary font-heading text-[11px] font-bold tracking-widest uppercase">
           Loading Preview...
@@ -124,22 +129,26 @@ const DashboardPreview = () => {
   }
 
   return (
-  <section className="bg-background pt-16 lg:pt-20 pb-8">
-    <div className="max-w-[1400px] mx-auto px-5 lg:px-8">
-      <div className="py-4">
-        <span className="section-label">APP DASHBOARD</span>
-      </div>
-      <div className="pb-6">
-        <span className="section-label">YOUR DAILY HUB</span>
-        <h2 className="font-heading text-[36px] lg:text-[48px] font-extrabold text-foreground uppercase leading-none mt-3">
-          THE DASHBOARD
-        </h2>
-      </div>
+  <section className={`bg-background ${isFullDashboard ? "min-h-[calc(100dvh-73px)] py-4" : "pt-16 lg:pt-20 pb-8"}`}>
+    <div className={`${isFullDashboard ? "w-full px-5 lg:px-8 h-full flex flex-col" : "max-w-[1400px] mx-auto px-5 lg:px-8"}`}>
+      {!isFullDashboard && (
+        <>
+          <div className="py-4">
+            <span className="section-label">APP DASHBOARD</span>
+          </div>
+          <div className="pb-6">
+            <span className="section-label">YOUR DAILY HUB</span>
+            <h2 className="font-heading text-[36px] lg:text-[48px] font-extrabold text-foreground uppercase leading-none mt-3">
+              THE DASHBOARD
+            </h2>
+          </div>
+        </>
+      )}
 
-      <div className="bg-primary/20 border border-primary/30 rounded-xl overflow-hidden">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-px bg-primary/30">
+      <div className={`bg-primary/20 border border-primary/30 overflow-hidden ${isFullDashboard ? "rounded-lg flex-1 min-h-0" : "rounded-xl"}`}>
+        <div className={`grid grid-cols-1 lg:grid-cols-3 gap-px bg-primary/30 ${isFullDashboard ? "h-full min-h-0" : ""}`}>
           {/* Sidebar */}
-        <div className="bg-card p-5">
+        <div className={`bg-card p-5 ${isFullDashboard ? "lg:overflow-y-auto" : ""}`}>
           <Logo className="mb-5" />
           <div className="flex items-center gap-3 mb-6">
             <div className="w-10 h-10 bg-primary/20 border border-primary rounded-full flex items-center justify-center font-heading text-sm font-bold text-primary">
@@ -196,7 +205,7 @@ const DashboardPreview = () => {
         {/* Main content - HOME: two columns; other screens: full content */}
         {activeScreen === "HOME" ? (
           <>
-            <div className="bg-card p-5">
+            <div className={`bg-card p-5 ${isFullDashboard ? "lg:overflow-y-auto" : ""}`}>
               <div className="mb-4">
                 <span className="block text-[10px] font-heading font-bold tracking-[2px] text-muted-foreground uppercase !p-0">
                   good morning dads
@@ -327,7 +336,7 @@ const DashboardPreview = () => {
               </div>
             </div>
 
-            <div className="bg-card p-5">
+            <div className={`bg-card p-5 ${isFullDashboard ? "lg:overflow-y-auto" : ""}`}>
               <span className="section-label !p-0 mb-3 block">MOOD THIS WEEK</span>
               <div className="flex items-end gap-1.5 h-[80px] mb-2">
                 {(user ? moodWeek : MOOD_WEEK).map((v: number, i: number) => {
@@ -389,7 +398,7 @@ const DashboardPreview = () => {
           </>
         ) : (
           <>
-            <div className="bg-card p-5">
+            <div className={`bg-card p-5 ${isFullDashboard ? "lg:overflow-y-auto" : ""}`}>
               {activeScreen === "FITNESS" && (
                 <>
                   <span className="section-label !p-0">FITNESS</span>
@@ -540,7 +549,7 @@ const DashboardPreview = () => {
               )}
             </div>
 
-            <div className="bg-card p-5">
+            <div className={`bg-card p-5 ${isFullDashboard ? "lg:overflow-y-auto" : ""}`}>
               {activeScreen === "FITNESS" && (
                 <>
                   <span className="section-label !p-0 mb-3 block">BODY THIS WEEK</span>
