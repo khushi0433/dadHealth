@@ -2,7 +2,7 @@
 
 import SitePageShell from "@/components/SitePageShell";
 import SiteFooter from "@/components/SiteFooter";
-import { useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
 import { IMAGES } from "@/lib/images";
 import HeroSection from "@/components/home/HeroSection";
 import StatsBar from "@/components/home/StatsBar";
@@ -16,8 +16,12 @@ const PILLAR_IMAGES = [IMAGES.gym, IMAGES.run, IMAGES.food, IMAGES.bond];
 
 const Index = () => {
   const { user, loading } = useAuth();
-  const searchParams = useSearchParams();
-  const showMarketingView = user && searchParams.get("view") === "home";
+  const [showMarketingView, setShowMarketingView] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    setShowMarketingView(params.get("view") === "home");
+  }, []);
 
   return (
     <SitePageShell>
