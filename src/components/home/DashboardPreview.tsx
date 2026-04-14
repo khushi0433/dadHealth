@@ -3,7 +3,7 @@
 import Logo from "@/components/Logo";
 import { Flame, LifeBuoy } from "lucide-react";
 import { DashboardIcon } from "@/components/DashboardIcon";
-import { BLOCKED_CHECKIN_MOODS, CIRCLES, DAYS, DEFAULT_CHALLENGE_PARTICIPANTS, MEALS, MOCK_BODY_WEEK_SERIES, MOOD_WEEK } from "@/lib/constants";
+import { BLOCKED_CHECKIN_MOODS, DAYS, MEALS } from "@/lib/constants";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useDashboard } from "@/hooks/useDashboard";
@@ -27,23 +27,11 @@ const SIDEBAR_ITEMS = [
   { iconKey: "pro", label: "PRO ★", href: "/pricing" },
 ];
 
-const SMART_REMINDERS = [
-  { iconKey: "sunrise", text: "Morning check-in at 7:30am" },
-  { iconKey: "story", text: "Ella's bedtime in 45 mins" },
-  { iconKey: "run", text: "Run window: 12:00–12:45pm" },
-];
-
 const DEFAULT_GOALS = [
   { iconKey: "breathing", name: "5-min breathing reset", time: "MORNING · MENTAL HEALTH", status: "done" as const },
   { iconKey: "run", name: "20-min dad run", time: "12:30PM · FITNESS", status: "start" as const },
   { iconKey: "story", name: "Bedtime story", time: "7:30PM · PARENTING", status: "log" as const },
   { iconKey: "journal", name: "Evening journal", time: "9:00PM · REFLECTION", status: "open" as const },
-];
-
-const DEFAULT_DAD_DATES = [
-  { iconKey: "gaming", name: "Gaming night", age_range: "8–14", budget: "Free" },
-  { iconKey: "camping", name: "Garden camping", age_range: "5–12", budget: "Free" },
-  { iconKey: "kickabout", name: "Park kickabout", age_range: "4+", budget: "Free" },
 ];
 
 type DashboardPreviewProps = {
@@ -53,12 +41,13 @@ type DashboardPreviewProps = {
 const DashboardPreview = ({ variant = "preview" }: DashboardPreviewProps) => {
   const { user, loading: authLoading } = useAuth();
   const { data: profile } = useUserProfile(user?.id);
-  const { data: dashboard, dadDates = [], dadsCount, checkIn } = useDashboard(user?.id);
+  const { data: dashboard, dadsCount, checkIn } = useDashboard(user?.id);
   const { posts: communityPosts = [], loading: communityLoading } = useCommunity(user?.id);
   const [activeScreen, setActiveScreen] = useState<"HOME" | "FITNESS" | "MIND" | "BOND" | "COMMUNITY" | "PROGRESS">("HOME");
   const isFullDashboard = variant === "full";
   const hasUser = Boolean(user);
 
+  const now = useMemo(() => new Date(), []);
   const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
   const moodLogs = useMemo(
     () => dashboard?.mood_logs ?? (dashboard?.mood_value != null ? [{ date: dashboard?.date ?? today, mood_value: dashboard.mood_value }] : []),
@@ -69,11 +58,10 @@ const DashboardPreview = ({ variant = "preview" }: DashboardPreviewProps) => {
   const [cbtSleep, setCbtSleep] = useState(dashboard?.sleep_hours ?? 7);
 
   useEffect(() => {
-    if (dashboard) {
-      if (dashboard.mood_value != null) setCbtMood(dashboard.mood_value);
-      if (dashboard.sleep_hours != null) setCbtSleep(dashboard.sleep_hours);
-    }
-  }, [dashboard?.mood_value, dashboard?.sleep_hours]);
+    if (!dashboard) return;
+    if (dashboard.mood_value != null) setCbtMood(dashboard.mood_value);
+    if (dashboard.sleep_hours != null) setCbtSleep(dashboard.sleep_hours);
+  }, [dashboard]);
 
   const score = useMemo(() => getDashboardScore(dashboard, hasUser), [dashboard, hasUser]);
   const breakdown = useMemo(() => getScoreBreakdown(dashboard, hasUser), [dashboard, hasUser]);
@@ -94,9 +82,16 @@ const DashboardPreview = ({ variant = "preview" }: DashboardPreviewProps) => {
   const tasks = DEFAULT_GOALS;
 
   const monthWorkouts = dashboard?.month_workouts ?? 0;
-  const dates = dadDates.length > 0 ? dadDates.slice(0, 3) : DEFAULT_DAD_DATES;
+  const dates = useMemo(() => ((dashboard?.dad_dates as Array<{ id?: string; icon?: string; iconKey?: string; name: string; age_range?: string; budget?: string }> | undefined) ?? []).slice(0, 3), [dashboard?.dad_dates]);
+  const reminders = useMemo(() => ((dashboard?.reminders as Array<{ id: string; type?: string; text: string }> | undefined) ?? []).slice(0, 5), [dashboard?.reminders]);
+  const circles = useMemo(() => ((dashboard?.circles as Array<{ id: string; icon?: string; name: string; members_count?: number }> | undefined) ?? []).slice(0, 3), [dashboard?.circles]);
+  const milestones = useMemo(() => ((dashboard?.milestones as Array<{ id: string; date: string; text: string }> | undefined) ?? []).slice(0, 6), [dashboard?.milestones]);
+  const bodyWeekSeries = useMemo(() => {
+    const values = (dashboard?.body_week_series as number[] | undefined) ?? [];
+    if (values.length === 7) return values;
+    return Array.from({ length: 7 }, () => 0);
+  }, [dashboard?.body_week_series]);
   const displayPosts = communityPosts.slice(0, 3) as Record<string, unknown>[];
-  const displayCircles = CIRCLES.slice(0, 3);
   const reportStatsList = useMemo(() => getReportStatsList(dashboard?.reportStats), [dashboard?.reportStats]);
   const isCheckinBlocked = BLOCKED_CHECKIN_MOODS.includes(cbtMood as (typeof BLOCKED_CHECKIN_MOODS)[number]);
 
@@ -139,8 +134,8 @@ const DashboardPreview = ({ variant = "preview" }: DashboardPreviewProps) => {
         </>
       )}
 
-      <div className={`bg-primary/20 border border-primary/30 overflow-visible ${isFullDashboard ? "rounded-none flex-1" : "rounded-xl"}`}>
-        <div className={`grid grid-cols-1 lg:grid-cols-3 gap-px bg-primary/30 ${isFullDashboard ? "min-h-full" : ""}`}>
+      <div className={`bg-card border border-border overflow-visible ${isFullDashboard ? "rounded-none flex-1" : "rounded-xl"}`}>
+        <div className={`grid grid-cols-1 lg:grid-cols-3 gap-px bg-border ${isFullDashboard ? "min-h-full" : ""}`}>
           {/* Sidebar */}
         <div className={`bg-card p-5 ${isFullDashboard ? "min-h-full" : ""}`}>
           <Logo className="mb-5" />
@@ -207,11 +202,11 @@ const DashboardPreview = ({ variant = "preview" }: DashboardPreviewProps) => {
                 <div className="font-heading text-[24px] font-extrabold text-foreground uppercase leading-tight mt-1">
                   {(user ? displayNameShort : "—").toUpperCase()}
                   <br />
-                  {format(new Date(), "EEEE")}
+                  {format(now, "EEEE")}
                 </div>
                 <div className="flex items-center gap-2 mt-1">
                   <span className="tag-pill">PRO</span>
-                  <span className="text-xs text-muted-foreground">{format(new Date(), "d MMM")}</span>
+                  <span className="text-xs text-muted-foreground">{format(now, "d MMM")}</span>
                 </div>
                 <div className="flex items-center gap-2 mt-2">
                   <div className="w-1.5 h-1.5 rounded-full bg-primary" />
@@ -279,7 +274,7 @@ const DashboardPreview = ({ variant = "preview" }: DashboardPreviewProps) => {
               <div className="bg-primary text-primary-foreground p-4 mb-4">
                 <div className="flex items-center gap-4">
                   <div className="text-center shrink-0">
-                    <div className="font-heading text-[42px] font-extrabold leading-none">{score}</div>
+                    <div className="font-heading text-[42px] font-extrabold leading-none">{score ?? "—"}</div>
                     <div className="font-heading text-[9px] font-bold tracking-wider uppercase opacity-50">DAD SCORE</div>
                   </div>
                   <div className="flex-1">
@@ -339,7 +334,7 @@ const DashboardPreview = ({ variant = "preview" }: DashboardPreviewProps) => {
 
             <div className={`bg-card p-5 ${isFullDashboard ? "min-h-full" : ""}`}>
               <SectionHeader title="MOOD THIS WEEK" className="mb-3 block" />
-              <MiniBarChart values={user ? moodWeek : MOOD_WEEK} labels={DAYS} maxValue={4} />
+              <MiniBarChart values={moodWeek} labels={DAYS} maxValue={4} />
               <p className="text-xs text-muted-foreground">
                 Avg mood: <span className="text-primary font-semibold">
                   {moodSummary.label}
@@ -349,12 +344,16 @@ const DashboardPreview = ({ variant = "preview" }: DashboardPreviewProps) => {
 
               <div className="mt-6">
                 <SectionHeader title="SMART REMINDERS" className="mb-3 block" />
-                {SMART_REMINDERS.map((reminder) => (
-                  <div key={reminder.text} className="text-xs text-muted-foreground py-1.5 border-b border-primary/20 last:border-b-0 flex items-center gap-2">
-                    <DashboardIcon icon={reminder.iconKey} size="sm" />
-                    {reminder.text}
-                  </div>
-                ))}
+                {reminders.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">No reminders yet</p>
+                ) : (
+                  reminders.map((reminder) => (
+                    <div key={reminder.id} className="text-xs text-muted-foreground py-1.5 border-b border-border last:border-b-0 flex items-center gap-2">
+                      <DashboardIcon icon={reminder.type || "bell"} size="sm" />
+                      {reminder.text}
+                    </div>
+                  ))
+                )}
               </div>
 
               <div className="mt-6 border border-primary/20 p-4">
@@ -362,10 +361,10 @@ const DashboardPreview = ({ variant = "preview" }: DashboardPreviewProps) => {
                   THIS WEEK'S CHALLENGE
                 </div>
                 <div className="font-heading text-[16px] font-extrabold text-foreground uppercase tracking-wide mb-1">
-                  {(dashboard?.challenge as { title?: string })?.title ?? "SCREEN-FREE SUNDAY"}
+                  {(dashboard?.challenge as { title?: string })?.title ?? "NO ACTIVE CHALLENGE"}
                 </div>
                 <p className="text-xs text-muted-foreground mb-3">
-                  {(dashboard?.challenge as { participants_count?: number })?.participants_count ?? DEFAULT_CHALLENGE_PARTICIPANTS} dads taking part
+                  {(dashboard?.challenge as { participants_count?: number })?.participants_count ?? 0} dads taking part
                 </p>
                 <button
                   type="button"
@@ -444,15 +443,19 @@ const DashboardPreview = ({ variant = "preview" }: DashboardPreviewProps) => {
                     PARENTING
                   </div>
                   <span className="section-label !p-0 mb-2 block">DAD DATE IDEAS</span>
-                  {dates.map((d: { icon?: string; iconKey?: string; name: string; age_range?: string; budget?: string }) => (
-                    <div key={d.name} className="flex items-center gap-3 py-2.5 border-b border-primary/20 last:border-b-0">
-                      <DashboardIcon icon={(d as { iconKey?: string }).iconKey ?? d.icon ?? "gaming"} size="lg" />
-                      <div className="flex-1">
-                        <div className="font-heading text-[12px] font-bold text-foreground">{d.name}</div>
-                        <div className="text-[10px] text-muted-foreground">Age {d.age_range ?? "—"} · {d.budget ?? "—"}</div>
+                  {dates.length === 0 ? (
+                    <p className="text-xs text-muted-foreground py-2">No dad dates yet</p>
+                  ) : (
+                    dates.map((d) => (
+                      <div key={d.id ?? d.name} className="flex items-center gap-3 py-2.5 border-b border-primary/20 last:border-b-0">
+                        <DashboardIcon icon={d.iconKey ?? d.icon ?? "gaming"} size="lg" />
+                        <div className="flex-1">
+                          <div className="font-heading text-[12px] font-bold text-foreground">{d.name}</div>
+                          <div className="text-[10px] text-muted-foreground">Age {d.age_range ?? "—"} · {d.budget ?? "—"}</div>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))
+                  )}
                   <div className="mt-4 border-l-[3px] border-l-primary pl-3 py-2">
                     <p className="text-xs text-muted-foreground italic">&quot;What made you laugh the hardest today?&quot;</p>
                     <div className="text-[10px] text-muted-foreground mt-0.5">Conversation starter</div>
@@ -504,7 +507,7 @@ const DashboardPreview = ({ variant = "preview" }: DashboardPreviewProps) => {
                   <div className="bg-primary text-primary-foreground p-4 mb-4">
                     <div className="flex items-center gap-4">
                       <div className="text-center shrink-0">
-                        <div className="font-heading text-[42px] font-extrabold leading-none">{score}</div>
+                        <div className="font-heading text-[42px] font-extrabold leading-none">{score ?? "—"}</div>
                         <div className="font-heading text-[9px] font-bold tracking-wider uppercase opacity-50">out of 100</div>
                       </div>
                       <div className="flex-1">
@@ -536,7 +539,7 @@ const DashboardPreview = ({ variant = "preview" }: DashboardPreviewProps) => {
               {activeScreen === "FITNESS" && (
                 <>
                   <SectionHeader title="BODY THIS WEEK" className="mb-3 block" />
-                  <MiniBarChart values={[...MOCK_BODY_WEEK_SERIES]} maxValue={4} heightClass="h-[60px]" dense />
+                  <MiniBarChart values={bodyWeekSeries} maxValue={4} heightClass="h-[60px]" dense />
                   <Link href="/fitness" className="font-heading font-bold text-[10px] tracking-wider uppercase text-primary hover:underline inline-block mt-2">
                     View full Fitness →
                   </Link>
@@ -545,7 +548,7 @@ const DashboardPreview = ({ variant = "preview" }: DashboardPreviewProps) => {
               {activeScreen === "MIND" && (
                 <>
                   <SectionHeader title="MOOD THIS WEEK" className="mb-3 block" />
-                  <MiniBarChart values={user ? moodWeek : MOOD_WEEK} labels={DAYS} maxValue={4} />
+                  <MiniBarChart values={moodWeek} labels={DAYS} maxValue={4} />
                   <Link href="/mind" className="font-heading font-bold text-[10px] tracking-wider uppercase text-primary hover:underline inline-block mt-2">
                     View full Mind →
                   </Link>
@@ -554,15 +557,16 @@ const DashboardPreview = ({ variant = "preview" }: DashboardPreviewProps) => {
               {activeScreen === "BOND" && (
                 <>
                   <span className="section-label !p-0 mb-3 block">MILESTONES</span>
-                  {[
-                    { date: "12 Mar", text: "Ella said &apos;I love you Dad&apos; unprompted" },
-                    { date: "3 Feb", text: "First bike ride without stabilisers" },
-                  ].map((m) => (
-                    <div key={m.date} className="py-2 border-b border-primary/20 last:border-b-0">
-                      <span className="tag-pill text-[9px] mr-1">{m.date}</span>
-                      <span className="text-[11px] text-foreground/70">{m.text}</span>
-                    </div>
-                  ))}
+                  {milestones.length === 0 ? (
+                    <p className="text-xs text-muted-foreground py-2">No milestones yet</p>
+                  ) : (
+                    milestones.map((m) => (
+                      <div key={m.id} className="py-2 border-b border-border last:border-b-0">
+                        <span className="tag-pill text-[9px] mr-1">{format(new Date(m.date), "d MMM")}</span>
+                        <span className="text-[11px] text-foreground/70">{m.text}</span>
+                      </div>
+                    ))
+                  )}
                   <Link href="/bond" className="font-heading font-bold text-[10px] tracking-wider uppercase text-primary hover:underline inline-block mt-3">
                     View full Bond →
                   </Link>
@@ -571,15 +575,19 @@ const DashboardPreview = ({ variant = "preview" }: DashboardPreviewProps) => {
               {activeScreen === "COMMUNITY" && (
                 <>
                   <span className="section-label !p-0 mb-3 block">DAD CIRCLES</span>
-                  {displayCircles.map((c: { icon?: string; iconKey?: string; name: string; members?: number }) => (
-                    <div key={c.name} className="flex items-center gap-2 py-2 border-b border-primary/20 last:border-b-0">
-                      <DashboardIcon icon={(c as { iconKey?: string }).iconKey ?? c.icon ?? "community"} size="lg" />
-                      <div>
-                        <div className="font-heading text-[11px] font-bold text-foreground">{c.name}</div>
-                        <div className="text-[10px] text-muted-foreground">{c.members} members</div>
+                  {circles.length === 0 ? (
+                    <p className="text-xs text-muted-foreground py-2">No circles yet</p>
+                  ) : (
+                    circles.map((c) => (
+                      <div key={c.id} className="flex items-center gap-2 py-2 border-b border-border last:border-b-0">
+                        <DashboardIcon icon={c.icon || "community"} size="lg" />
+                        <div>
+                          <div className="font-heading text-[11px] font-bold text-foreground">{c.name}</div>
+                          <div className="text-[10px] text-muted-foreground">{c.members_count ?? 0} members</div>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))
+                  )}
                   <Link href="/community" className="font-heading font-bold text-[10px] tracking-wider uppercase text-primary hover:underline inline-block mt-3">
                     View full Community →
                   </Link>

@@ -3,6 +3,12 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/utils/supabaseClient";
 
+const DEFAULT_SCORES = {
+  mind: 72,
+  body: 81,
+  bond: 68,
+} as const;
+
 async function updateStreak(supabaseClient: typeof supabase, userId: string) {
   const today = new Date().toISOString().slice(0, 10);
   const { data: existing } = await supabaseClient
@@ -42,7 +48,7 @@ async function fetchDashboard(userId: string) {
   const todayEnd = new Date();
   todayEnd.setHours(23, 59, 59, 999);
 
-  const [dashboardRes, scoreRes, moodRes, workoutsRes, journalRes, milestonesRes, challengeRes, dadDatesRes, profileRes, bodyRes, todayWorkoutsRes] = await Promise.all([
+  const [dashboardRes, scoreRes, moodRes, workoutsRes, journalRes, milestonesRes, milestonesListRes, challengeRes, dadDatesRes, profileRes, bodyRes, todayWorkoutsRes, remindersRes, circlesRes, bodyWeekRes] = await Promise.all([
     supabase.from("dashboard_view").select("*").eq("user_id", userId).maybeSingle(),
     supabase.from("dad_score_view").select("mind_score, body_score, bond_score").eq("user_id", userId).maybeSingle(),
     supabase
@@ -69,6 +75,12 @@ async function fetchDashboard(userId: string) {
       .eq("user_id", userId)
       .gte("date", monthStart)
       .lte("date", monthEndDate),
+    supabase
+      .from("milestones")
+      .select("id, date, text")
+      .eq("user_id", userId)
+      .order("date", { ascending: false })
+      .limit(8),
     supabase.from("weekly_challenges").select("*").eq("active", true).order("created_at", { ascending: false }).limit(1).maybeSingle(),
     supabase.from("dad_dates").select("*"),
     supabase.from("user_profile").select("display_name").eq("user_id", userId).maybeSingle(),
@@ -85,6 +97,21 @@ async function fetchDashboard(userId: string) {
       .eq("user_id", userId)
       .gte("performed_at", todayStart.toISOString())
       .lte("performed_at", todayEnd.toISOString()),
+    supabase
+      .from("reminders")
+      .select("id, type, text, time")
+      .eq("user_id", userId)
+      .order("time", { ascending: true }),
+    supabase
+      .from("circles")
+      .select("id, icon, name, members_count")
+      .order("members_count", { ascending: false })
+      .limit(6),
+    supabase
+      .from("workout_sessions")
+      .select("performed_at, duration_minutes")
+      .eq("user_id", userId)
+      .gte("performed_at", sevenDaysAgo.toISOString()),
   ]);
 
   // Views may be missing in DB or blocked by RLS — fall back without failing the whole dashboard.
@@ -97,10 +124,13 @@ async function fetchDashboard(userId: string) {
   const dadDatesCount = milestonesRes.count ?? 0;
   const challenge = challengeRes.data;
   const dadDates = dadDatesRes.data ?? [];
+  const reminders = remindersRes.error ? [] : (remindersRes.data ?? []);
+  const circles = circlesRes.error ? [] : (circlesRes.data ?? []);
+  const milestones = milestonesListRes.error ? [] : (milestonesListRes.data ?? []);
 
-  const mind = score?.mind_score ?? 72;
-  const body = score?.body_score ?? 81;
-  const bond = score?.bond_score ?? 68;
+  const mind = score?.mind_score ?? DEFAULT_SCORES.mind;
+  const body = score?.body_score ?? DEFAULT_SCORES.body;
+  const bond = score?.bond_score ?? DEFAULT_SCORES.bond;
   const totalScore = Math.round((mind + body + bond) / 3);
 
   const weightRows = (bodyRes.data ?? []) as { value: number }[];
@@ -114,6 +144,26 @@ async function fetchDashboard(userId: string) {
 
   const todayWorkouts = (todayWorkoutsRes.data ?? []) as { duration_minutes: number }[];
   const activeTodayMin = todayWorkouts.reduce((sum, w) => sum + (w.duration_minutes ?? 0), 0);
+  const bodyWeekRows = (bodyWeekRes.error ? [] : (bodyWeekRes.data ?? [])) as { performed_at: string; duration_minutes: number | null }[];
+  const bodyWeekKeys = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - (6 - i));
+    return d.toISOString().slice(0, 10);
+  });
+  const bodyTotals = new Map<string, number>();
+  for (const row of bodyWeekRows) {
+    const dayKey = row.performed_at?.slice(0, 10);
+    if (!dayKey) continue;
+    bodyTotals.set(dayKey, (bodyTotals.get(dayKey) ?? 0) + (row.duration_minutes ?? 0));
+  }
+  const bodyWeekSeries = bodyWeekKeys.map((k) => {
+    const mins = bodyTotals.get(k) ?? 0;
+    if (mins >= 40) return 4;
+    if (mins >= 25) return 3;
+    if (mins >= 10) return 2;
+    if (mins > 0) return 1;
+    return 0;
+  });
 
   return {
     ...(dashboard ?? {}),
@@ -130,10 +180,15 @@ async function fetchDashboard(userId: string) {
       dadDates: dadDatesCount,
     },
     challenge,
+    reminders,
+    circles,
+    milestones,
+    dad_dates: dadDates,
     dadDates,
     date: new Date().toISOString().slice(0, 10),
     weightDisplay,
     activeTodayMin,
+    body_week_series: bodyWeekSeries,
   };
 }
 
