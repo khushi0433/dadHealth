@@ -131,7 +131,7 @@ const DashboardPreview = ({ variant = "preview" }: DashboardPreviewProps) => {
 
   if (authLoading) {
     return (
-      <section className={`bg-background flex flex-col gap-4 items-center justify-center ${isFullDashboard ? "min-h-[calc(100dvh-73px)]" : "pt-16 lg:pt-20 pb-8 min-h-[600px]"}`}>
+      <section className={`bg-background flex flex-col gap-4 items-center justify-center ${isFullDashboard ? "h-[calc(100dvh-73px)] overflow-hidden" : "pt-16 lg:pt-20 pb-8 min-h-[600px]"}`}>
         <div className="w-8 h-8 rounded-full border-4 border-primary border-t-transparent animate-spin" />
         <p className="text-primary font-heading text-[11px] font-bold tracking-widest uppercase">
           Loading Preview...
@@ -141,8 +141,8 @@ const DashboardPreview = ({ variant = "preview" }: DashboardPreviewProps) => {
   }
 
   return (
-  <section className={`bg-background ${isFullDashboard ? "min-h-[calc(100dvh-73px)]" : "pt-16 lg:pt-20 pb-8"}`}>
-    <div className={`${isFullDashboard ? "w-full min-h-[calc(100dvh-73px)] flex flex-col" : "max-w-[1400px] mx-auto px-5 lg:px-8"}`}>
+  <section className={`bg-background ${isFullDashboard ? "h-[calc(100dvh-73px)] overflow-hidden" : "pt-16 lg:pt-20 pb-8"}`}>
+    <div className={`${isFullDashboard ? "w-full h-full flex flex-col" : "max-w-[1400px] mx-auto px-5 lg:px-8"}`}>
       {!isFullDashboard && (
         <>
           <div className="py-4">

@@ -30,7 +30,11 @@ const SiteHeader = () => {
 
   const resolvedName = resolveDisplayName(profile, user);
   const avatarInitials = initialsFromDisplayName(resolvedName, user?.email);
-  const getNavHref = (href: string) => (user && href === "/" ? "/?view=home" : href);
+  const getNavHref = (href: string) => (user && href === "/" ? "/home" : href);
+  const isNavActive = (href: string) => {
+    if (href === "/" && pathname === "/home") return true;
+    return pathname === href;
+  };
 
   const handleSignOut = async () => {
     if (isSigningOut) return;
@@ -58,7 +62,7 @@ const SiteHeader = () => {
               href={getNavHref(link.href)}
               className={cn(
                 "font-heading text-[11px] font-bold tracking-[1.5px] uppercase transition-colors duration-200",
-                pathname === link.href
+                isNavActive(link.href)
                   ? "text-primary"
                   : "text-muted-foreground hover:text-foreground"
               )}
@@ -182,7 +186,7 @@ const SiteHeader = () => {
               onClick={() => setMobileOpen(false)}
               className={cn(
                 "block font-heading text-[12px] font-bold tracking-[1.5px] uppercase py-2 transition-colors",
-                pathname === link.href
+                isNavActive(link.href)
                   ? "text-primary"
                   : "text-muted-foreground"
               )}
