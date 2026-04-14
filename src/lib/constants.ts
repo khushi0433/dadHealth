@@ -74,6 +74,9 @@ export const PROGRESS_STATS = [
 
 export const MOOD_WEEK = [3, 2, 4, 3, 4, 4, 2];
 export const DAYS = ["M", "T", "W", "T", "F", "S", "S"];
+export const BLOCKED_CHECKIN_MOODS = [1, 2, 4] as const;
+export const MOCK_BODY_WEEK_SERIES = [3, 4, 3, 4, 4, 3, 4] as const;
+export const DEFAULT_CHALLENGE_PARTICIPANTS = 847;
 
 export const CIRCLES = [
   { iconKey: "baby", name: "New dad crew", members: 847 },

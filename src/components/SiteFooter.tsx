@@ -24,9 +24,15 @@ const SiteFooter = () => (
           <ul className="space-y-2.5">
             {FOOTER_LINKS.platform.map((link) => (
               <li key={link.label}>
-                <Link href={link.href} className="text-sm text-foreground/70 hover:text-primary transition-colors">
-                  {link.label}
-                </Link>
+                {link.href.startsWith("#") ? (
+                  <a href={link.href} className="text-sm text-foreground/70 hover:text-primary transition-colors">
+                    {link.label}
+                  </a>
+                ) : (
+                  <Link href={link.href} className="text-sm text-foreground/70 hover:text-primary transition-colors">
+                    {link.label}
+                  </Link>
+                )}
               </li>
             ))}
           </ul>
@@ -40,9 +46,15 @@ const SiteFooter = () => (
           <ul className="space-y-2.5">
             {FOOTER_LINKS.company.map((link) => (
               <li key={link.label}>
-                <Link href={link.href} className="text-sm text-foreground/70 hover:text-primary transition-colors">
-                  {link.label}
-                </Link>
+                {link.href.startsWith("#") ? (
+                  <a href={link.href} className="text-sm text-foreground/70 hover:text-primary transition-colors">
+                    {link.label}
+                  </a>
+                ) : (
+                  <Link href={link.href} className="text-sm text-foreground/70 hover:text-primary transition-colors">
+                    {link.label}
+                  </Link>
+                )}
               </li>
             ))}
           </ul>
@@ -56,9 +68,15 @@ const SiteFooter = () => (
           <ul className="space-y-2.5">
             {FOOTER_LINKS.legal.map((link) => (
               <li key={link.label}>
-                <Link href={link.href} className="text-sm text-foreground/70 hover:text-primary transition-colors">
-                  {link.label}
-                </Link>
+                {link.href.startsWith("#") ? (
+                  <a href={link.href} className="text-sm text-foreground/70 hover:text-primary transition-colors">
+                    {link.label}
+                  </a>
+                ) : (
+                  <Link href={link.href} className="text-sm text-foreground/70 hover:text-primary transition-colors">
+                    {link.label}
+                  </Link>
+                )}
               </li>
             ))}
           </ul>

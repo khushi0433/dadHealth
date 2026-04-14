@@ -3,15 +3,19 @@
 import Logo from "@/components/Logo";
 import { Flame, LifeBuoy } from "lucide-react";
 import { DashboardIcon } from "@/components/DashboardIcon";
-import { MOOD_WEEK, DAYS, MEALS, CIRCLES } from "@/lib/constants";
+import { BLOCKED_CHECKIN_MOODS, CIRCLES, DAYS, DEFAULT_CHALLENGE_PARTICIPANTS, MEALS, MOCK_BODY_WEEK_SERIES, MOOD_WEEK } from "@/lib/constants";
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useDashboard } from "@/hooks/useDashboard";
 import { useCommunity } from "@/hooks/useCommunity";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { useAuth } from "@/contexts/AuthContext";
 import { format } from "date-fns";
 import { DEFAULT_DISPLAY_FALLBACK, greetingDisplayName, initialsFromDisplayName } from "@/lib/userDisplay";
+import { getDashboardScore, getLastSevenDayKeys, getMoodSummary, getMoodWeek, getReportStatsList, getScoreBreakdown } from "@/lib/dashboard.utils";
+import SectionHeader from "@/components/dashboard/SectionHeader";
+import StatCard from "@/components/dashboard/StatCard";
+import MiniBarChart from "@/components/dashboard/MiniBarChart";
 
 const SIDEBAR_ITEMS = [
   { iconKey: "home", label: "HOME", id: "HOME" as const },
@@ -21,19 +25,6 @@ const SIDEBAR_ITEMS = [
   { iconKey: "community", label: "COMMUNITY", id: "COMMUNITY" as const },
   { iconKey: "progress", label: "PROGRESS", id: "PROGRESS" as const },
   { iconKey: "pro", label: "PRO ★", href: "/pricing" },
-];
-
-const SCORE_ITEMS = [
-  { label: "MIND", value: 72 },
-  { label: "BODY", value: 81 },
-  { label: "BOND", value: 68 },
-];
-
-const TODAYS_PLAN = [
-  { iconKey: "breathing", name: "5-min breathing reset", time: "MORNING · MENTAL HEALTH", status: "done" as const },
-  { iconKey: "run", name: "20-min dad run", time: "12:30PM · FITNESS", status: "start" as const },
-  { iconKey: "story", name: "Bedtime story with Ella", time: "7:30PM · PARENTING", status: "log" as const },
-  { iconKey: "journal", name: "Evening journal", time: "9:00PM · REFLECTION", status: "open" as const },
 ];
 
 const SMART_REMINDERS = [
@@ -62,13 +53,18 @@ type DashboardPreviewProps = {
 const DashboardPreview = ({ variant = "preview" }: DashboardPreviewProps) => {
   const { user, loading: authLoading } = useAuth();
   const { data: profile } = useUserProfile(user?.id);
-  const { data: dashboard, loading, dadDates = [], dadsCount, checkIn } = useDashboard(user?.id);
+  const { data: dashboard, dadDates = [], dadsCount, checkIn } = useDashboard(user?.id);
   const { posts: communityPosts = [], loading: communityLoading } = useCommunity(user?.id);
   const [activeScreen, setActiveScreen] = useState<"HOME" | "FITNESS" | "MIND" | "BOND" | "COMMUNITY" | "PROGRESS">("HOME");
+  const isFullDashboard = variant === "full";
+  const hasUser = Boolean(user);
 
-  const today = new Date().toISOString().slice(0, 10);
-  const moodLogs = dashboard?.mood_logs ?? (dashboard?.mood_value != null ? [{ date: dashboard?.date ?? today, mood_value: dashboard.mood_value }] : []);
-  const hasCheckedInToday = moodLogs.some((m: { date: string }) => m.date === today);
+  const today = useMemo(() => new Date().toISOString().slice(0, 10), []);
+  const moodLogs = useMemo(
+    () => dashboard?.mood_logs ?? (dashboard?.mood_value != null ? [{ date: dashboard?.date ?? today, mood_value: dashboard.mood_value }] : []),
+    [dashboard?.mood_logs, dashboard?.mood_value, dashboard?.date, today],
+  );
+  const hasCheckedInToday = useMemo(() => moodLogs.some((m: { date: string }) => m.date === today), [moodLogs, today]);
   const [cbtMood, setCbtMood] = useState(dashboard?.mood_value ?? 3);
   const [cbtSleep, setCbtSleep] = useState(dashboard?.sleep_hours ?? 7);
 
@@ -79,51 +75,37 @@ const DashboardPreview = ({ variant = "preview" }: DashboardPreviewProps) => {
     }
   }, [dashboard?.mood_value, dashboard?.sleep_hours]);
 
-  const score = typeof dashboard?.total_score === 'number' ? Math.round(dashboard.total_score) : (dashboard?.total_score ?? (user ? 74 : "—"));
-  const breakdown = user && dashboard
-    ? { 
-        mind: Math.min(100, Math.round(dashboard.mind_score ?? 72)), 
-        body: Math.min(100, Math.round(dashboard.body_score ?? 81)), 
-        bond: Math.min(100, Math.round(dashboard.bond_score ?? 68)) 
-      }
-    : { mind: 0, body: 0, bond: 0 };
-  const SCORE_ITEMS = [
+  const score = useMemo(() => getDashboardScore(dashboard, hasUser), [dashboard, hasUser]);
+  const breakdown = useMemo(() => getScoreBreakdown(dashboard, hasUser), [dashboard, hasUser]);
+  const scoreItems = useMemo(() => [
     { label: "MIND", value: breakdown.mind },
     { label: "BODY", value: breakdown.body },
     { label: "BOND", value: breakdown.bond },
-  ];
+  ], [breakdown]);
   const streak = dashboard?.streak_count ?? 0;
-  const last7 = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date();
-    d.setDate(d.getDate() - (6 - i));
-    return d.toISOString().slice(0, 10);
-  });
-  const moodMap = new Map(moodLogs.map((m: { date: string; mood_value: number }) => [m.date, m.mood_value]));
-  const moodWeek = last7.map((d) => moodMap.get(d) ?? 3);
+  const last7 = useMemo(() => getLastSevenDayKeys(), []);
+  const moodWeek = useMemo(() => getMoodWeek(moodLogs, last7), [moodLogs, last7]);
+  const moodSummary = useMemo(() => getMoodSummary(moodWeek, hasUser), [moodWeek, hasUser]);
   const greetingName = greetingDisplayName(
     { display_name: profile?.display_name ?? dashboard?.display_name },
     user
   );
-  const displayNameShort = greetingName.split(/\s+/)[0] ?? greetingName;
+  const displayNameShort = useMemo(() => greetingName.split(/\s+/)[0] ?? greetingName, [greetingName]);
   const tasks = DEFAULT_GOALS;
 
-  const workouts = dashboard?.today_workouts ? [{ count: dashboard.today_workouts }] : [];
   const monthWorkouts = dashboard?.month_workouts ?? 0;
   const dates = dadDates.length > 0 ? dadDates.slice(0, 3) : DEFAULT_DAD_DATES;
   const displayPosts = communityPosts.slice(0, 3) as Record<string, unknown>[];
   const displayCircles = CIRCLES.slice(0, 3);
-  const reportStatsList = dashboard?.reportStats
-    ? [[String(dashboard.reportStats.workouts), "Workouts"], [String(dashboard.reportStats.journal), "Journal"], [String(dashboard.reportStats.dadDates), "Dad dates"]]
-    : [["—", "Workouts"], ["—", "Journal"], ["—", "Dad dates"]];
-  const isFullDashboard = variant === "full";
-  const restrictedMoodValues = [1, 2, 4];
+  const reportStatsList = useMemo(() => getReportStatsList(dashboard?.reportStats), [dashboard?.reportStats]);
+  const isCheckinBlocked = BLOCKED_CHECKIN_MOODS.includes(cbtMood as (typeof BLOCKED_CHECKIN_MOODS)[number]);
 
   const handleMoodSelect = (value: number) => {
     setCbtMood(value);
   };
 
   const handleDailyCheckIn = () => {
-    if (restrictedMoodValues.includes(cbtMood)) {
+    if (isCheckinBlocked) {
       return;
     }
     checkIn.mutate({ mood_value: cbtMood, sleep_hours: cbtSleep });
@@ -142,7 +124,7 @@ const DashboardPreview = ({ variant = "preview" }: DashboardPreviewProps) => {
 
   return (
   <section className={`bg-background ${isFullDashboard ? "min-h-[calc(100dvh-73px)]" : "pt-16 lg:pt-20 pb-8"}`}>
-    <div className={`${isFullDashboard ? "w-full min-h-[calc(100dvh-73px)] flex flex-col" : "max-w-[1400px] mx-auto px-5 lg:px-8"}`}>
+    <div className={`${isFullDashboard ? "w-full min-h-screen flex flex-col" : "max-w-[1400px] mx-auto px-5 lg:px-8"}`}>
       {!isFullDashboard && (
         <>
           <div className="py-4">
@@ -157,10 +139,10 @@ const DashboardPreview = ({ variant = "preview" }: DashboardPreviewProps) => {
         </>
       )}
 
-      <div className={`bg-primary/20 border border-primary/30 overflow-hidden ${isFullDashboard ? "rounded-none flex-1" : "rounded-xl"}`}>
-        <div className={`grid grid-cols-1 lg:grid-cols-3 gap-px bg-primary/30 ${isFullDashboard ? "min-h-full lg:auto-rows-fr" : ""}`}>
+      <div className={`bg-primary/20 border border-primary/30 overflow-visible ${isFullDashboard ? "rounded-none flex-1" : "rounded-xl"}`}>
+        <div className={`grid grid-cols-1 lg:grid-cols-3 gap-px bg-primary/30 ${isFullDashboard ? "min-h-full" : ""}`}>
           {/* Sidebar */}
-        <div className={`bg-card p-5 ${isFullDashboard ? "h-full" : ""}`}>
+        <div className={`bg-card p-5 ${isFullDashboard ? "min-h-full" : ""}`}>
           <Logo className="mb-5" />
           <div className="flex items-center gap-3 mb-6">
             <div className="w-10 h-10 bg-primary/20 border border-primary rounded-full flex items-center justify-center font-heading text-sm font-bold text-primary">
@@ -217,7 +199,7 @@ const DashboardPreview = ({ variant = "preview" }: DashboardPreviewProps) => {
         {/* Main content - HOME: two columns; other screens: full content */}
         {activeScreen === "HOME" ? (
           <>
-            <div className={`bg-card p-5 ${isFullDashboard ? "h-full" : ""}`}>
+            <div className={`bg-card p-5 ${isFullDashboard ? "min-h-full" : ""}`}>
               <div className="mb-4">
                 <span className="block text-[10px] font-heading font-bold tracking-[2px] text-muted-foreground uppercase !p-0">
                   good morning dads
@@ -249,6 +231,7 @@ const DashboardPreview = ({ variant = "preview" }: DashboardPreviewProps) => {
                             key={v}
                             type="button"
                             onClick={() => handleMoodSelect(v)}
+                            aria-label={`Set mood to ${v}`}
                             className={`min-w-[2rem] h-8 px-2 font-heading text-xs font-bold border cursor-pointer ${
                               cbtMood === v ? "bg-primary text-primary-foreground border-primary" : "border-border hover:border-primary"
                             }`}
@@ -277,12 +260,18 @@ const DashboardPreview = ({ variant = "preview" }: DashboardPreviewProps) => {
                       <button
                         type="button"
                         onClick={handleDailyCheckIn}
-                        disabled={checkIn.isPending}
-                        className="bg-primary text-primary-foreground font-heading font-bold text-[10px] tracking-wider uppercase px-4 py-2 border-none cursor-pointer hover:bg-primary/90 disabled:opacity-50 shrink-0"
+                        disabled={checkIn.isPending || isCheckinBlocked}
+                        aria-label="Save daily check-in"
+                        className="bg-primary text-primary-foreground font-heading font-bold text-[10px] tracking-wider uppercase px-4 py-2 border-none cursor-pointer hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
                       >
                         {checkIn.isPending ? "..." : "SAVE"}
                       </button>
                     </div>
+                    {isCheckinBlocked && (
+                      <p className="text-[10px] text-muted-foreground">
+                        Mood 1, 2, and 4 are view-only in this dashboard check-in.
+                      </p>
+                    )}
                   </div>
                 </div>
               )}
@@ -295,7 +284,7 @@ const DashboardPreview = ({ variant = "preview" }: DashboardPreviewProps) => {
                   </div>
                   <div className="flex-1">
                     <div className="font-heading text-[12px] font-extrabold uppercase mb-2">This week's health</div>
-                    {SCORE_ITEMS.map((item) => (
+                    {scoreItems.map((item) => (
                       <div key={item.label} className="mb-1.5">
                         <div className="flex justify-between font-heading text-[9px] font-bold uppercase opacity-60 mb-0.5">
                           <span>{item.label}</span>
@@ -323,7 +312,7 @@ const DashboardPreview = ({ variant = "preview" }: DashboardPreviewProps) => {
                 </button>
               </div>
 
-              <span className="section-label !p-0 mb-2 block">TODAY'S PLAN</span>
+              <SectionHeader title="TODAY'S PLAN" className="mb-2 block" />
               <div className="pb-4">
                 {tasks.map((task) => (
                   <div key={task.name} className="flex items-center gap-3 py-3 border-b border-primary/20 last:border-b-0">
@@ -348,38 +337,18 @@ const DashboardPreview = ({ variant = "preview" }: DashboardPreviewProps) => {
               </div>
             </div>
 
-            <div className={`bg-card p-5 ${isFullDashboard ? "h-full" : ""}`}>
-              <span className="section-label !p-0 mb-3 block">MOOD THIS WEEK</span>
-              <div className="flex items-end gap-1.5 h-[80px] mb-2">
-                {(user ? moodWeek : MOOD_WEEK).map((v: number, i: number) => {
-                  const h = Math.round((v / 4) * 68) + 8;
-                  return (
-                    <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                      <div
-                        className={`w-full transition-all duration-400 ${v >= 3 ? "bg-primary" : "bg-muted"}`}
-                        style={{ height: `${h}px` }}
-                      />
-                      <span className="font-heading text-[9px] font-bold text-muted-foreground">
-                        {DAYS[i]}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
+            <div className={`bg-card p-5 ${isFullDashboard ? "min-h-full" : ""}`}>
+              <SectionHeader title="MOOD THIS WEEK" className="mb-3 block" />
+              <MiniBarChart values={user ? moodWeek : MOOD_WEEK} labels={DAYS} maxValue={4} />
               <p className="text-xs text-muted-foreground">
                 Avg mood: <span className="text-primary font-semibold">
-                  {user && moodWeek.length > 0
-                    ? (() => {
-                        const avg = (moodWeek as number[]).reduce((a, b) => a + b, 0) / moodWeek.length;
-                        return avg >= 3.5 ? "Great" : avg >= 3 ? "Good" : avg >= 2 ? "Okay" : "Low";
-                      })()
-                    : "—"}
+                  {moodSummary.label}
                 </span>
-                {user && (moodWeek as number[]).filter((v) => v > 0).length > 0 ? ` (${((moodWeek as number[]).reduce((a, b) => a + b, 0) / moodWeek.length).toFixed(1)}/4)` : ""}
+                {moodSummary.scoreText}
               </p>
 
               <div className="mt-6">
-                <span className="section-label !p-0 mb-3 block">SMART REMINDERS</span>
+                <SectionHeader title="SMART REMINDERS" className="mb-3 block" />
                 {SMART_REMINDERS.map((reminder) => (
                   <div key={reminder.text} className="text-xs text-muted-foreground py-1.5 border-b border-primary/20 last:border-b-0 flex items-center gap-2">
                     <DashboardIcon icon={reminder.iconKey} size="sm" />
@@ -396,7 +365,7 @@ const DashboardPreview = ({ variant = "preview" }: DashboardPreviewProps) => {
                   {(dashboard?.challenge as { title?: string })?.title ?? "SCREEN-FREE SUNDAY"}
                 </div>
                 <p className="text-xs text-muted-foreground mb-3">
-                  {(dashboard?.challenge as { participants_count?: number })?.participants_count ?? 847} dads taking part
+                  {(dashboard?.challenge as { participants_count?: number })?.participants_count ?? DEFAULT_CHALLENGE_PARTICIPANTS} dads taking part
                 </p>
                 <button
                   type="button"
@@ -410,7 +379,7 @@ const DashboardPreview = ({ variant = "preview" }: DashboardPreviewProps) => {
           </>
         ) : (
           <>
-            <div className={`bg-card p-5 ${isFullDashboard ? "h-full" : ""}`}>
+            <div className={`bg-card p-5 ${isFullDashboard ? "min-h-full" : ""}`}>
               {activeScreen === "FITNESS" && (
                 <>
                   <span className="section-label !p-0">FITNESS</span>
@@ -424,10 +393,7 @@ const DashboardPreview = ({ variant = "preview" }: DashboardPreviewProps) => {
                       ["—", "BEST RUN"],
                       [user && (dashboard?.activeTodayMin ?? 0) > 0 ? `${dashboard?.activeTodayMin} min` : "—", "ACTIVE"],
                     ].map(([v, l]) => (
-                      <div key={l} className="bg-card border border-primary/20 rounded-lg p-3">
-                        <div className="font-heading text-[18px] font-extrabold text-foreground">{v}</div>
-                        <div className="text-[10px] text-muted-foreground uppercase">{l}</div>
-                      </div>
+                      <StatCard key={l} value={String(v)} label={String(l)} />
                     ))}
                   </div>
                   <div className="border border-primary/20 p-3 mb-4">
@@ -499,12 +465,20 @@ const DashboardPreview = ({ variant = "preview" }: DashboardPreviewProps) => {
                   <div className="font-heading text-[24px] font-extrabold text-foreground uppercase leading-tight mt-1 mb-4">
                     COMMUNITY FEED
                   </div>
-                  <span className="section-label !p-0 mb-2 block">RECENT POSTS</span>
+                  <SectionHeader title="RECENT POSTS" className="mb-2 block" />
                   {communityLoading ? (
                     <p className="text-[11px] text-muted-foreground py-2">Loading…</p>
                   ) : displayPosts.length === 0 ? (
                     <p className="text-[11px] text-muted-foreground py-2">
-                      {user ? "No posts yet. Open the Community tab to share." : "Sign in to see the live feed."}
+                      {user ? (
+                        <>
+                          No posts yet.{" "}
+                          <Link href="/community" className="text-primary hover:underline">
+                            Be the first to post
+                          </Link>
+                          .
+                        </>
+                      ) : "Sign in to see the live feed."}
                     </p>
                   ) : (
                     displayPosts.map((p: Record<string, unknown>, i: number) => (
@@ -534,7 +508,7 @@ const DashboardPreview = ({ variant = "preview" }: DashboardPreviewProps) => {
                         <div className="font-heading text-[9px] font-bold tracking-wider uppercase opacity-50">out of 100</div>
                       </div>
                       <div className="flex-1">
-                        {SCORE_ITEMS.map((item) => (
+                        {scoreItems.map((item) => (
                           <div key={item.label} className="mb-1.5">
                             <div className="flex justify-between font-heading text-[9px] font-bold uppercase opacity-60 mb-0.5">
                               <span>{item.label}</span>
@@ -551,27 +525,18 @@ const DashboardPreview = ({ variant = "preview" }: DashboardPreviewProps) => {
                   <span className="section-label !p-0 mb-2 block">MARCH REPORT</span>
                   <div className="grid grid-cols-3 gap-2">
                     {reportStatsList.map(([n, l]) => (
-                      <div key={l} className="bg-card border border-primary/20 rounded-lg p-2.5">
-                        <div className="font-heading text-[16px] font-extrabold text-foreground">{n}</div>
-                        <div className="text-[9px] text-muted-foreground uppercase">{l}</div>
-                      </div>
+                      <StatCard key={l} value={n} label={l} compact />
                     ))}
                   </div>
                 </>
               )}
             </div>
 
-            <div className={`bg-card p-5 ${isFullDashboard ? "h-full" : ""}`}>
+            <div className={`bg-card p-5 ${isFullDashboard ? "min-h-full" : ""}`}>
               {activeScreen === "FITNESS" && (
                 <>
-                  <span className="section-label !p-0 mb-3 block">BODY THIS WEEK</span>
-                  <div className="flex items-end gap-1.5 h-[60px] mb-2">
-                    {[3, 4, 3, 4, 4, 3, 4].map((v, i) => (
-                      <div key={i} className="flex-1 flex flex-col items-center gap-0.5">
-                        <div className={`w-full flex-1 min-h-[8px] ${v >= 3 ? "bg-primary" : "bg-muted"}`} style={{ height: `${(v / 4) * 40}px` }} />
-                      </div>
-                    ))}
-                  </div>
+                  <SectionHeader title="BODY THIS WEEK" className="mb-3 block" />
+                  <MiniBarChart values={[...MOCK_BODY_WEEK_SERIES]} maxValue={4} heightClass="h-[60px]" dense />
                   <Link href="/fitness" className="font-heading font-bold text-[10px] tracking-wider uppercase text-primary hover:underline inline-block mt-2">
                     View full Fitness →
                   </Link>
@@ -579,18 +544,8 @@ const DashboardPreview = ({ variant = "preview" }: DashboardPreviewProps) => {
               )}
               {activeScreen === "MIND" && (
                 <>
-                  <span className="section-label !p-0 mb-3 block">MOOD THIS WEEK</span>
-                  <div className="flex items-end gap-1.5 h-[80px] mb-2">
-                    {(user ? moodWeek : MOOD_WEEK).map((v: number, i: number) => {
-                      const h = Math.round((Number(v) / 4) * 68) + 8;
-                      return (
-                        <div key={i} className="flex-1 flex flex-col items-center gap-1">
-                          <div className={`w-full transition-all ${Number(v) >= 3 ? "bg-primary" : "bg-muted"}`} style={{ height: `${h}px` }} />
-                          <span className="font-heading text-[9px] font-bold text-muted-foreground">{DAYS[i]}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
+                  <SectionHeader title="MOOD THIS WEEK" className="mb-3 block" />
+                  <MiniBarChart values={user ? moodWeek : MOOD_WEEK} labels={DAYS} maxValue={4} />
                   <Link href="/mind" className="font-heading font-bold text-[10px] tracking-wider uppercase text-primary hover:underline inline-block mt-2">
                     View full Mind →
                   </Link>
