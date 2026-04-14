@@ -116,10 +116,22 @@ const DashboardPreview = ({ variant = "preview" }: DashboardPreviewProps) => {
     ? [[String(dashboard.reportStats.workouts), "Workouts"], [String(dashboard.reportStats.journal), "Journal"], [String(dashboard.reportStats.dadDates), "Dad dates"]]
     : [["—", "Workouts"], ["—", "Journal"], ["—", "Dad dates"]];
   const isFullDashboard = variant === "full";
+  const restrictedMoodValues = [1, 2, 4];
+
+  const handleMoodSelect = (value: number) => {
+    setCbtMood(value);
+  };
+
+  const handleDailyCheckIn = () => {
+    if (restrictedMoodValues.includes(cbtMood)) {
+      return;
+    }
+    checkIn.mutate({ mood_value: cbtMood, sleep_hours: cbtSleep });
+  };
 
   if (authLoading) {
     return (
-      <section className={`bg-background flex flex-col gap-4 items-center justify-center ${isFullDashboard ? "min-h-[calc(100dvh-73px)] py-6" : "pt-16 lg:pt-20 pb-8 min-h-[600px]"}`}>
+      <section className={`bg-background flex flex-col gap-4 items-center justify-center ${isFullDashboard ? "min-h-[calc(100dvh-73px)]" : "pt-16 lg:pt-20 pb-8 min-h-[600px]"}`}>
         <div className="w-8 h-8 rounded-full border-4 border-primary border-t-transparent animate-spin" />
         <p className="text-primary font-heading text-[11px] font-bold tracking-widest uppercase">
           Loading Preview...
@@ -129,8 +141,8 @@ const DashboardPreview = ({ variant = "preview" }: DashboardPreviewProps) => {
   }
 
   return (
-  <section className={`bg-background ${isFullDashboard ? "min-h-[calc(100dvh-73px)] py-4" : "pt-16 lg:pt-20 pb-8"}`}>
-    <div className={`${isFullDashboard ? "w-full px-5 lg:px-8 h-full flex flex-col" : "max-w-[1400px] mx-auto px-5 lg:px-8"}`}>
+  <section className={`bg-background ${isFullDashboard ? "min-h-[calc(100dvh-73px)]" : "pt-16 lg:pt-20 pb-8"}`}>
+    <div className={`${isFullDashboard ? "w-full min-h-[calc(100dvh-73px)] flex flex-col" : "max-w-[1400px] mx-auto px-5 lg:px-8"}`}>
       {!isFullDashboard && (
         <>
           <div className="py-4">
@@ -145,7 +157,7 @@ const DashboardPreview = ({ variant = "preview" }: DashboardPreviewProps) => {
         </>
       )}
 
-      <div className={`bg-primary/20 border border-primary/30 overflow-hidden ${isFullDashboard ? "rounded-lg flex-1 min-h-0" : "rounded-xl"}`}>
+      <div className={`bg-primary/20 border border-primary/30 overflow-hidden ${isFullDashboard ? "rounded-none flex-1 min-h-0" : "rounded-xl"}`}>
         <div className={`grid grid-cols-1 lg:grid-cols-3 gap-px bg-primary/30 ${isFullDashboard ? "h-full min-h-0" : ""}`}>
           {/* Sidebar */}
         <div className={`bg-card p-5 ${isFullDashboard ? "lg:overflow-y-auto" : ""}`}>
@@ -236,7 +248,7 @@ const DashboardPreview = ({ variant = "preview" }: DashboardPreviewProps) => {
                           <button
                             key={v}
                             type="button"
-                            onClick={() => window.location.href = `/pricing`}
+                            onClick={() => handleMoodSelect(v)}
                             className={`min-w-[2rem] h-8 px-2 font-heading text-xs font-bold border cursor-pointer ${
                               cbtMood === v ? "bg-primary text-primary-foreground border-primary" : "border-border hover:border-primary"
                             }`}
@@ -264,7 +276,7 @@ const DashboardPreview = ({ variant = "preview" }: DashboardPreviewProps) => {
                       </div>
                       <button
                         type="button"
-                        onClick={() => checkIn.mutate({ mood_value: cbtMood, sleep_hours: cbtSleep })}
+                        onClick={handleDailyCheckIn}
                         disabled={checkIn.isPending}
                         className="bg-primary text-primary-foreground font-heading font-bold text-[10px] tracking-wider uppercase px-4 py-2 border-none cursor-pointer hover:bg-primary/90 disabled:opacity-50 shrink-0"
                       >
