@@ -2,6 +2,7 @@
 
 import SitePageShell from "@/components/SitePageShell";
 import SiteFooter from "@/components/SiteFooter";
+import { useSearchParams } from "next/navigation";
 import { IMAGES } from "@/lib/images";
 import HeroSection from "@/components/home/HeroSection";
 import StatsBar from "@/components/home/StatsBar";
@@ -15,6 +16,8 @@ const PILLAR_IMAGES = [IMAGES.gym, IMAGES.run, IMAGES.food, IMAGES.bond];
 
 const Index = () => {
   const { user, loading } = useAuth();
+  const searchParams = useSearchParams();
+  const showMarketingView = user && searchParams.get("view") === "home";
 
   return (
     <SitePageShell>
@@ -22,7 +25,7 @@ const Index = () => {
         <div className="flex min-h-[calc(100dvh-73px)] items-center justify-center">
           <div className="w-8 h-8 rounded-full border-4 border-primary border-t-transparent animate-spin" />
         </div>
-      ) : user ? (
+      ) : user && !showMarketingView ? (
         <DashboardPreview variant="full" />
       ) : (
         <>
