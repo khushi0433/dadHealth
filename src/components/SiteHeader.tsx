@@ -30,6 +30,7 @@ const SiteHeader = () => {
 
   const resolvedName = resolveDisplayName(profile, user);
   const avatarInitials = initialsFromDisplayName(resolvedName, user?.email);
+  const getNavHref = (href: string) => (user && href === "/" ? "/?view=home" : href);
 
   const handleSignOut = async () => {
     if (isSigningOut) return;
@@ -54,7 +55,7 @@ const SiteHeader = () => {
           {NAV_LINKS.map((link) => (
             <Link
               key={link.href}
-              href={link.href}
+              href={getNavHref(link.href)}
               className={cn(
                 "font-heading text-[11px] font-bold tracking-[1.5px] uppercase transition-colors duration-200",
                 pathname === link.href
@@ -177,7 +178,7 @@ const SiteHeader = () => {
           {NAV_LINKS.map((link) => (
             <Link
               key={link.href}
-              href={link.href}
+              href={getNavHref(link.href)}
               onClick={() => setMobileOpen(false)}
               className={cn(
                 "block font-heading text-[12px] font-bold tracking-[1.5px] uppercase py-2 transition-colors",
