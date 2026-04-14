@@ -10,16 +10,38 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { useProStatus } from "@/components/ProProvider";
 import { initialsFromDisplayName, resolveDisplayName } from "@/lib/userDisplay";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu";
+import { ChevronDown, LogOut, User, Settings, HelpCircle, Shield, CreditCard, Package } from "lucide-react";
 
 const SiteHeader = () => {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [isSigningOut, setIsSigningOut] = useState(false);
   const { user, signOut, openAuthModal } = useAuth();
   const { isPro } = useProStatus();
   const { data: profile } = useUserProfile(user?.id);
 
   const resolvedName = resolveDisplayName(profile, user);
   const avatarInitials = initialsFromDisplayName(resolvedName, user?.email);
+
+  const handleSignOut = async () => {
+    if (isSigningOut) return;
+    try {
+      setIsSigningOut(true);
+      await signOut();
+    } catch (error) {
+      console.error("Sign out failed", error);
+    } finally {
+      setIsSigningOut(false);
+    }
+  };
 
   return (
     <header className="sticky top-0 z-50 w-full shrink-0 bg-black border-b border-white/10">
@@ -62,20 +84,66 @@ const SiteHeader = () => {
             </Link>
           )}
           {user ? (
-            <div className="flex items-center gap-2">
-              <Link
-                href="/progress"
-                className="w-9 h-9 bg-primary/20 border border-primary rounded-full flex items-center justify-center font-heading text-sm font-bold text-primary"
-              >
-                {avatarInitials}
-              </Link>
-              <button
-                onClick={() => signOut()}
-                className="font-heading text-[10px] font-bold tracking-wider uppercase text-muted-foreground hover:text-foreground transition-colors"
-              >
-                SIGN OUT
-              </button>
-            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  type="button"
+                  className="flex items-center gap-2 rounded-full border border-primary/40 bg-primary/10 px-2 py-1 hover:bg-primary/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+                  aria-label="Open profile menu"
+                >
+                  <span className="w-8 h-8 rounded-full bg-primary/20 border border-primary flex items-center justify-center font-heading text-xs font-bold text-primary">
+                    {avatarInitials}
+                  </span>
+                  <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+                </button>
+              </DropdownMenuTrigger>
+
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuLabel className="truncate">{resolvedName || "KB Profile"}</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+
+                <DropdownMenuItem asChild>
+                  <Link href="/progress" className="cursor-pointer">
+                    <User className="mr-2 h-4 w-4" />
+                    Profile
+                  </Link>
+                </DropdownMenuItem>
+
+                <DropdownMenuItem disabled>
+                  <Settings className="mr-2 h-4 w-4" />
+                  Settings
+                </DropdownMenuItem>
+
+                <DropdownMenuItem asChild>
+                  <Link href="/pricing" className="cursor-pointer">
+                    <Package className="mr-2 h-4 w-4" />
+                    My Plan
+                  </Link>
+                </DropdownMenuItem>
+
+                <DropdownMenuItem disabled>
+                  <CreditCard className="mr-2 h-4 w-4" />
+                  Billing
+                </DropdownMenuItem>
+
+                <DropdownMenuItem disabled>
+                  <Shield className="mr-2 h-4 w-4" />
+                  Privacy & Security
+                </DropdownMenuItem>
+
+                <DropdownMenuItem disabled>
+                  <HelpCircle className="mr-2 h-4 w-4" />
+                  Help
+                </DropdownMenuItem>
+
+                <DropdownMenuSeparator />
+
+                <DropdownMenuItem onSelect={handleSignOut} disabled={isSigningOut} className="text-red-400 focus:text-red-400">
+                  <LogOut className="mr-2 h-4 w-4" />
+                  {isSigningOut ? "Signing out..." : "Sign out"}
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           ) : (
             <button
               onClick={openAuthModal}
