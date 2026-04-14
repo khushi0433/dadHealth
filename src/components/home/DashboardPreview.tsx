@@ -131,7 +131,7 @@ const DashboardPreview = ({ variant = "preview" }: DashboardPreviewProps) => {
 
   if (authLoading) {
     return (
-      <section className={`bg-background flex flex-col gap-4 items-center justify-center ${isFullDashboard ? "h-[calc(100dvh-73px)] overflow-hidden" : "pt-16 lg:pt-20 pb-8 min-h-[600px]"}`}>
+      <section className={`bg-background flex flex-col gap-4 items-center justify-center ${isFullDashboard ? "min-h-[calc(100dvh-73px)]" : "pt-16 lg:pt-20 pb-8 min-h-[600px]"}`}>
         <div className="w-8 h-8 rounded-full border-4 border-primary border-t-transparent animate-spin" />
         <p className="text-primary font-heading text-[11px] font-bold tracking-widest uppercase">
           Loading Preview...
@@ -141,8 +141,8 @@ const DashboardPreview = ({ variant = "preview" }: DashboardPreviewProps) => {
   }
 
   return (
-  <section className={`bg-background ${isFullDashboard ? "h-[calc(100dvh-73px)] overflow-hidden" : "pt-16 lg:pt-20 pb-8"}`}>
-    <div className={`${isFullDashboard ? "w-full h-full flex flex-col" : "max-w-[1400px] mx-auto px-5 lg:px-8"}`}>
+  <section className={`bg-background ${isFullDashboard ? "min-h-[calc(100dvh-73px)]" : "pt-16 lg:pt-20 pb-8"}`}>
+    <div className={`${isFullDashboard ? "w-full flex flex-col" : "max-w-[1400px] mx-auto px-5 lg:px-8"}`}>
       {!isFullDashboard && (
         <>
           <div className="py-4">
@@ -157,10 +157,10 @@ const DashboardPreview = ({ variant = "preview" }: DashboardPreviewProps) => {
         </>
       )}
 
-      <div className={`bg-primary/20 border border-primary/30 overflow-hidden ${isFullDashboard ? "rounded-none flex-1 min-h-0" : "rounded-xl"}`}>
-        <div className={`grid grid-cols-1 lg:grid-cols-3 gap-px bg-primary/30 ${isFullDashboard ? "h-full min-h-0" : ""}`}>
+      <div className={`bg-primary/20 border border-primary/30 overflow-hidden ${isFullDashboard ? "rounded-none" : "rounded-xl"}`}>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-px bg-primary/30">
           {/* Sidebar */}
-        <div className={`bg-card p-5 ${isFullDashboard ? "lg:overflow-y-auto" : ""}`}>
+        <div className="bg-card p-5">
           <Logo className="mb-5" />
           <div className="flex items-center gap-3 mb-6">
             <div className="w-10 h-10 bg-primary/20 border border-primary rounded-full flex items-center justify-center font-heading text-sm font-bold text-primary">
@@ -217,7 +217,7 @@ const DashboardPreview = ({ variant = "preview" }: DashboardPreviewProps) => {
         {/* Main content - HOME: two columns; other screens: full content */}
         {activeScreen === "HOME" ? (
           <>
-            <div className={`bg-card p-5 ${isFullDashboard ? "lg:overflow-y-auto" : ""}`}>
+            <div className="bg-card p-5">
               <div className="mb-4">
                 <span className="block text-[10px] font-heading font-bold tracking-[2px] text-muted-foreground uppercase !p-0">
                   good morning dads
@@ -348,7 +348,7 @@ const DashboardPreview = ({ variant = "preview" }: DashboardPreviewProps) => {
               </div>
             </div>
 
-            <div className={`bg-card p-5 ${isFullDashboard ? "lg:overflow-y-auto" : ""}`}>
+            <div className="bg-card p-5">
               <span className="section-label !p-0 mb-3 block">MOOD THIS WEEK</span>
               <div className="flex items-end gap-1.5 h-[80px] mb-2">
                 {(user ? moodWeek : MOOD_WEEK).map((v: number, i: number) => {
@@ -410,7 +410,7 @@ const DashboardPreview = ({ variant = "preview" }: DashboardPreviewProps) => {
           </>
         ) : (
           <>
-            <div className={`bg-card p-5 ${isFullDashboard ? "lg:overflow-y-auto" : ""}`}>
+            <div className="bg-card p-5">
               {activeScreen === "FITNESS" && (
                 <>
                   <span className="section-label !p-0">FITNESS</span>
@@ -561,7 +561,7 @@ const DashboardPreview = ({ variant = "preview" }: DashboardPreviewProps) => {
               )}
             </div>
 
-            <div className={`bg-card p-5 ${isFullDashboard ? "lg:overflow-y-auto" : ""}`}>
+            <div className="bg-card p-5">
               {activeScreen === "FITNESS" && (
                 <>
                   <span className="section-label !p-0 mb-3 block">BODY THIS WEEK</span>
