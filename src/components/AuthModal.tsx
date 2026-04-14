@@ -51,10 +51,7 @@ export default function AuthModal({ open, onClose, onSuccess }: AuthModalProps) 
     setError(null);
     setOauthLoading(provider);
     try {
-      const redirectTo =
-        typeof window !== "undefined"
-          ? `${window.location.origin}/auth/callback`
-          : undefined;
+      const redirectTo = `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`;
 
       const { data, error: oauthError } = await supabase.auth.signInWithOAuth({
         provider,
