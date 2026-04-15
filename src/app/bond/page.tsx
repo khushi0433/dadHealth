@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { format } from "date-fns";
 import { Lock } from "lucide-react";
 import SitePageShell from "@/components/SitePageShell";
@@ -28,7 +28,7 @@ const BondPage = () => {
   const { dadDates, milestones, prompts, saveMilestone } = useBond(user?.id);
 
   const [presentMode, setPresentMode] = useState(false);
-  const [dateFilter, setDateFilter] = useState(0);
+  const [dateFilter, setDateFilter] = useState("all");
 
   const dates: DadDateDisplay[] = (dadDates as DadDateRow[]).map((d) => ({
     ...d,
@@ -36,13 +36,31 @@ const BondPage = () => {
       ? (d.duration_minutes >= 60 ? `${Math.floor(d.duration_minutes / 60)} hr` : `${d.duration_minutes} min`)
       : "—"),
   }));
-  const filters = ["All", "Free", "Under £15", "1 hr", "Evening"];
+  const filters = useMemo(() => {
+    const options: Array<{ id: string; label: string }> = [{ id: "all", label: "All" }];
+    if (dates.some((d) => d.budget?.toLowerCase() === "free")) {
+      options.push({ id: "free", label: "Free" });
+    }
+    if (dates.some((d) => d.budget?.includes("£") && Number.parseInt(d.budget, 10) <= 15)) {
+      options.push({ id: "under-15", label: "Under £15" });
+    }
+    if (dates.some((d) => d.duration_minutes != null && d.duration_minutes >= 60) || dates.some((d) => d.time.includes("hr"))) {
+      options.push({ id: "one-hour", label: "1 hr" });
+    }
+    if (
+      dates.some((d) => d.time_of_day?.toLowerCase().includes("evening")) ||
+      dates.some((d) => d.time.toLowerCase().includes("evening"))
+    ) {
+      options.push({ id: "evening", label: "Evening" });
+    }
+    return options;
+  }, [dates]);
   const filteredDates = dates.filter((d) => {
-    if (dateFilter === 0) return true;
-    if (dateFilter === 1) return d.budget === "Free";
-    if (dateFilter === 2) return d.budget?.includes("£") && parseInt(d.budget) <= 15;
-    if (dateFilter === 3) return d.time?.includes("1 hr");
-    if (dateFilter === 4) return d.time?.toLowerCase().includes("evening");
+    if (dateFilter === "all") return true;
+    if (dateFilter === "free") return d.budget?.toLowerCase() === "free";
+    if (dateFilter === "under-15") return d.budget?.includes("£") && Number.parseInt(d.budget, 10) <= 15;
+    if (dateFilter === "one-hour") return d.time?.includes("1 hr");
+    if (dateFilter === "evening") return d.time?.toLowerCase().includes("evening");
     return true;
   });
 
@@ -96,17 +114,17 @@ const BondPage = () => {
           <div className="pt-8 pb-6 lg:col-span-7 lg:pb-10 min-w-0">
             <span className="section-label !p-0 mb-4 block">DAD DATE IDEAS</span>
             <div className="flex gap-2 mb-4 flex-wrap">
-              {filters.map((f, i) => (
+              {filters.map((filterOption) => (
                 <button
-                  key={f}
-                  onClick={() => setDateFilter(i)}
+                  key={filterOption.id}
+                  onClick={() => setDateFilter(filterOption.id)}
                   className={`px-3 py-1.5 border font-heading text-[11px] font-bold tracking-wide uppercase cursor-pointer transition-all ${
-                    dateFilter === i
+                    dateFilter === filterOption.id
                       ? "border-primary text-primary bg-primary/10"
                       : "border-border text-muted-foreground hover:border-primary hover:text-primary"
                   }`}
                 >
-                  {f}
+                  {filterOption.label}
                 </button>
               ))}
             </div>

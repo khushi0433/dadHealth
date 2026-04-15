@@ -3,7 +3,13 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/utils/supabaseClient";
 
-function calcScore(moodAvg: number, sleepAvg: number, workoutCount: number, journalCount: number): number {
+function calcScore(
+  moodAvg: number | null,
+  sleepAvg: number | null,
+  workoutCount: number,
+  journalCount: number
+): number | null {
+  if (moodAvg == null || sleepAvg == null) return null;
   const moodScore = Math.min(100, (moodAvg / 4) * 30);
   const sleepScore = Math.min(30, (sleepAvg / 8) * 30);
   const workoutScore = Math.min(25, workoutCount * 3);
@@ -93,17 +99,17 @@ export function useProgress(userId?: string) {
       const moodAvg =
         moodRes.data?.length && moodRes.data.length > 0
           ? moodRes.data.reduce((a: number, b: { mood_value: number }) => a + b.mood_value, 0) / moodRes.data.length
-          : 2.5;
+          : null;
       const sleepAvg =
         sleepRes.data?.length && sleepRes.data.length > 0
           ? sleepRes.data.reduce((a: number, b: { hours: number }) => a + b.hours, 0) / sleepRes.data.length
-          : 6;
+          : null;
       const workoutCount = workoutRes.count ?? 0;
       const journalCount = journalRes.count ?? 0;
       const score = calcScore(moodAvg, sleepAvg, workoutCount, journalCount);
-      const mind = Math.round((moodAvg / 4) * 100);
-      const body = Math.round(Math.min(100, workoutCount * 15 + 40));
-      const bond = Math.round(Math.min(100, journalCount * 20 + 40));
+      const mind = moodAvg == null ? null : Math.round((moodAvg / 4) * 100);
+      const body = Math.round(Math.min(100, workoutCount * 15));
+      const bond = Math.round(Math.min(100, journalCount * 20));
 
       const workouts = workoutMonthRes.count ?? 0;
       const journal = journalMonthRes.count ?? 0;
@@ -113,29 +119,42 @@ export function useProgress(userId?: string) {
       const avgSleep =
         sleepData.length > 0
           ? sleepData.reduce((a: number, b: { hours: number }) => a + b.hours, 0) / sleepData.length
-          : 6.8;
+          : null;
       const moodData = moodMonthRes.data ?? [];
       const moodMonthAvg =
         moodData.length > 0
           ? moodData.reduce((a: number, b: { mood_value: number }) => a + b.mood_value, 0) / moodData.length
-          : 3;
-      const avgMood = moodMonthAvg >= 3.5 ? "Good" : moodMonthAvg >= 2.5 ? "Okay" : "Low";
+          : null;
+      const avgMood =
+        moodMonthAvg == null
+          ? null
+          : moodMonthAvg >= 3.5
+            ? "Good"
+            : moodMonthAvg >= 2.5
+              ? "Okay"
+              : "Low";
 
-      const earnedBadges = (earnedBadgesRes.data ?? []).map((e: { badge_id: string; badges: { icon: string; name: string } }) => ({
-        icon: e.badges?.icon ?? "🏆",
-        name: e.badges?.name ?? "Badge",
-      }));
+      const earnedBadges = (earnedBadgesRes.data ?? [])
+        .map((e: { badge_id: string; badges: { icon: string; name: string } }) => ({
+          icon: e.badges?.icon,
+          name: e.badges?.name,
+        }))
+        .filter((b): b is { icon: string; name: string } => Boolean(b.icon && b.name));
 
       return {
         scoreData: {
           score,
-          breakdown: { mind: Math.min(100, mind), body: Math.min(100, body), bond: Math.min(100, bond) },
+          breakdown: {
+            mind: mind == null ? null : Math.min(100, mind),
+            body: Math.min(100, body),
+            bond: Math.min(100, bond),
+          },
         },
         reportStats: {
           workouts,
           journal,
           dadDates,
-          avgSleep: Math.round(avgSleep * 10) / 10,
+          avgSleep: avgSleep == null ? null : Math.round(avgSleep * 10) / 10,
           streak,
           avgMood,
         },

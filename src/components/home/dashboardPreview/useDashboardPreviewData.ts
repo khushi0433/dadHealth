@@ -90,11 +90,16 @@ export function useDashboardPreviewData({
     [communityPosts],
   );
   const reportStatsList = useMemo(() => getReportStatsList(dashboard?.reportStats), [dashboard?.reportStats]);
+  const badges = useMemo(
+    () => ((dashboard?.badges as Array<{ icon: string; name: string }> | undefined) ?? []).slice(0, 4),
+    [dashboard?.badges],
+  );
+  const reportMonthLabel = useMemo(() => now.toLocaleString("en-GB", { month: "long" }).toUpperCase(), [now]);
 
   const featuredWorkoutTitle =
-    (dashboard?.featured_workout_title as string | undefined) ?? "Dad Strength";
+    (dashboard?.featured_workout_title as string | undefined) ?? "";
   const featuredWorkoutMeta =
-    (dashboard?.featured_workout_meta as string | undefined) ?? "22 min · 6 exercises · 280 kcal";
+    (dashboard?.featured_workout_meta as string | undefined) ?? "";
 
   return {
     hasUser,
@@ -117,6 +122,8 @@ export function useDashboardPreviewData({
     bodyWeekSeries,
     displayPosts,
     reportStatsList,
+    badges,
+    reportMonthLabel,
     featuredWorkoutTitle,
     featuredWorkoutMeta,
   };

@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { DashboardIcon } from "@/components/DashboardIcon";
 import StatCard from "@/components/dashboard/StatCard";
 import type { ScoreItem } from "./types";
 
@@ -10,6 +9,8 @@ type ProgressScreenProps = {
   score: number | null;
   scoreItems: ScoreItem[];
   reportStatsList: readonly (readonly [string, string])[];
+  badges: Array<{ icon: string; name: string }>;
+  reportMonthLabel: string;
 };
 
 export default function ProgressScreen({
@@ -17,6 +18,8 @@ export default function ProgressScreen({
   score,
   scoreItems,
   reportStatsList,
+  badges,
+  reportMonthLabel,
 }: ProgressScreenProps) {
   return (
     <>
@@ -46,7 +49,7 @@ export default function ProgressScreen({
             </div>
           </div>
         </div>
-        <span className="section-label !p-0 mb-2 block">MARCH REPORT</span>
+        <span className="section-label !p-0 mb-2 block">{reportMonthLabel} REPORT</span>
         <div className="grid grid-cols-3 gap-2">
           {reportStatsList.map(([value, label]) => (
             <StatCard key={label} value={value} label={label} compact />
@@ -56,13 +59,21 @@ export default function ProgressScreen({
 
       <div className={`bg-card p-5 ${isFullDashboard ? "min-h-full" : ""}`}>
         <span className="section-label !p-0 mb-3 block">BADGES</span>
-        <div className="flex gap-2 flex-wrap">
-          {["flame", "fitness", "story", "bond"].map((iconKey, i) => (
-            <div key={i} className="w-10 h-10 border border-primary/20 bg-primary/[0.04] flex items-center justify-center">
-              <DashboardIcon icon={iconKey} size="lg" />
-            </div>
-          ))}
-        </div>
+        {badges.length === 0 ? (
+          <p className="text-xs text-muted-foreground">Earn badges by logging workouts, moods, and milestones.</p>
+        ) : (
+          <div className="flex gap-2 flex-wrap">
+            {badges.map((badge) => (
+              <div
+                key={badge.name}
+                className="w-10 h-10 border border-primary/20 bg-primary/[0.04] flex items-center justify-center"
+                title={badge.name}
+              >
+                <span aria-hidden="true">{badge.icon}</span>
+              </div>
+            ))}
+          </div>
+        )}
         <Link href="/progress" className="font-heading font-bold text-[10px] tracking-wider uppercase text-primary hover:underline inline-block mt-3">
           View full Progress →
         </Link>

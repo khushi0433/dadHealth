@@ -26,12 +26,29 @@ const SIDEBAR_ITEMS = [
   { iconKey: "pro", label: "PRO ★", href: "/pricing" },
 ];
 
-const DEFAULT_GOALS = [
-  { iconKey: "breathing", name: "5-min breathing reset", time: "MORNING · MENTAL HEALTH", status: "done" as DashboardGoal["status"] },
-  { iconKey: "run", name: "20-min dad run", time: "12:30PM · FITNESS", status: "start" as DashboardGoal["status"] },
-  { iconKey: "story", name: "Bedtime story", time: "7:30PM · PARENTING", status: "log" as DashboardGoal["status"] },
-  { iconKey: "journal", name: "Evening journal", time: "9:00PM · REFLECTION", status: "open" as DashboardGoal["status"] },
+const GOAL_ICON_BY_KEYWORD: ReadonlyArray<{ match: RegExp; icon: string; pillar: string }> = [
+  { match: /(breath|mood|mind|meditat|calm|mental)/i, icon: "breathing", pillar: "MENTAL HEALTH" },
+  { match: /(run|walk|workout|train|fitness|gym|body)/i, icon: "run", pillar: "FITNESS" },
+  { match: /(story|bond|dad date|parent|family|kid|child)/i, icon: "story", pillar: "PARENTING" },
+  { match: /(journal|reflect|gratitude|write)/i, icon: "journal", pillar: "REFLECTION" },
 ];
+
+function buildGoalsFromProfile(rawGoals: unknown): DashboardGoal[] {
+  if (!Array.isArray(rawGoals)) return [];
+  return rawGoals
+    .map((value) => (typeof value === "string" ? value.trim() : ""))
+    .filter((value) => value.length > 0)
+    .slice(0, 4)
+    .map((name) => {
+      const matched = GOAL_ICON_BY_KEYWORD.find((rule) => rule.match.test(name));
+      return {
+        iconKey: matched?.icon ?? "check",
+        name,
+        time: `TODAY · ${matched?.pillar ?? "WELLBEING"}`,
+        status: "start" as const,
+      };
+    });
+}
 
 type DashboardPreviewProps = {
   variant?: "preview" | "full";
@@ -46,7 +63,7 @@ const DashboardPreview = ({ variant = "preview" }: DashboardPreviewProps) => {
   const isFullDashboard = variant === "full";
   const [selectedMood, setSelectedMood] = useState((dashboard?.mood_value as number | undefined) ?? 3);
   const [selectedSleep, setSelectedSleep] = useState((dashboard?.sleep_hours as number | undefined) ?? 7);
-  const [dailyGoals, setDailyGoals] = useState<DashboardGoal[]>(DEFAULT_GOALS);
+  const [dailyGoals, setDailyGoals] = useState<DashboardGoal[]>([]);
 
   const {
     hasUser,
@@ -67,6 +84,8 @@ const DashboardPreview = ({ variant = "preview" }: DashboardPreviewProps) => {
     bodyWeekSeries,
     displayPosts,
     reportStatsList,
+    badges,
+    reportMonthLabel,
     featuredWorkoutTitle,
     featuredWorkoutMeta,
   } = useDashboardPreviewData({
@@ -81,6 +100,11 @@ const DashboardPreview = ({ variant = "preview" }: DashboardPreviewProps) => {
     if (dashboard.mood_value != null) setSelectedMood(dashboard.mood_value);
     if (dashboard.sleep_hours != null) setSelectedSleep(dashboard.sleep_hours);
   }, [dashboard]);
+
+  useEffect(() => {
+    const nextGoals = buildGoalsFromProfile(profile?.goals ?? dashboard?.goals);
+    setDailyGoals(nextGoals);
+  }, [profile?.goals, dashboard?.goals]);
 
   const isCheckinBlocked = BLOCKED_CHECKIN_MOODS.includes(selectedMood as (typeof BLOCKED_CHECKIN_MOODS)[number]);
 
@@ -190,6 +214,7 @@ const DashboardPreview = ({ variant = "preview" }: DashboardPreviewProps) => {
                 bodyWeekSeries={bodyWeekSeries}
                 featuredWorkoutTitle={featuredWorkoutTitle}
                 featuredWorkoutMeta={featuredWorkoutMeta}
+                meals={(dashboard?.meal_plans as Array<{ day: string; name: string; kcal: number }> | undefined) ?? []}
               />
             )}
             {activeScreen === "MIND" && (
@@ -221,6 +246,8 @@ const DashboardPreview = ({ variant = "preview" }: DashboardPreviewProps) => {
                 score={score}
                 scoreItems={scoreItems}
                 reportStatsList={reportStatsList}
+                badges={badges}
+                reportMonthLabel={reportMonthLabel}
               />
             )}
           </>

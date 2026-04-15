@@ -172,29 +172,35 @@ export default function HomeScreen({
 
         <SectionHeader title="TODAY'S PLAN" className="mb-2 block" />
         <div className="pb-4">
-          {dailyGoals.map((task, index) => (
-            <div key={task.name} className="flex items-center gap-3 py-3 border-b border-primary/20 last:border-b-0">
-              <div className="w-9 h-9 bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
-                <DashboardIcon icon={task.iconKey} size="md" />
+          {dailyGoals.length === 0 ? (
+            <p className="text-xs text-muted-foreground py-2">
+              Add goals in onboarding to build your daily plan.
+            </p>
+          ) : (
+            dailyGoals.map((task, index) => (
+              <div key={task.name} className="flex items-center gap-3 py-3 border-b border-primary/20 last:border-b-0">
+                <div className="w-9 h-9 bg-primary/10 border border-primary/20 flex items-center justify-center shrink-0">
+                  <DashboardIcon icon={task.iconKey} size="md" />
+                </div>
+                <div className="flex-1">
+                  <div className="font-heading text-[13px] font-bold tracking-wide text-foreground">{task.name}</div>
+                  <div className="text-[10px] text-muted-foreground uppercase tracking-wide mt-0.5">{task.time}</div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => onGoalAction(index)}
+                  disabled={task.status === "done"}
+                  className={`font-heading font-bold text-[10px] tracking-wider uppercase px-2.5 py-1 border cursor-pointer transition-colors ${
+                    task.status === "done"
+                      ? "bg-primary text-primary-foreground border-primary cursor-not-allowed"
+                      : "bg-transparent text-primary border-primary hover:bg-primary hover:text-primary-foreground"
+                  }`}
+                >
+                  {getGoalActionLabel(task.status)}
+                </button>
               </div>
-              <div className="flex-1">
-                <div className="font-heading text-[13px] font-bold tracking-wide text-foreground">{task.name}</div>
-                <div className="text-[10px] text-muted-foreground uppercase tracking-wide mt-0.5">{task.time}</div>
-              </div>
-              <button
-                type="button"
-                onClick={() => onGoalAction(index)}
-                disabled={task.status === "done"}
-                className={`font-heading font-bold text-[10px] tracking-wider uppercase px-2.5 py-1 border cursor-pointer transition-colors ${
-                  task.status === "done"
-                    ? "bg-primary text-primary-foreground border-primary cursor-not-allowed"
-                    : "bg-transparent text-primary border-primary hover:bg-primary hover:text-primary-foreground"
-                }`}
-              >
-                {getGoalActionLabel(task.status)}
-              </button>
-            </div>
-          ))}
+            ))
+          )}
         </div>
       </div>
 

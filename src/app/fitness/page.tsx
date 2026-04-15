@@ -5,7 +5,6 @@ import SitePageShell from "@/components/SitePageShell";
 import SiteFooter from "@/components/SiteFooter";
 import LimeButton from "@/components/LimeButton";
 import { ProGate, useProStatus } from "@/components/ProProvider";
-import { EXERCISES, MEALS } from "@/lib/constants";
 import { IMAGES } from "@/lib/images";
 import { useAuth } from "@/contexts/AuthContext";
 import { useFitness } from "@/hooks/useFitness";
@@ -71,19 +70,27 @@ const FitnessPage = () => {
       value: user && prevWeight && latestWeight ? `${prevWeight.value}→${latestWeight.value}kg` : "—",
       label: "WEIGHT",
     },
-    { value: "—", label: "BEST RUN" },
+    { value: workouts[0]?.exercise_name ?? "—", label: "LATEST SESSION" },
     { value: timerSec > 0 ? formatTime(timerSec) : "0 min", label: "ACTIVE TODAY" },
   ];
 
-  const defaultWeekMeals = MEALS.map(({ day, name, kcal }) => ({ day, name, kcal }));
-  const meals = mealPlans.length > 0 ? mealPlans : defaultWeekMeals;
+  const meals = mealPlans;
+  const recentWorkouts = workouts
+    .slice(0, 6)
+    .map((workout: { exercise_name?: string; duration_minutes?: number; performed_at?: string }) => ({
+      name: workout.exercise_name?.trim() || "Workout session",
+      duration: workout.duration_minutes,
+      performedAt: workout.performed_at,
+    }));
+  const currentWorkout = recentWorkouts[currentExerciseIdx] ?? null;
+  const latestWorkout = recentWorkouts[0] ?? null;
 
   const handleCompleteWorkout = () => {
-    const totalMin = Math.ceil(timerSec / 60) || 22;
+    const totalMin = Math.ceil(timerSec / 60) || currentWorkout?.duration || 1;
     saveWorkout.mutate({
-      exercise_name: "Dad Strength",
+      exercise_name: currentWorkout?.name ?? "Workout session",
       duration_minutes: totalMin,
-      calories: 280,
+      calories: undefined,
     });
   };
 
@@ -98,7 +105,8 @@ const FitnessPage = () => {
       showPaywall("Step-by-step exercises");
       return;
     }
-    setCurrentExerciseIdx((i) => (i + 1) % EXERCISES.length);
+    if (recentWorkouts.length === 0) return;
+    setCurrentExerciseIdx((i) => (i + 1) % recentWorkouts.length);
   };
 
   return (
@@ -110,9 +118,12 @@ const FitnessPage = () => {
         <div className="relative z-10 flex flex-col justify-end h-full max-w-[1400px] mx-auto px-5 lg:px-8 pb-8">
           <span className="section-label text-primary mb-1">TODAY'S WORKOUT</span>
           <h1 className="font-heading text-[42px] lg:text-[56px] font-extrabold text-foreground uppercase leading-none tracking-wide">
-            DAD STRENGTH
+            {latestWorkout?.name ?? "FITNESS"}
           </h1>
-          <p className="text-sm text-foreground/50 mt-2">No gym needed · 22 minutes · 6 exercises · 280 kcal</p>
+          <p className="text-sm text-foreground/50 mt-2">
+            {latestWorkout?.duration ? `${latestWorkout.duration} minutes` : "Log sessions to track duration"}
+            {latestWorkout?.performedAt ? ` · Last logged ${latestWorkout.performedAt.slice(0, 10)}` : ""}
+          </p>
         </div>
       </section>
 
@@ -122,7 +133,7 @@ const FitnessPage = () => {
           <div className="flex-1">
             <div className="font-heading text-[52px] font-extrabold text-foreground leading-none tracking-wide">{formatTime(timerSec)}</div>
             <div className="font-heading text-[10px] font-bold tracking-wider uppercase text-muted-foreground mt-1">
-              WORKOUT TIMER · 6 EXERCISES
+              WORKOUT TIMER · {Math.max(recentWorkouts.length, 1)} SESSIONS
             </div>
           </div>
           <div className="flex flex-wrap gap-3 items-center">
@@ -170,9 +181,12 @@ const FitnessPage = () => {
             {/* Exercise list */}
             <div className="p-5 lg:p-8 min-w-0">
               <span className="section-label !p-0 mb-4 block">TODAY'S MOVES</span>
-              {EXERCISES.map((ex, i) => (
-                <div
-                  key={i}
+              {recentWorkouts.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No workout sessions logged yet.</p>
+              ) : (
+                recentWorkouts.map((workout, i) => (
+                  <div
+                  key={`${workout.name}-${workout.performedAt ?? i}`}
                   className={`flex items-center gap-3 py-3 border-b border-primary/20 last:border-b-0 rounded-sm transition-colors ${
                     canUseNextExercise && currentExerciseIdx === i
                       ? "bg-primary/[0.08] ring-1 ring-primary/25 -mx-1 px-1"
@@ -183,12 +197,16 @@ const FitnessPage = () => {
                 {i + 1}
               </div>
               <div className="flex-1">
-                <div className="font-heading text-sm font-bold text-foreground tracking-wide">{ex.name}</div>
-                <div className="text-[11px] text-muted-foreground mt-0.5">{ex.sets} · {ex.detail}</div>
+                <div className="font-heading text-sm font-bold text-foreground tracking-wide">{workout.name}</div>
+                <div className="text-[11px] text-muted-foreground mt-0.5">
+                  {workout.duration != null ? `${workout.duration} min` : "Duration not set"}
+                  {workout.performedAt ? ` · ${workout.performedAt.slice(0, 10)}` : ""}
+                </div>
               </div>
-              <span className="tag-pill">{ex.muscle}</span>
+              <span className="tag-pill">SESSION</span>
             </div>
-          ))}
+          ))
+              )}
             </div>
 
             {/* Vertical divider */}

@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback } from "react";
-import { Trophy } from "lucide-react";
 import SitePageShell from "@/components/SitePageShell";
 import OutlineButton from "@/components/OutlineButton";
 import { ProGate } from "@/components/ProProvider";
@@ -20,8 +19,10 @@ const ProgressPage = () => {
   const badges = data?.badges ?? [];
   const earnedBadges = data?.earnedBadges ?? [];
 
-  const dadScore = user ? (scoreData?.score ?? "—") : "—";
-  const breakdown = user ? (scoreData?.breakdown ?? { mind: "—", body: "—", bond: "—" }) : { mind: "—", body: "—", bond: "—" };
+  const dadScore = user && typeof scoreData?.score === "number" ? scoreData.score : null;
+  const breakdown = user
+    ? (scoreData?.breakdown ?? { mind: null, body: null, bond: null })
+    : { mind: null, body: null, bond: null };
 
   const last7 = Array.from({ length: 7 }, (_, i) => {
     const d = new Date();
@@ -41,21 +42,14 @@ const ProgressPage = () => {
         [String(reportStats.workouts), "Workouts"],
         [String(reportStats.journal), "Journal entries"],
         [String(reportStats.dadDates), "Dad dates"],
-        [`${reportStats.avgSleep}hrs`, "Avg sleep"],
+        [reportStats.avgSleep == null ? "—" : `${reportStats.avgSleep}hrs`, "Avg sleep"],
         [String(reportStats.streak), "Day streak"],
-        [reportStats.avgMood, "Avg mood"],
+        [reportStats.avgMood ?? "—", "Avg mood"],
       ]
-    : [
-        ["—", "Workouts"],
-        ["—", "Journal entries"],
-        ["—", "Dad dates"],
-        ["—", "Avg sleep"],
-        ["—", "Day streak"],
-        ["—", "Avg mood"],
-      ];
+    : [];
 
   const handleShareReport = useCallback(async () => {
-    const text = `My Dad Health Score: ${dadScore}${typeof dadScore === "number" ? "/100" : ""}. Track your dad health at Dad Health.`;
+    const text = `My Dad Health Score: ${dadScore ?? "Not available yet"}${dadScore != null ? "/100" : ""}. Track your dad health at Dad Health.`;
     try {
       if (navigator.share) {
         await navigator.share({
@@ -74,6 +68,23 @@ const ProgressPage = () => {
   }, [dadScore]);
 
   const displayBadges = earnedBadges.length > 0 ? earnedBadges : badges;
+  const moodSleepPairs = displaySleep
+    .map((sleep, idx) => ({ sleep: sleep.hrs, mood: displayMood[idx] ?? 0 }))
+    .filter((pair) => pair.sleep > 0 && pair.mood > 0);
+  const highSleep = moodSleepPairs.filter((pair) => pair.sleep >= 7);
+  const lowSleep = moodSleepPairs.filter((pair) => pair.sleep < 7);
+  const highSleepMoodAvg =
+    highSleep.length > 0
+      ? highSleep.reduce((sum, pair) => sum + pair.mood, 0) / highSleep.length
+      : null;
+  const lowSleepMoodAvg =
+    lowSleep.length > 0
+      ? lowSleep.reduce((sum, pair) => sum + pair.mood, 0) / lowSleep.length
+      : null;
+  const sleepPatternMessage =
+    highSleepMoodAvg != null && lowSleepMoodAvg != null && lowSleepMoodAvg > 0
+      ? `Your mood score is ${Math.round(((highSleepMoodAvg - lowSleepMoodAvg) / lowSleepMoodAvg) * 100)}% higher on days after 7+ hours sleep.`
+      : "Log more mood and sleep check-ins to unlock pattern insights.";
 
   return (
     <SitePageShell>
@@ -84,7 +95,7 @@ const ProgressPage = () => {
             <span className="section-label !p-0 mb-4 block">YOUR DAD HEALTH SCORE</span>
             <div className="flex flex-wrap gap-8 items-center">
               <div className="w-[100px] h-[100px] border-4 border-primary rounded-full flex flex-col items-center justify-center shrink-0">
-                <div className="font-heading text-[36px] font-extrabold text-primary leading-none">{dadScore}</div>
+                <div className="font-heading text-[36px] font-extrabold text-primary leading-none">{dadScore ?? "—"}</div>
                 <div className="font-heading text-[9px] font-bold tracking-wider uppercase text-muted-foreground">{user ? "out of 100" : ""}</div>
               </div>
               <ProGate
@@ -122,14 +133,18 @@ const ProgressPage = () => {
         <section className="bg-primary text-primary-foreground">
           <div className="w-full px-5 lg:px-8 py-10">
             <h2 className="font-heading text-[22px] font-extrabold uppercase tracking-wide mb-4">{format(new Date(), "MMMM")} report card</h2>
-            <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
-              {reportStatsList.map(([n, l]) => (
-                <div key={l} className="bg-primary-foreground/[0.07] p-3.5">
-                  <div className="font-heading text-[22px] font-extrabold leading-none">{n}</div>
-                  <div className="text-[10px] opacity-55 mt-1.5 uppercase tracking-wide">{l}</div>
-                </div>
-              ))}
-            </div>
+            {reportStatsList.length === 0 ? (
+              <p className="text-xs opacity-70">No monthly report data yet.</p>
+            ) : (
+              <div className="grid grid-cols-2 lg:grid-cols-6 gap-3">
+                {reportStatsList.map(([n, l]) => (
+                  <div key={l} className="bg-primary-foreground/[0.07] p-3.5">
+                    <div className="font-heading text-[22px] font-extrabold leading-none">{n}</div>
+                    <div className="text-[10px] opacity-55 mt-1.5 uppercase tracking-wide">{l}</div>
+                  </div>
+                ))}
+              </div>
+            )}
             <div className="mt-4">
               <OutlineButton dark onClick={handleShareReport}>Share report card</OutlineButton>
             </div>
@@ -155,12 +170,6 @@ const ProgressPage = () => {
                 )) : (
                   <p className="text-sm text-muted-foreground">No badges earned yet.</p>
                 )}
-                <div className="flex flex-col items-center gap-1.5 p-2.5 border border-dashed border-border min-w-[60px] opacity-40">
-                  <Trophy className="h-8 w-8 text-primary" strokeWidth={1.5} aria-hidden="true" />
-                  <span className="font-heading text-[9px] font-bold text-muted-foreground uppercase tracking-wide text-center leading-tight">
-                    30-day lock
-                  </span>
-                </div>
               </div>
             </div>
 
@@ -188,7 +197,7 @@ const ProgressPage = () => {
                     })}
                   </div>
                   <div className="p-3 bg-primary/[0.06] border border-primary/15 text-xs text-muted-foreground leading-relaxed">
-                    <span className="text-primary font-semibold">Pattern spotted:</span> Your mood is 40% higher on days after 7+ hours sleep.
+                    <span className="text-primary font-semibold">Pattern spotted:</span> {sleepPatternMessage}
                   </div>
                 </div>
               </ProGate>

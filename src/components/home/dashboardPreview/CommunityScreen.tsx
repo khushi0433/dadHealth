@@ -47,7 +47,7 @@ export default function CommunityScreen({
           posts.map((post, index) => (
             <div key={String(post.id ?? index)} className="py-3 border-b border-primary/20 last:border-b-0">
               <div className="flex items-center gap-2 mb-1">
-                <span className="tag-pill text-[9px]">{(post.tag ?? "FITNESS") as string}</span>
+                {String(post.tag ?? "").trim() && <span className="tag-pill text-[9px]">{String(post.tag)}</span>}
                 <span className="text-[10px] text-muted-foreground">
                   {String(post.author_name ?? post.name ?? "").trim() || DEFAULT_DISPLAY_FALLBACK}
                 </span>

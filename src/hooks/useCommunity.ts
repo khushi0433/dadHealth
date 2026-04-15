@@ -84,7 +84,8 @@ async function fetchPosts() {
 function aggregateTrendingFromPosts(posts: { tag?: string }[]) {
   const tagCounts: Record<string, number> = {};
   posts.forEach((p) => {
-    const tag = p.tag ? `#${p.tag}` : "#FITNESS";
+    if (!p.tag) return;
+    const tag = `#${p.tag}`;
     tagCounts[tag] = (tagCounts[tag] ?? 0) + 1;
   });
   return Object.entries(tagCounts)
@@ -157,6 +158,19 @@ export function useCommunity(userId?: string) {
     queryFn: async () => {
       const { data, error } = await supabase.from("circles").select("*");
       if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const liveSessionsQuery = useQuery({
+    queryKey: ["live_sessions"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("live_sessions")
+        .select("id, title, starts_at, host_name, summary")
+        .order("starts_at", { ascending: true })
+        .limit(10);
+      if (error) return [];
       return data ?? [];
     },
   });
@@ -353,6 +367,7 @@ export function useCommunity(userId?: string) {
     userLikedIds: userLikesQuery.data ?? new Set<string>(),
     userSavedIds: userSavesQuery.data ?? new Set<string>(),
     circles: circlesQuery.data ?? [],
+    liveSessions: liveSessionsQuery.data ?? [],
     userCircleIds: userCirclesQuery.data ?? [],
     loading: isLoading,
     createPost,

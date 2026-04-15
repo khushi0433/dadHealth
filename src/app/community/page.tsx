@@ -32,6 +32,7 @@ const CommunityPage = () => {
     userLikedIds,
     userSavedIds,
     circles,
+    liveSessions,
     userCircleIds,
     createPost,
     toggleLike,
@@ -214,21 +215,31 @@ const CommunityPage = () => {
         {/* Right — expert sessions: no mock data; add CMS or table later */}
         <div className="px-5 lg:px-8 py-8">
           <span className="section-label !p-0 mb-4 block">LIVE SESSIONS</span>
-          <div className="border border-border border-dashed p-4 mb-3 rounded-sm bg-white/[0.02]">
-            <p className="text-sm text-foreground/85 leading-relaxed">
-              Scheduled live Q&amp;As and guest experts will be listed here — nothing on the calendar yet.
-            </p>
-            <p className="text-xs text-muted-foreground mt-2 leading-relaxed">
-              Pro members get priority booking when sessions go live (same membership as full workout library and meal planner).
-            </p>
-            <button
-              type="button"
-              onClick={() => router.push("/pricing")}
-              className="mt-3 font-heading font-bold text-[10px] tracking-wider uppercase text-primary border border-primary px-3 py-1.5 hover:bg-primary hover:text-primary-foreground transition-colors"
-            >
-              View Pro
-            </button>
-          </div>
+          {liveSessions.length === 0 ? (
+            <div className="border border-border border-dashed p-4 mb-3 rounded-sm bg-white/[0.02]">
+              <p className="text-sm text-muted-foreground">No live sessions are scheduled yet.</p>
+            </div>
+          ) : (
+            liveSessions.map((session: { id: string; title: string; host_name?: string; starts_at?: string; summary?: string }) => (
+              <div key={session.id} className="border border-border p-4 mb-3 rounded-sm bg-white/[0.02]">
+                <p className="font-heading text-xs font-bold tracking-wide uppercase text-primary">{session.title}</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {session.host_name ? `Host: ${session.host_name}` : "Host TBD"}
+                  {session.starts_at ? ` · ${new Date(session.starts_at).toLocaleString()}` : ""}
+                </p>
+                {session.summary && (
+                  <p className="text-sm text-foreground/85 leading-relaxed mt-2">{session.summary}</p>
+                )}
+              </div>
+            ))
+          )}
+          <button
+            type="button"
+            onClick={() => router.push("/pricing")}
+            className="mt-1 font-heading font-bold text-[10px] tracking-wider uppercase text-primary border border-primary px-3 py-1.5 hover:bg-primary hover:text-primary-foreground transition-colors"
+          >
+            View Pro
+          </button>
 
           {/* Trending */}
           <div className="mt-6">

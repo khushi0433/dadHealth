@@ -15,23 +15,24 @@ type MoodLog = {
   mood_value: number;
 };
 
-const DEFAULT_SCORES = {
-  mind: 72,
-  body: 81,
-  bond: 68,
-} as const;
-
 export function getDashboardScore(dashboard: DashboardData | null | undefined, hasUser: boolean): number | null {
   if (typeof dashboard?.total_score === "number") return Math.round(dashboard.total_score);
-  return hasUser ? 74 : null;
+  if (!hasUser) return null;
+  const mind = dashboard?.mind_score;
+  const body = dashboard?.body_score;
+  const bond = dashboard?.bond_score;
+  if (typeof mind === "number" && typeof body === "number" && typeof bond === "number") {
+    return Math.round((mind + body + bond) / 3);
+  }
+  return null;
 }
 
 export function getScoreBreakdown(dashboard: DashboardData | null | undefined, hasUser: boolean) {
   if (!hasUser || !dashboard) return { mind: 0, body: 0, bond: 0 };
   return {
-    mind: Math.min(100, Math.round(dashboard.mind_score ?? DEFAULT_SCORES.mind)),
-    body: Math.min(100, Math.round(dashboard.body_score ?? DEFAULT_SCORES.body)),
-    bond: Math.min(100, Math.round(dashboard.bond_score ?? DEFAULT_SCORES.bond)),
+    mind: Math.min(100, Math.max(0, Math.round(typeof dashboard.mind_score === "number" ? dashboard.mind_score : 0))),
+    body: Math.min(100, Math.max(0, Math.round(typeof dashboard.body_score === "number" ? dashboard.body_score : 0))),
+    bond: Math.min(100, Math.max(0, Math.round(typeof dashboard.bond_score === "number" ? dashboard.bond_score : 0))),
   };
 }
 

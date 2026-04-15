@@ -10,17 +10,10 @@ import { ProGate } from "@/components/ProProvider";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMind } from "@/hooks/useMind";
 
-const JOURNAL_PROMPTS = [
-  "One moment today I showed up as the dad I want to be…",
-  "Something small I'm grateful for…",
-  "One thing I'll do better tomorrow…",
-  "Something I want to let go of…",
-] as const;
-
 const MindPage = () => {
   const router = useRouter();
   const { user, openAuthModal } = useAuth();
-  const { moodLogs, therapists, saveJournal } = useMind(user?.id);
+  const { moodLogs, therapists, journalPrompts, saveJournal } = useMind(user?.id);
 
   const [journalText, setJournalText] = useState("");
   const [breathPhase, setBreathPhase] = useState<"inhale" | "hold" | "exhale">("inhale");
@@ -131,18 +124,21 @@ const MindPage = () => {
               Pick a starter below or write freely — this is just for you.
             </p>
             <ul className="flex flex-wrap gap-1.5 mb-3" aria-label="Journal prompts">
-              {JOURNAL_PROMPTS.map((line) => (
+              {journalPrompts.map((line) => (
                 <li key={line}>
                   <button
                     type="button"
                     onClick={() => setJournalText((prev) => (prev ? `${prev}\n\n${line} ` : `${line} `))}
                     className="text-left text-[10px] font-heading font-bold uppercase tracking-wide px-2 py-1.5 rounded-sm border border-border/80 bg-white/[0.03] text-primary/90 hover:border-primary hover:bg-primary/10 transition-colors max-w-full"
                   >
-                    {line.replace(/…$/, "")}
+                    {line}
                   </button>
                 </li>
               ))}
             </ul>
+            {journalPrompts.length === 0 && (
+              <p className="text-[11px] text-muted-foreground mb-3">No prompt suggestions available yet.</p>
+            )}
             <textarea
               placeholder="Write freely..."
               value={journalText}

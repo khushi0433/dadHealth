@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import LimeButton from "@/components/LimeButton";
-import { EXERCISES } from "@/lib/constants";
 import { useAuth } from "@/contexts/AuthContext";
 import { useFitness } from "@/hooks/useFitness";
 
@@ -41,11 +40,19 @@ const DadStrengthSection = ({ workoutImg }: DadStrengthSectionProps) => {
   const activeDisplay = user && activeTodayMin > 0
     ? `${activeTodayMin} min`
     : "—";
+  const recentWorkouts = workouts
+    .slice(0, 6)
+    .map((workout: { exercise_name?: string; duration_minutes?: number; performed_at?: string }) => ({
+      name: workout.exercise_name?.trim() || "Workout session",
+      duration: workout.duration_minutes,
+      performedAt: workout.performed_at,
+    }));
+  const latestWorkout = recentWorkouts[0] ?? null;
 
   const progressStats = [
     { value: user ? String(monthWorkouts) : "—", label: "WORKOUTS" },
     { value: weightDisplay, label: "WEIGHT" },
-    { value: "—", label: "BEST RUN" },
+    { value: latestWorkout?.name ?? "—", label: "LATEST SESSION" },
     { value: activeDisplay, label: "ACTIVE TODAY" },
   ];
 
@@ -59,9 +66,12 @@ const DadStrengthSection = ({ workoutImg }: DadStrengthSectionProps) => {
       <div className="relative z-10 flex flex-col justify-end h-full max-w-[1400px] mx-auto px-5 lg:px-8 pb-8">
         <span className="section-label text-primary mb-1">TODAY'S WORKOUT</span>
         <h2 className="font-heading text-[42px] lg:text-[56px] font-extrabold text-foreground uppercase leading-none tracking-wide">
-          DAD STRENGTH
+          {latestWorkout?.name ?? "TODAY'S WORKOUT"}
         </h2>
-        <p className="text-sm text-foreground/50 mt-2">No gym needed · 22 minutes · 6 exercises · 280 kcal</p>
+        <p className="text-sm text-foreground/50 mt-2">
+          {latestWorkout?.duration ? `${latestWorkout.duration} min` : "Log a workout to track duration"}
+          {latestWorkout?.performedAt ? ` · Last logged ${latestWorkout.performedAt.slice(0, 10)}` : ""}
+        </p>
       </div>
     </div>
 
@@ -72,7 +82,7 @@ const DadStrengthSection = ({ workoutImg }: DadStrengthSectionProps) => {
         <div className="mb-6">
           <div className="font-heading text-[52px] font-extrabold text-foreground leading-none tracking-wide">00:00</div>
           <div className="font-heading text-[10px] font-bold tracking-wider uppercase text-muted-foreground mt-1">
-            WORKOUT TIMER · 6 EXERCISES
+            WORKOUT TIMER · {Math.max(recentWorkouts.length, 1)} SESSIONS
           </div>
           <div className="flex gap-3 mt-4">
             <Link href="/fitness">
@@ -87,19 +97,26 @@ const DadStrengthSection = ({ workoutImg }: DadStrengthSectionProps) => {
         </div>
 
         {/* Exercise list */}
-        <span className="section-label !p-0 mb-4 block">TODAY'S MOVES</span>
-        {EXERCISES.map((ex, i) => (
-          <div key={i} className="flex items-center gap-3 py-3 border-b border-border last:border-b-0">
-            <div className="w-7 h-7 bg-primary/10 flex items-center justify-center font-heading font-extrabold text-xs text-primary shrink-0">
-              {i + 1}
+        <span className="section-label !p-0 mb-4 block">RECENT SESSIONS</span>
+        {recentWorkouts.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No workout sessions logged yet.</p>
+        ) : (
+          recentWorkouts.map((workout, i) => (
+            <div key={`${workout.name}-${workout.performedAt ?? i}`} className="flex items-center gap-3 py-3 border-b border-border last:border-b-0">
+              <div className="w-7 h-7 bg-primary/10 flex items-center justify-center font-heading font-extrabold text-xs text-primary shrink-0">
+                {i + 1}
+              </div>
+              <div className="flex-1">
+                <div className="font-heading text-sm font-bold text-foreground tracking-wide">{workout.name}</div>
+                <div className="text-[11px] text-muted-foreground mt-0.5">
+                  {workout.duration != null ? `${workout.duration} min` : "Duration not set"}
+                  {workout.performedAt ? ` · ${workout.performedAt.slice(0, 10)}` : ""}
+                </div>
+              </div>
+              <span className="tag-pill">SESSION</span>
             </div>
-            <div className="flex-1">
-              <div className="font-heading text-sm font-bold text-foreground tracking-wide">{ex.name}</div>
-              <div className="text-[11px] text-muted-foreground mt-0.5">{ex.sets} · {ex.detail}</div>
-            </div>
-            <span className="tag-pill">{ex.muscle}</span>
-          </div>
-        ))}
+          ))
+        )}
       </div>
 
       {/* Progress */}

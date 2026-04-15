@@ -48,47 +48,8 @@ export const PILLARS = [
   },
 ] as const;
 
-export const EXERCISES = [
-   {name:"Press-up hold", sets:"3 sets", detail:"45 sec", muscle:"Chest", rest:30},
-   {name:"Goblet squat",  sets:"3 sets", detail:"12 reps", muscle:"Legs",  rest:45},
-   {name:"Dead bug",      sets:"2 sets", detail:"10 reps", muscle:"Core",  rest:30},
-   {name:"Hip hinge",     sets:"3 sets", detail:"15 reps", muscle:"Back",  rest:45},
-   {name:"Press-up",      sets:"3 sets", detail:"10 reps", muscle:"Chest", rest:30},
-   {name:"Plank",         sets:"3 sets", detail:"45 sec",  muscle:"Core",  rest:30},
-] as const;
-
-export const MEALS = [
-  {day:"MON", name:"Chicken & rice bowl", kcal:520, time:"20 min",},
-    {day:"TUE", name:"Eggs & avocado toast", kcal:380, time:"10 min"},
-    {day:"WED", name:"Salmon stir fry", kcal:480, time:"25 min"},
-    {day:"THU", name:"Turkey mince pasta", kcal:560, time:"20 min"},
-    {day:"FRI", name:"Dad's chilli", kcal:490, time:"30 min"},
-] as const;
-
-export const PROGRESS_STATS = [
-  { value: "12", label: "WORKOUTS" },
-  { value: "86→85kg", label: "WEIGHT" },
-  { value: "7.2km", label: "BEST RUN" },
-  { value: "34 min", label: "ACTIVE TODAY" },
-] as const;
-
-export const MOOD_WEEK = [3, 2, 4, 3, 4, 4, 2];
 export const DAYS = ["M", "T", "W", "T", "F", "S", "S"];
 export const BLOCKED_CHECKIN_MOODS = [1, 2, 4] as const;
-export const MOCK_BODY_WEEK_SERIES = [3, 4, 3, 4, 4, 3, 4] as const;
-export const DEFAULT_CHALLENGE_PARTICIPANTS = 847;
-
-export const CIRCLES = [
-  { iconKey: "baby", name: "New dad crew", members: 847 },
-  { iconKey: "fitness", name: "Fit dads", members: 1204 },
-  { iconKey: "bond", name: "Single dads", members: 623 },
-  { iconKey: "grad", name: "Teen dad club", members: 412 },
-] as const;
-
-export const THERAPISTS = [
-  { name: "Dr. Sam Wells", spec: "Anxiety & stress", slots: "Evenings", price: "£60/hr" },
-  { name: "Dr. Lisa Okafor", spec: "CBT specialist", slots: "Flexible", price: "£65/hr" },
-] as const;
 
 export const FAQ_ITEMS = [
   {

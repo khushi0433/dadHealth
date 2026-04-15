@@ -3,12 +3,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/utils/supabaseClient";
 
-const DEFAULT_SCORES = {
-  mind: 72,
-  body: 81,
-  bond: 68,
-} as const;
-
 async function updateStreak(supabaseClient: typeof supabase, userId: string) {
   const today = new Date().toISOString().slice(0, 10);
   const { data: existing } = await supabaseClient
@@ -48,7 +42,7 @@ async function fetchDashboard(userId: string) {
   const todayEnd = new Date();
   todayEnd.setHours(23, 59, 59, 999);
 
-  const [dashboardRes, scoreRes, moodRes, workoutsRes, journalRes, milestonesRes, milestonesListRes, challengeRes, dadDatesRes, profileRes, bodyRes, todayWorkoutsRes, remindersRes, circlesRes, bodyWeekRes] = await Promise.all([
+  const [dashboardRes, scoreRes, moodRes, workoutsRes, journalRes, milestonesRes, milestonesListRes, challengeRes, dadDatesRes, profileRes, bodyRes, todayWorkoutsRes, remindersRes, circlesRes, bodyWeekRes, latestWorkoutRes, mealPlansRes, earnedBadgesRes] = await Promise.all([
     supabase.from("dashboard_view").select("*").eq("user_id", userId).maybeSingle(),
     supabase.from("dad_score_view").select("mind_score, body_score, bond_score").eq("user_id", userId).maybeSingle(),
     supabase
@@ -83,7 +77,7 @@ async function fetchDashboard(userId: string) {
       .limit(8),
     supabase.from("weekly_challenges").select("*").eq("active", true).order("created_at", { ascending: false }).limit(1).maybeSingle(),
     supabase.from("dad_dates").select("*"),
-    supabase.from("user_profile").select("display_name").eq("user_id", userId).maybeSingle(),
+    supabase.from("user_profile").select("display_name, goals").eq("user_id", userId).maybeSingle(),
     supabase
       .from("body_metrics")
       .select("value")
@@ -112,6 +106,22 @@ async function fetchDashboard(userId: string) {
       .select("performed_at, duration_minutes")
       .eq("user_id", userId)
       .gte("performed_at", sevenDaysAgo.toISOString()),
+    supabase
+      .from("workout_sessions")
+      .select("exercise_name, duration_minutes, calories, performed_at")
+      .eq("user_id", userId)
+      .order("performed_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    supabase
+      .from("meal_plans")
+      .select("day, name, kcal")
+      .eq("user_id", userId)
+      .order("day", { ascending: true }),
+    supabase
+      .from("earned_badges")
+      .select("badges(icon, name)")
+      .eq("user_id", userId),
   ]);
 
   // Views may be missing in DB or blocked by RLS — fall back without failing the whole dashboard.
@@ -127,11 +137,21 @@ async function fetchDashboard(userId: string) {
   const reminders = remindersRes.error ? [] : (remindersRes.data ?? []);
   const circles = circlesRes.error ? [] : (circlesRes.data ?? []);
   const milestones = milestonesListRes.error ? [] : (milestonesListRes.data ?? []);
+  const mealPlans = mealPlansRes.error ? [] : (mealPlansRes.data ?? []);
+  const badges = earnedBadgesRes.error
+    ? []
+    : (earnedBadgesRes.data ?? [])
+        .map((row: { badges?: { icon?: string; name?: string } | null }) => row.badges)
+        .filter((badge): badge is { icon: string; name: string } => Boolean(badge?.icon && badge?.name));
 
-  const mind = score?.mind_score ?? DEFAULT_SCORES.mind;
-  const body = score?.body_score ?? DEFAULT_SCORES.body;
-  const bond = score?.bond_score ?? DEFAULT_SCORES.bond;
-  const totalScore = Math.round((mind + body + bond) / 3);
+  const mind = typeof score?.mind_score === "number" ? score.mind_score : null;
+  const body = typeof score?.body_score === "number" ? score.body_score : null;
+  const bond = typeof score?.bond_score === "number" ? score.bond_score : null;
+  const hasAllScores =
+    typeof mind === "number" &&
+    typeof body === "number" &&
+    typeof bond === "number";
+  const totalScore = hasAllScores ? Math.round((mind + body + bond) / 3) : null;
 
   const weightRows = (bodyRes.data ?? []) as { value: number }[];
   const prevWeight = weightRows[1]?.value;
@@ -165,9 +185,22 @@ async function fetchDashboard(userId: string) {
     return 0;
   });
 
+  const latestWorkout = latestWorkoutRes.error ? null : latestWorkoutRes.data;
+  const featuredWorkoutTitle =
+    typeof latestWorkout?.exercise_name === "string" && latestWorkout.exercise_name.trim().length > 0
+      ? latestWorkout.exercise_name.trim()
+      : null;
+  const featuredWorkoutMetaParts = [
+    typeof latestWorkout?.duration_minutes === "number" ? `${latestWorkout.duration_minutes} min` : null,
+    typeof latestWorkout?.calories === "number" ? `${latestWorkout.calories} kcal` : null,
+    typeof latestWorkout?.performed_at === "string" ? `Logged ${latestWorkout.performed_at.slice(0, 10)}` : null,
+  ].filter((part): part is string => Boolean(part));
+  const featuredWorkoutMeta = featuredWorkoutMetaParts.length > 0 ? featuredWorkoutMetaParts.join(" · ") : null;
+
   return {
     ...(dashboard ?? {}),
     display_name: profile?.display_name,
+    goals: Array.isArray(profile?.goals) ? profile.goals : [],
     mind_score: mind,
     body_score: body,
     bond_score: bond,
@@ -189,6 +222,10 @@ async function fetchDashboard(userId: string) {
     weightDisplay,
     activeTodayMin,
     body_week_series: bodyWeekSeries,
+    featured_workout_title: featuredWorkoutTitle,
+    featured_workout_meta: featuredWorkoutMeta,
+    meal_plans: mealPlans,
+    badges,
   };
 }
 

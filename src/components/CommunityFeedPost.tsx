@@ -180,7 +180,7 @@ export default function CommunityFeedPost({
       raw.length > 0 &&
       raw !== "?" &&
       raw !== "??" &&
-      !/^[\?]+$/.test(raw);
+      !/^\?+$/.test(raw);
     if (storedLooksValid) {
       return raw.slice(0, 2).toUpperCase();
     }
@@ -295,7 +295,7 @@ export default function CommunityFeedPost({
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <span className="tag-pill">{safeString(p.tag, "FITNESS")}</span>
+          {safeString(p.tag).trim() && <span className="tag-pill">{safeString(p.tag)}</span>}
           {isOwner && postId && (
             <button
               type="button"
