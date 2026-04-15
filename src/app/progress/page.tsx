@@ -2,6 +2,7 @@
 
 import { useCallback } from "react";
 import SitePageShell from "@/components/SitePageShell";
+import SiteFooter from "@/components/SiteFooter";
 import OutlineButton from "@/components/OutlineButton";
 import { ProGate } from "@/components/ProProvider";
 import { format } from "date-fns";
@@ -88,10 +89,9 @@ const ProgressPage = () => {
 
   return (
     <SitePageShell>
-      <div className="w-full min-h-[calc(100dvh-73px)]">
-        {/* Score */}
-        <section className="bg-background border-b border-border">
-          <div className="w-full px-5 lg:px-8 py-10">
+      {/* Score */}
+      <section className="bg-background border-b border-border">
+        <div className="w-full px-5 lg:px-8 py-10">
             <span className="section-label !p-0 mb-4 block">YOUR DAD HEALTH SCORE</span>
             <div className="flex flex-wrap gap-8 items-center">
               <div className="w-[100px] h-[100px] border-4 border-primary rounded-full flex flex-col items-center justify-center shrink-0">
@@ -126,12 +126,12 @@ const ProgressPage = () => {
                 </div>
               </ProGate>
             </div>
-          </div>
-        </section>
+        </div>
+      </section>
 
-        {/* Report card */}
-        <section className="bg-primary text-primary-foreground">
-          <div className="w-full px-5 lg:px-8 py-10">
+      {/* Report card */}
+      <section className="bg-primary text-primary-foreground">
+        <div className="w-full px-5 lg:px-8 py-10">
             <h2 className="font-heading text-[22px] font-extrabold uppercase tracking-wide mb-4">{format(new Date(), "MMMM")} report card</h2>
             {reportStatsList.length === 0 ? (
               <p className="text-xs opacity-70">No monthly report data yet.</p>
@@ -148,11 +148,11 @@ const ProgressPage = () => {
             <div className="mt-4">
               <OutlineButton dark onClick={handleShareReport}>Share report card</OutlineButton>
             </div>
-          </div>
-        </section>
+        </div>
+      </section>
 
-        <div className="w-full px-5 lg:px-8">
-          <div className="flex flex-col w-full">
+      <div className="w-full px-5 lg:px-8">
+        <div className="flex flex-col w-full">
             {/* Badges */}
             <div className="py-8 w-full">
               <span className="section-label !p-0 mb-4 block">DH BADGES EARNED</span>
@@ -236,9 +236,9 @@ const ProgressPage = () => {
                 </div>
               </div>
             </div>
-          </div>
         </div>
       </div>
+      <SiteFooter />
     </SitePageShell>
   );
 };
