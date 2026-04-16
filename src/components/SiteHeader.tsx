@@ -114,9 +114,11 @@ const SiteHeader = () => {
                   </Link>
                 </DropdownMenuItem>
 
-                <DropdownMenuItem disabled>
-                  <Settings className="mr-2 h-4 w-4" />
-                  Settings
+                <DropdownMenuItem asChild>
+                  <Link href="/settings" className="cursor-pointer">
+                    <Settings className="mr-2 h-4 w-4" />
+                    Settings
+                  </Link>
                 </DropdownMenuItem>
 
                 <DropdownMenuItem asChild>

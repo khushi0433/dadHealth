@@ -8,6 +8,7 @@ import ProProvider from "@/components/ProProvider";
 import { AuthProvider } from "@/contexts/AuthContext";
 import OnboardingCheck from "@/components/OnboardingCheck";
 import ClientBrandProvider from "@/components/ClientBrandProvider";
+import OneSignalManager from "@/components/OneSignalManager";
 import type { ReactNode } from "react";
 
 const queryClient = new QueryClient();
@@ -23,6 +24,7 @@ export default function Providers({ children }: { children: ReactNode }) {
             <ProProvider>
               {children}
               <OnboardingCheck />
+              <OneSignalManager />
             </ProProvider>
           </ClientBrandProvider>
         </AuthProvider>
