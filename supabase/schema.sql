@@ -73,6 +73,10 @@ create table if not exists user_profile (
   id uuid primary key default gen_random_uuid(),
   user_id uuid references auth.users(id) on delete cascade not null unique,
   client_id uuid references clients(id) on delete set null,
+  -- IANA timezone name (e.g. "Europe/London"). Used for scheduled notifications.
+  timezone text default 'UTC',
+  -- Master opt-in gate for all push notifications (client-controlled).
+  push_notifications_enabled boolean not null default false,
   goals jsonb default '[]',
   pillar_order jsonb default '[]',
   onboarding_complete boolean default false,
@@ -84,6 +88,10 @@ create table if not exists user_profile (
 -- For existing DBs: add client_id if missing, backfill
 alter table user_profile add column if not exists client_id uuid references clients(id) on delete set null;
 update user_profile set client_id = '00000000-0000-0000-0000-000000000001'::uuid where client_id is null;
+
+-- For existing DBs: add timezone if missing
+alter table user_profile add column if not exists timezone text default 'UTC';
+alter table user_profile add column if not exists push_notifications_enabled boolean not null default false;
 
 -- Stripe Billing (synced from webhooks)
 alter table user_profile add column if not exists stripe_customer_id text;
@@ -261,6 +269,123 @@ create table if not exists earned_badges (
   earned_at timestamptz default now(),
   unique(user_id, badge_id)
 );
+
+-- =========================
+-- NOTIFICATIONS (OneSignal)
+-- =========================
+
+-- Supported notification types
+-- (kept as text for flexibility; constrained to known values)
+-- - morning_checkin
+-- - bedtime_story
+-- - workout_window
+-- - weekly_score
+-- - streak_at_risk
+-- - weekly_challenge
+-- - journal_prompt
+-- - milestone_anniversary
+
+create table if not exists notification_preferences (
+  user_id uuid references auth.users(id) on delete cascade not null,
+  notification_type text not null,
+  enabled boolean not null default false,
+  -- Local time in the dad's timezone. Only used for user-set time notifications.
+  send_time time,
+  created_at timestamptz default now(),
+  primary key (user_id, notification_type),
+  constraint notification_preferences_type_chk check (notification_type in (
+    'morning_checkin',
+    'bedtime_story',
+    'workout_window',
+    'weekly_score',
+    'streak_at_risk',
+    'weekly_challenge',
+    'journal_prompt',
+    'milestone_anniversary'
+  ))
+);
+
+create table if not exists notification_log (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references auth.users(id) on delete cascade not null,
+  type text not null,
+  sent_at timestamptz not null default now(),
+  opened boolean not null default false,
+  constraint notification_log_type_chk check (type in (
+    'morning_checkin',
+    'bedtime_story',
+    'workout_window',
+    'weekly_score',
+    'streak_at_risk',
+    'weekly_challenge',
+    'journal_prompt',
+    'milestone_anniversary'
+  ))
+);
+
+create index if not exists idx_notification_log_user_sent_at on notification_log(user_id, sent_at desc);
+create index if not exists idx_notification_log_user_type_sent_at on notification_log(user_id, type, sent_at desc);
+
+alter table notification_preferences enable row level security;
+alter table notification_log enable row level security;
+
+-- Users can manage their own preferences (opt-in, configurable settings)
+drop policy if exists "Users can CRUD own notification_preferences" on notification_preferences;
+create policy "Users can CRUD own notification_preferences"
+on notification_preferences
+for all
+using (auth.uid() = user_id)
+with check (auth.uid() = user_id);
+
+-- Intentionally no client policies for notification_log.
+-- Writes should happen server-side using the service role key.
+
+-- Enforce:
+-- - never more than 3 notifications per (local) day per user
+-- - never send the same type more than once per (local) day
+-- Returns true if log row was inserted, else false.
+create or replace function public.log_notification_if_allowed(
+  p_user_id uuid,
+  p_type text,
+  p_timezone text
+)
+returns boolean
+language plpgsql
+security definer
+as $$
+declare
+  local_day date;
+  sent_today int;
+  sent_type_today int;
+begin
+  -- Defensive: fall back to UTC if timezone is blank
+  local_day := (now() at time zone coalesce(nullif(p_timezone, ''), 'UTC'))::date;
+
+  select count(*) into sent_today
+  from public.notification_log l
+  where l.user_id = p_user_id
+    and (l.sent_at at time zone coalesce(nullif(p_timezone, ''), 'UTC'))::date = local_day;
+
+  if sent_today >= 3 then
+    return false;
+  end if;
+
+  select count(*) into sent_type_today
+  from public.notification_log l
+  where l.user_id = p_user_id
+    and l.type = p_type
+    and (l.sent_at at time zone coalesce(nullif(p_timezone, ''), 'UTC'))::date = local_day;
+
+  if sent_type_today > 0 then
+    return false;
+  end if;
+
+  insert into public.notification_log (user_id, type, sent_at, opened)
+  values (p_user_id, p_type, now(), false);
+
+  return true;
+end;
+$$;
 
 -- =========================
 -- FUNCTIONS
