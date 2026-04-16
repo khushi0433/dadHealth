@@ -20,6 +20,10 @@ export interface UserProfile {
   id: string;
   user_id: string;
   client_id?: string | null;
+  /** IANA timezone name (e.g. "Europe/London") */
+  timezone?: string | null;
+  /** Master opt-in gate for all push notifications */
+  push_notifications_enabled?: boolean;
   goals?: string[] | null;
   pillar_order?: string[] | null;
   onboarding_complete?: boolean;
@@ -32,6 +36,33 @@ export interface UserProfile {
   subscription_status?: string | null;
   created_at?: string;
   updated_at?: string;
+}
+
+export type NotificationType =
+  | "morning_checkin"
+  | "bedtime_story"
+  | "workout_window"
+  | "weekly_score"
+  | "streak_at_risk"
+  | "weekly_challenge"
+  | "journal_prompt"
+  | "milestone_anniversary";
+
+export interface NotificationPreference {
+  user_id: string;
+  notification_type: NotificationType;
+  enabled: boolean;
+  /** Local time string from Postgres `time` (e.g. "21:00:00") */
+  send_time?: string | null;
+  created_at?: string;
+}
+
+export interface NotificationLog {
+  id: string;
+  user_id: string;
+  type: NotificationType;
+  sent_at: string;
+  opened: boolean;
 }
 
 export interface MoodLog {

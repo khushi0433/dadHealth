@@ -23,7 +23,13 @@ export function useUserProfile(userId: string | undefined) {
 export function useUpdateProfile(userId: string | undefined) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (updates: { goals?: string[]; pillar_order?: string[]; onboarding_complete?: boolean }) => {
+    mutationFn: async (updates: {
+      goals?: string[];
+      pillar_order?: string[];
+      onboarding_complete?: boolean;
+      timezone?: string;
+      push_notifications_enabled?: boolean;
+    }) => {
       if (!userId) throw new Error("Not authenticated");
       const { data, error } = await supabase
         .from("user_profile")
