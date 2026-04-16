@@ -196,6 +196,18 @@ const SiteHeader = () => {
               {link.label}
             </Link>
           ))}
+          {user && (
+            <Link
+              href="/settings"
+              onClick={() => setMobileOpen(false)}
+              className={cn(
+                "block font-heading text-[12px] font-bold tracking-[1.5px] uppercase py-2 transition-colors",
+                pathname === "/settings" ? "text-primary" : "text-muted-foreground"
+              )}
+            >
+              Settings
+            </Link>
+          )}
         </nav>
       )}
     </header>
