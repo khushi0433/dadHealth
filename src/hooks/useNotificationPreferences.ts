@@ -4,6 +4,13 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/utils/supabaseClient";
 import type { NotificationPreference, NotificationType } from "@/types/database";
 
+function isSchemaMissingError(error: unknown): boolean {
+  const e = error as { code?: string; message?: string } | null;
+  const code = e?.code ?? "";
+  const msg = (e?.message ?? "").toLowerCase();
+  return code === "42P01" || code === "PGRST205" || msg.includes("notification_preferences");
+}
+
 export function useNotificationPreferences(userId: string | undefined) {
   return useQuery({
     queryKey: ["notification_preferences", userId],
@@ -17,6 +24,11 @@ export function useNotificationPreferences(userId: string | undefined) {
       return (data ?? []) as NotificationPreference[];
     },
     enabled: !!userId,
+    retry: (failureCount, error) => {
+      if (isSchemaMissingError(error)) return false;
+      return failureCount < 2;
+    },
+    refetchOnWindowFocus: false,
   });
 }
 

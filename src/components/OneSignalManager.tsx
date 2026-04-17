@@ -7,7 +7,10 @@ import { useUserProfile } from "@/hooks/useUserProfile";
 declare global {
   interface Window {
     OneSignal?: any;
+    OneSignalDeferred?: Array<(oneSignal: any) => void | Promise<void>>;
     __onesignalScriptAdded?: boolean;
+    __onesignalInitialized?: boolean;
+    __onesignalInitPromise?: Promise<void>;
   }
 }
 
@@ -21,20 +24,53 @@ function ensureOneSignalScript(): void {
   window.__onesignalScriptAdded = true;
 
   const s = document.createElement("script");
-  s.src = "https://cdn.onesignal.com/sdks/OneSignalSDK.js";
+  s.src = "https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js";
   s.async = true;
   document.head.appendChild(s);
 }
 
+function queueOneSignal(cb: (oneSignal: any) => void | Promise<void>) {
+  if (typeof window === "undefined") return;
+  window.OneSignalDeferred = window.OneSignalDeferred || [];
+  window.OneSignalDeferred.push(cb);
+}
+
+function getOneSignalAppId(): string {
+  return process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID?.trim() || "";
+}
+
+async function initOneSignalOnce(oneSignal: any, appId: string): Promise<void> {
+  if (!appId) return;
+  if (window.__onesignalInitialized) return;
+  if (!window.__onesignalInitPromise) {
+    window.__onesignalInitPromise = (async () => {
+      await oneSignal.init({
+        appId,
+        allowLocalhostAsSecureOrigin: true,
+      });
+      window.__onesignalInitialized = true;
+    })();
+  }
+  await window.__onesignalInitPromise;
+}
+
 export function requestOneSignalPermission() {
   if (typeof window === "undefined") return;
-  const OneSignal = window.OneSignal;
-  if (!OneSignal?.push) return;
-  OneSignal.push(() => {
-    // Newer SDKs expose prompt helpers; fall back when unavailable.
-    if (typeof OneSignal.showSlidedownPrompt === "function") OneSignal.showSlidedownPrompt();
-    else if (typeof OneSignal.registerForPushNotifications === "function") OneSignal.registerForPushNotifications();
-    else if (typeof OneSignal.showNativePrompt === "function") OneSignal.showNativePrompt();
+  ensureOneSignalScript();
+  const appId = getOneSignalAppId();
+
+  queueOneSignal(async (OneSignal) => {
+    await initOneSignalOnce(OneSignal, appId);
+
+    // v16 path
+    if (OneSignal?.Notifications?.requestPermission) {
+      await OneSignal.Notifications.requestPermission();
+      return;
+    }
+    // Older fallbacks
+    if (typeof OneSignal?.showSlidedownPrompt === "function") OneSignal.showSlidedownPrompt();
+    else if (typeof OneSignal?.registerForPushNotifications === "function") OneSignal.registerForPushNotifications();
+    else if (typeof OneSignal?.showNativePrompt === "function") OneSignal.showNativePrompt();
   });
 }
 
@@ -42,7 +78,7 @@ export default function OneSignalManager() {
   const { user } = useAuth();
   const { data: profile } = useUserProfile(user?.id);
 
-  const appId = useMemo(() => process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID?.trim() || "", []);
+  const appId = useMemo(() => getOneSignalAppId(), []);
   const enabled = Boolean(profile?.push_notifications_enabled);
 
   useEffect(() => {
@@ -51,15 +87,16 @@ export default function OneSignalManager() {
     if (!appId) return;
 
     ensureOneSignalScript();
-    window.OneSignal = window.OneSignal || [];
 
-    const OneSignal = window.OneSignal;
-    OneSignal.push(() => {
-      OneSignal.init({
-        appId,
-        allowLocalhostAsSecureOrigin: true,
-      });
-      OneSignal.setExternalUserId(user.id);
+    queueOneSignal(async (OneSignal) => {
+      await initOneSignalOnce(OneSignal, appId);
+
+      // v16 login identity, fallback for older SDK signatures.
+      if (typeof OneSignal.login === "function") {
+        await OneSignal.login(user.id);
+      } else if (typeof OneSignal.setExternalUserId === "function") {
+        OneSignal.setExternalUserId(user.id);
+      }
     });
   }, [user, enabled, appId]);
 
