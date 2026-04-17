@@ -232,10 +232,11 @@ console.log("✅ AUTH PASSED");
           errors++;
           continue;
         }
-        if (logRes.data !== true) {
-          skipped++;
-          continue;
-        }
+        // TEMP proof test: bypass daily cap / per-type suppression (revert before production traffic)
+        // if (logRes.data !== true) {
+        //   skipped++;
+        //   continue;
+        // }
 
         // Dynamic payload pieces (fetched only when we know we're sending)
         let weeklyChallenge: { title: string; description?: string | null } | null = null;
