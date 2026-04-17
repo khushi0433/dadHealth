@@ -38,9 +38,21 @@ export async function sendOneSignalToExternalUserId(args: {
     }),
   });
 
+  const text = await res.text().catch(() => "");
   if (!res.ok) {
-    const text = await res.text().catch(() => "");
     throw new Error(`OneSignal error ${res.status}: ${text}`);
+  }
+
+  try {
+    const json = JSON.parse(text) as { id?: string; recipients?: number };
+    if (typeof json.recipients === "number" && json.recipients === 0) {
+      console.warn("[OneSignal] API accepted but recipients=0 — no subscribed device for this external_user_id", {
+        externalUserId: args.externalUserId,
+        notificationId: json.id,
+      });
+    }
+  } catch {
+    // non-JSON body; ignore
   }
 }
 

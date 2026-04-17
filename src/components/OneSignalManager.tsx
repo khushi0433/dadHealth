@@ -35,14 +35,21 @@ function queueOneSignal(cb: (oneSignal: any) => void | Promise<void>) {
   window.OneSignalDeferred.push(cb);
 }
 
+function normalizeSiteOrigin(input: string): string {
+  const t = input.trim().replace(/\/+$/, "");
+  if (!t) return t;
+  if (/^https?:\/\//i.test(t)) return t;
+  return `https://${t}`;
+}
+
 function canUseOneSignalOnCurrentOrigin(): boolean {
   if (typeof window === "undefined") return false;
   const currentOrigin = window.location.origin.replace(/\/+$/, "");
   const explicitAllowedOrigin = process.env.NEXT_PUBLIC_ONESIGNAL_ALLOWED_ORIGIN?.trim();
 
-  // If explicitly configured, require exact match.
+  // If explicitly configured, require match (host-only values like www.example.com → https://www.example.com).
   if (explicitAllowedOrigin) {
-    return currentOrigin === explicitAllowedOrigin.replace(/\/+$/, "");
+    return currentOrigin === normalizeSiteOrigin(explicitAllowedOrigin);
   }
 
   // Safe default for this project setup: production domain only.
