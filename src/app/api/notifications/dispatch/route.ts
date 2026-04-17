@@ -18,7 +18,7 @@ function requireCronSecret(request: Request) {
 
   const expected = process.env.CRON_SECRET?.trim();
   if (!expected) return false;
-  const got = request.headers.get("x-cron-secret");
+  const got = request.headers.get("x-cron-secret") || request.headers.get("cron_secret");
   if (got !== expected) return false;
   return true;
 }
@@ -87,6 +87,7 @@ export async function GET(request: Request) {
 
   console.log("headers:", {
     "x-cron-secret": request.headers.get("x-cron-secret"),
+    "cron_secret": request.headers.get("cron_secret"),
     "x-vercel-cron": request.headers.get("x-vercel-cron"),
     all: Object.fromEntries(request.headers.entries()),
   });
@@ -287,4 +288,3 @@ console.log("✅ AUTH PASSED");
     return NextResponse.json({ error: "Dispatch failed" }, { status: 500 });
   }
 }
-
