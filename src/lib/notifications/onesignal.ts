@@ -15,6 +15,10 @@ export async function sendOneSignalToExternalUserId(args: {
   const apiKey = requiredEnv("ONESIGNAL_REST_API_KEY");
   const siteUrl = (process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:8080").replace(/\/+$/, "");
 
+  console.log("SENDING:", {
+  externalUserId: args.externalUserId,
+});
+
   const res = await fetch("https://onesignal.com/api/v1/notifications", {
     method: "POST",
     headers: {
