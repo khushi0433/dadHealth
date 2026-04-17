@@ -35,6 +35,20 @@ function queueOneSignal(cb: (oneSignal: any) => void | Promise<void>) {
   window.OneSignalDeferred.push(cb);
 }
 
+function canUseOneSignalOnCurrentOrigin(): boolean {
+  if (typeof window === "undefined") return false;
+  const currentOrigin = window.location.origin.replace(/\/+$/, "");
+  const explicitAllowedOrigin = process.env.NEXT_PUBLIC_ONESIGNAL_ALLOWED_ORIGIN?.trim();
+
+  // If explicitly configured, require exact match.
+  if (explicitAllowedOrigin) {
+    return currentOrigin === explicitAllowedOrigin.replace(/\/+$/, "");
+  }
+
+  // Safe default for this project setup: production domain only.
+  return currentOrigin === "https://www.dadhealth.co.uk";
+}
+
 function getOneSignalAppId(): string {
   return process.env.NEXT_PUBLIC_ONESIGNAL_APP_ID?.trim() || "";
 }
@@ -56,6 +70,7 @@ async function initOneSignalOnce(oneSignal: any, appId: string): Promise<void> {
 
 export function requestOneSignalPermission() {
   if (typeof window === "undefined") return;
+  if (!canUseOneSignalOnCurrentOrigin()) return;
   ensureOneSignalScript();
   const appId = getOneSignalAppId();
 
@@ -85,6 +100,7 @@ export default function OneSignalManager() {
     if (!user) return;
     if (!enabled) return;
     if (!appId) return;
+    if (!canUseOneSignalOnCurrentOrigin()) return;
 
     ensureOneSignalScript();
 

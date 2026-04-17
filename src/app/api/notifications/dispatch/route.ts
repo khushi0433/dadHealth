@@ -83,6 +83,22 @@ async function computeWeeklyScore(admin: ReturnType<typeof createAdminSupabaseCl
 }
 
 export async function GET(request: Request) {
+  console.log("=== /api/notifications/dispatch HIT ===");
+
+  console.log("headers:", {
+    "x-cron-secret": request.headers.get("x-cron-secret"),
+    "x-vercel-cron": request.headers.get("x-vercel-cron"),
+    all: Object.fromEntries(request.headers.entries()),
+  });
+  console.log("TIME:", new Date().toISOString());
+console.log("METHOD:", request.method);
+console.log("URL:", request.url);
+if (!requireCronSecret(request)) {
+  console.log("❌ AUTH FAILED");
+  return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+}
+
+console.log("✅ AUTH PASSED");
   try {
     if (!requireCronSecret(request)) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

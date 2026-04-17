@@ -175,8 +175,8 @@ const FitnessPage = () => {
       </section>
 
       {/* Content grid */}
-      <div className="max-w-[1400px] mx-auto w-full px-5 lg:px-8">
-        <div className="bg-card border-2 border-primary rounded-xl overflow-hidden w-full">
+      <div className="w-full px-0">
+        <div className="bg-card overflow-hidden w-full">
           <div className="grid w-full min-w-0 grid-cols-1 lg:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] gap-0">
             {/* Exercise list */}
             <div className="p-5 lg:p-8 min-w-0">
@@ -187,7 +187,7 @@ const FitnessPage = () => {
                 recentWorkouts.map((workout, i) => (
                   <div
                   key={`${workout.name}-${workout.performedAt ?? i}`}
-                  className={`flex items-center gap-3 py-3 border-b border-primary/20 last:border-b-0 rounded-sm transition-colors ${
+                  className={`flex items-center gap-3 py-3 border-b border-border last:border-b-0 rounded-sm transition-colors ${
                     canUseNextExercise && currentExerciseIdx === i
                       ? "bg-primary/[0.08] ring-1 ring-primary/25 -mx-1 px-1"
                       : ""
@@ -210,7 +210,7 @@ const FitnessPage = () => {
             </div>
 
             {/* Vertical divider */}
-            <div className="hidden lg:block w-px bg-primary/30 rounded-full self-stretch shrink-0 min-h-[200px]" />
+            <div className="hidden lg:block w-px bg-border rounded-full self-stretch shrink-0 min-h-[200px]" />
 
             {/* Right side */}
             <div className="p-5 lg:p-8 min-w-0">
@@ -218,7 +218,7 @@ const FitnessPage = () => {
               <span className="section-label !p-0 mb-4 block">PROGRESS THIS MONTH</span>
               <div className="grid grid-cols-2 gap-3 mb-8">
                 {progressStats.map((stat) => (
-                  <div key={stat.label} className="bg-card border border-primary/20 rounded-lg p-3.5">
+                  <div key={stat.label} className="bg-card border border-border rounded-lg p-3.5">
                 <div className="font-heading text-xl font-extrabold text-primary leading-none">{stat.value}</div>
                 <div className="text-[10px] text-muted-foreground mt-1.5 uppercase tracking-wide">{stat.label}</div>
               </div>
