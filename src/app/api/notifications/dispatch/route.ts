@@ -101,10 +101,6 @@ if (!requireCronSecret(request)) {
 
 console.log("✅ AUTH PASSED");
   try {
-    if (!requireCronSecret(request)) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
     const admin = createAdminSupabaseClient();
     const now = new Date();
 

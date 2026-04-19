@@ -52,8 +52,15 @@ function canUseOneSignalOnCurrentOrigin(): boolean {
     return currentOrigin === normalizeSiteOrigin(explicitAllowedOrigin);
   }
 
-  // Safe default for this project setup: production domain only.
-  return currentOrigin === "https://www.dadhealth.co.uk";
+  // Allow production domain and localhost for development.
+  const ALLOWED = [
+    "https://www.dadhealth.co.uk",
+    "https://dadhealth.co.uk",
+    "http://localhost:3000",
+    "http://localhost:8080",
+    "http://localhost:3001",
+  ];
+  return ALLOWED.includes(currentOrigin);
 }
 
 function getOneSignalAppId(): string {
@@ -136,4 +143,3 @@ export default function OneSignalManager() {
 
   return null;
 }
-
