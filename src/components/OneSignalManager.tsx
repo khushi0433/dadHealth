@@ -18,8 +18,9 @@ function getBrowserTimeZone(): string {
   return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
 }
 
-function ensureOneSignalScript(): void {
+function ensureOneSignalScript(appId: string): void {
   if (typeof window === "undefined") return;
+  if (!appId) return; // Don't load SDK if App ID is missing — avoids ERR_CONNECTION_CLOSED spam
   if (window.__onesignalScriptAdded) return;
   window.__onesignalScriptAdded = true;
 
@@ -72,11 +73,17 @@ async function initOneSignalOnce(oneSignal: any, appId: string): Promise<void> {
   if (window.__onesignalInitialized) return;
   if (!window.__onesignalInitPromise) {
     window.__onesignalInitPromise = (async () => {
-      await oneSignal.init({
-        appId,
-        allowLocalhostAsSecureOrigin: true,
-      });
-      window.__onesignalInitialized = true;
+      try {
+        await oneSignal.init({
+          appId,
+          allowLocalhostAsSecureOrigin: true,
+        });
+        window.__onesignalInitialized = true;
+      } catch (err) {
+        // Reset promise so a future retry is possible (e.g. after network recovery)
+        window.__onesignalInitPromise = undefined;
+        console.warn("[OneSignal] init failed — check NEXT_PUBLIC_ONESIGNAL_APP_ID and OneSignal dashboard origin settings.", err);
+      }
     })();
   }
   await window.__onesignalInitPromise;
@@ -85,8 +92,12 @@ async function initOneSignalOnce(oneSignal: any, appId: string): Promise<void> {
 export function requestOneSignalPermission() {
   if (typeof window === "undefined") return;
   if (!canUseOneSignalOnCurrentOrigin()) return;
-  ensureOneSignalScript();
   const appId = getOneSignalAppId();
+  if (!appId) {
+    console.warn("[OneSignal] requestOneSignalPermission called but NEXT_PUBLIC_ONESIGNAL_APP_ID is not set.");
+    return;
+  }
+  ensureOneSignalScript(appId);
 
   queueOneSignal(async (OneSignal) => {
     await initOneSignalOnce(OneSignal, appId);
@@ -116,7 +127,7 @@ export default function OneSignalManager() {
     if (!appId) return;
     if (!canUseOneSignalOnCurrentOrigin()) return;
 
-    ensureOneSignalScript();
+    ensureOneSignalScript(appId);
 
     queueOneSignal(async (OneSignal) => {
       await initOneSignalOnce(OneSignal, appId);
