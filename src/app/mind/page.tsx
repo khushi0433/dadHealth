@@ -6,6 +6,7 @@ import { PenLine, BarChart2, Stethoscope, LifeBuoy } from "lucide-react";
 import SitePageShell from "@/components/SitePageShell";
 import SiteFooter from "@/components/SiteFooter";
 import LimeButton from "@/components/LimeButton";
+import PromptModal from "@/components/PromptModal";
 import { ProGate } from "@/components/ProProvider";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMind } from "@/hooks/useMind";
@@ -17,6 +18,10 @@ const MindPage = () => {
   const { moodLogs, therapists, journalPrompts, saveJournal } = useMind(user?.id);
 
   const [journalText, setJournalText] = useState("");
+  const [journalSavePrompt, setJournalSavePrompt] = useState<{
+    title: string;
+    message: string;
+  } | null>(null);
   const [breathPhase, setBreathPhase] = useState<"inhale" | "hold" | "exhale">("inhale");
   const [breathCount, setBreathCount] = useState(4);
   const [breathActive, setBreathActive] = useState(false);
@@ -164,8 +169,24 @@ const MindPage = () => {
                   openAuthModal();
                   return;
                 }
-                saveJournal.mutate(journalText);
-                setJournalText("");
+                saveJournal.mutate(journalText, {
+                  onSuccess: () => {
+                    setJournalText("");
+                    setJournalSavePrompt({
+                      title: "JOURNAL SAVED",
+                      message: "Your journal entry has been saved to your account.",
+                    });
+                  },
+                  onError: (error) => {
+                    setJournalSavePrompt({
+                      title: "SAVE FAILED",
+                      message:
+                        error instanceof Error
+                          ? error.message
+                          : "We could not save your journal entry. Please try again.",
+                    });
+                  },
+                });
               }}
               disabled={!journalText.trim() || saveJournal.isPending}
             >
@@ -239,6 +260,13 @@ const MindPage = () => {
       </section>
 
       <SiteFooter />
+      {journalSavePrompt && (
+        <PromptModal
+          title={journalSavePrompt.title}
+          message={journalSavePrompt.message}
+          onClose={() => setJournalSavePrompt(null)}
+        />
+      )}
     </SitePageShell>
   );
 };
