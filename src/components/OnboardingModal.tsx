@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import LimeButton from "@/components/LimeButton";
 import { useUserProfile, useUpdateProfile } from "@/hooks/useUserProfile";
+import { trackEvent } from "@/lib/analytics";
 
 const GOAL_OPTIONS = [
   "5-min breathing reset",
@@ -51,7 +52,23 @@ export default function OnboardingModal({
       pillar_order: pillarOrder,
       onboarding_complete: true,
     });
+    trackEvent("pillar_prioritized", {
+      ordered_pillars: pillarOrder,
+      top_pillar: pillarOrder[0] ?? null,
+    });
+    trackEvent("onboarding_complete", {
+      selected_goals_count: goals.length,
+      top_pillar: pillarOrder[0] ?? null,
+    });
     onClose();
+  };
+
+  const handleGoalsStepComplete = () => {
+    trackEvent("goals_selected", {
+      goals,
+      goals_count: goals.length,
+    });
+    setStep(2);
   };
 
   return (
@@ -88,7 +105,7 @@ export default function OnboardingModal({
               </button>
             ))}
             <div className="flex flex-col gap-2 mt-4">
-              <LimeButton full type="button" onClick={() => setStep(2)}>
+              <LimeButton full type="button" onClick={handleGoalsStepComplete}>
                 NEXT →
               </LimeButton>
               <button
