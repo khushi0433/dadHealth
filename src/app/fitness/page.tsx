@@ -9,6 +9,7 @@ import { IMAGES } from "@/lib/images";
 import { useAuth } from "@/contexts/AuthContext";
 import { useFitness } from "@/hooks/useFitness";
 import { DAD_STRENGTH_MOVES } from "@/lib/dadStrengthProgram";
+import { trackEvent } from "@/lib/analytics";
 
 const timerGhostBtn =
   "bg-transparent border py-2.5 px-4 font-heading font-bold text-xs tracking-wider uppercase transition-colors";
@@ -92,7 +93,17 @@ const FitnessPage = () => {
   const currentMove = todaysMoves[currentExerciseIdx] ?? todaysMoves[0];
 
   const handleCompleteWorkout = () => {
+    if (!user) {
+      openAuthModal();
+      return;
+    }
     const totalMin = Math.max(1, Math.ceil(timerSec / 60));
+    trackEvent("workout_completed", {
+      workout_name: currentMove?.title ?? "Dad Strength",
+      duration_minutes: totalMin,
+      workout_type: currentMove?.tag ?? "DAD_STRENGTH",
+      exercise_index: currentExerciseIdx + 1,
+    });
     saveWorkout.mutate({
       exercise_name: currentMove?.title ?? "Dad Strength",
       duration_minutes: totalMin,
@@ -112,7 +123,30 @@ const FitnessPage = () => {
       return;
     }
     if (todaysMoves.length === 0) return;
-    setCurrentExerciseIdx((i) => (i + 1) % todaysMoves.length);
+    setCurrentExerciseIdx((i) => {
+      const nextIdx = (i + 1) % todaysMoves.length;
+      const nextMove = todaysMoves[nextIdx];
+      trackEvent("exercise_progressed", {
+        exercise_name: nextMove?.title,
+        exercise_index: nextIdx + 1,
+      });
+      return nextIdx;
+    });
+  };
+
+  const handleToggleTimer = () => {
+    if (!user) {
+      openAuthModal();
+      return;
+    }
+    if (!timerRunning) {
+      trackEvent("workout_started", {
+        workout_name: currentMove?.title ?? "Dad Strength",
+        workout_type: currentMove?.tag ?? "DAD_STRENGTH",
+        planned_moves: todaysMoves.length,
+      });
+    }
+    setTimerRunning((running) => !running);
   };
 
   return (
@@ -145,7 +179,7 @@ const FitnessPage = () => {
             </div>
           </div>
           <div className="flex flex-wrap gap-3 items-center">
-            <LimeButton small onClick={() => user ? setTimerRunning(!timerRunning) : openAuthModal()}>
+            <LimeButton small onClick={handleToggleTimer}>
               {timerRunning ? "PAUSE" : "START"} →
             </LimeButton>
             <button
