@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import SitePageShell from "@/components/SitePageShell";
 import SiteFooter from "@/components/SiteFooter";
 import LimeButton from "@/components/LimeButton";
+import PromptModal from "@/components/PromptModal";
 import { ProGate, useProStatus } from "@/components/ProProvider";
 import { IMAGES } from "@/lib/images";
 import { useAuth } from "@/contexts/AuthContext";
@@ -16,11 +17,11 @@ const timerGhostBtn =
 const timerGhostBtnMuted = `${timerGhostBtn} text-foreground/40 border-foreground/25`;
 const timerGhostBtnActive = `${timerGhostBtn} text-foreground border-foreground/25 hover:border-primary hover:text-primary cursor-pointer`;
 const DEFAULT_WEEKLY_MEAL_PLAN = [
-  { day: "MON", name: "Chicken & rice bowl", kcal: 520, time: "20 min" },
-  { day: "TUE", name: "Eggs & avocado toast", kcal: 380, time: "10 min" },
-  { day: "WED", name: "Salmon stir fry", kcal: 480, time: "25 min" },
-  { day: "THU", name: "Turkey mince pasta", kcal: 560, time: "20 min" },
-  { day: "FRI", name: "Dad's chilli", kcal: 490, time: "30 min" },
+  { day: "MON", name: "Chicken & rice bowl", kcal: 520 },
+  { day: "TUE", name: "Eggs & avocado toast", kcal: 380 },
+  { day: "WED", name: "Salmon stir fry", kcal: 480 },
+  { day: "THU", name: "Turkey mince pasta", kcal: 560 },
+  { day: "FRI", name: "Dad's chilli", kcal: 490 },
 ];
 
 const FitnessPage = () => {
@@ -31,6 +32,10 @@ const FitnessPage = () => {
   const [timerSec, setTimerSec] = useState(0);
   const [timerRunning, setTimerRunning] = useState(false);
   const [currentExerciseIdx, setCurrentExerciseIdx] = useState(0);
+  const [saveMealPlanPrompt, setSaveMealPlanPrompt] = useState<{
+    title: string;
+    message: string;
+  } | null>(null);
 
   useEffect(() => {
     const stored = typeof localStorage !== "undefined" ? localStorage.getItem("dadHealth_workout_timer") : null;
@@ -94,10 +99,36 @@ const FitnessPage = () => {
     { value: timerSec > 0 ? formatTime(timerSec) : "0 min", label: "ACTIVE TODAY" },
   ];
 
-  const meals = mealPlans.length > 0 ? mealPlans : DEFAULT_WEEKLY_MEAL_PLAN;
+  const meals = mealPlans;
   const todaysMoves = DAD_STRENGTH_MOVES;
   const latestLogged = workouts[0];
   const currentMove = todaysMoves[currentExerciseIdx] ?? todaysMoves[0];
+
+  const handleSaveMealPlan = () => {
+    if (!user) {
+      openAuthModal();
+      return;
+    }
+
+    const mealsToSave = meals.length > 0 ? meals : DEFAULT_WEEKLY_MEAL_PLAN;
+    saveMealPlans.mutate(mealsToSave, {
+      onSuccess: () => {
+        setSaveMealPlanPrompt({
+          title: "MEAL PLANNER SAVED",
+          message: "Your meal planner has been saved to your account.",
+        });
+      },
+      onError: (error) => {
+        setSaveMealPlanPrompt({
+          title: "SAVE FAILED",
+          message:
+            error instanceof Error
+              ? error.message
+              : "We could not save your meal planner. Please try again.",
+        });
+      },
+    });
+  };
 
   const handleCompleteWorkout = () => {
     if (!user) {
@@ -275,32 +306,24 @@ const FitnessPage = () => {
           >
             <div className="bg-primary text-primary-foreground p-5">
               <h3 className="font-heading text-lg font-extrabold uppercase mb-4">MEAL PLANNER</h3>
-              {meals.length > 0 ? meals.map((meal: { day: string; name: string; kcal: number; time?: string }, i: number) => (
+              {meals.length > 0 ? meals.map((meal: { day: string; name: string; kcal: number }, i: number) => (
                 <div
                   key={i}
                   className="flex items-center gap-4 py-2.5 border-b border-primary-foreground/10 last:border-b-0"
                 >
                   <span className="font-heading text-[10px] font-bold tracking-wider uppercase opacity-60 w-8">{meal.day}</span>
                   <span className="font-heading text-[13px] font-extrabold flex-1">{meal.name}</span>
-                  <span className="text-xs opacity-60">
-                    {meal.kcal} kcal{meal.time ? ` · ${meal.time}` : ""}
-                  </span>
+                  <span className="text-xs opacity-60">{meal.kcal} kcal</span>
                 </div>
               )) : (
                 <p className="text-sm opacity-60">No meal plan saved yet.</p>
               )}
               <button
-                onClick={() => {
-                  if (!user) {
-                    openAuthModal();
-                    return;
-                  }
-                  saveMealPlans.mutate(meals);
-                }}
-                disabled={saveMealPlans.isPending || mealsLoading || meals.length === 0}
+                onClick={handleSaveMealPlan}
+                disabled={saveMealPlans.isPending || mealsLoading}
                 className="mt-4 bg-primary-foreground text-primary font-heading font-bold text-[11px] tracking-wider uppercase px-4 py-2.5 border-none cursor-pointer transition-all duration-200 hover:brightness-110 hover:shadow-[0_0_20px_hsl(78,89%,65%,0.35)] active:scale-[0.97] disabled:opacity-50 disabled:hover:brightness-100 disabled:hover:shadow-none disabled:active:scale-100"
               >
-                SAVE MEAL PLAN →
+                {saveMealPlans.isPending ? "SAVING..." : "SAVE MEAL PLAN →"}
               </button>
             </div>
           </ProGate>
@@ -310,6 +333,13 @@ const FitnessPage = () => {
       </div>
 
       <SiteFooter />
+      {saveMealPlanPrompt && (
+        <PromptModal
+          title={saveMealPlanPrompt.title}
+          message={saveMealPlanPrompt.message}
+          onClose={() => setSaveMealPlanPrompt(null)}
+        />
+      )}
     </SitePageShell>
   );
 };
