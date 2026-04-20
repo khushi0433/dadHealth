@@ -11,6 +11,7 @@ import {
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/utils/supabaseClient";
 import AuthModal from "@/components/AuthModal";
+import { identifyAnalyticsUser, resetAnalyticsUser, trackEvent } from "@/lib/analytics";
 
 interface AuthContextType {
   user: User | null;
@@ -49,13 +50,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
+    } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
+
+      if (event === "SIGNED_IN") {
+        trackEvent("login", { method: session?.user?.app_metadata?.provider ?? "password" });
+      }
     });
 
     return () => subscription.unsubscribe();
   }, [refreshSession]);
+
+  useEffect(() => {
+    if (user) {
+      identifyAnalyticsUser(user.id, {
+        email: user.email,
+      });
+      return;
+    }
+    resetAnalyticsUser();
+  }, [user]);
 
   const signOut = useCallback(async () => {
     await supabase.auth.signOut();

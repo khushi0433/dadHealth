@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import LimeButton from "@/components/LimeButton";
 import { supabase } from "@/utils/supabaseClient";
 import type { Provider } from "@supabase/supabase-js";
+import { trackEvent } from "@/lib/analytics";
 
 interface AuthModalProps {
   open: boolean;
@@ -85,6 +86,9 @@ export default function AuthModal({ open, onClose, onSuccess }: AuthModalProps) 
           options: { emailRedirectTo: typeof window !== "undefined" ? window.location.origin : undefined },
         });
         if (signUpError) throw signUpError;
+        trackEvent("sign_up", {
+          method: "password",
+        });
         setMessage("Check your email to confirm your account.");
         setTimeout(handleClose, 2000);
       } else {
