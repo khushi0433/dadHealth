@@ -15,6 +15,13 @@ const timerGhostBtn =
   "bg-transparent border py-2.5 px-4 font-heading font-bold text-xs tracking-wider uppercase transition-colors";
 const timerGhostBtnMuted = `${timerGhostBtn} text-foreground/40 border-foreground/25`;
 const timerGhostBtnActive = `${timerGhostBtn} text-foreground border-foreground/25 hover:border-primary hover:text-primary cursor-pointer`;
+const DEFAULT_WEEKLY_MEAL_PLAN = [
+  { day: "MON", name: "Chicken & rice bowl", kcal: 520, time: "20 min" },
+  { day: "TUE", name: "Eggs & avocado toast", kcal: 380, time: "10 min" },
+  { day: "WED", name: "Salmon stir fry", kcal: 480, time: "25 min" },
+  { day: "THU", name: "Turkey mince pasta", kcal: 560, time: "20 min" },
+  { day: "FRI", name: "Dad's chilli", kcal: 490, time: "30 min" },
+];
 
 const FitnessPage = () => {
   const { user, openAuthModal } = useAuth();
@@ -87,7 +94,7 @@ const FitnessPage = () => {
     { value: timerSec > 0 ? formatTime(timerSec) : "0 min", label: "ACTIVE TODAY" },
   ];
 
-  const meals = mealPlans;
+  const meals = mealPlans.length > 0 ? mealPlans : DEFAULT_WEEKLY_MEAL_PLAN;
   const todaysMoves = DAD_STRENGTH_MOVES;
   const latestLogged = workouts[0];
   const currentMove = todaysMoves[currentExerciseIdx] ?? todaysMoves[0];
@@ -158,10 +165,10 @@ const FitnessPage = () => {
         <div className="relative z-10 flex flex-col justify-end h-full max-w-[1400px] mx-auto px-5 lg:px-8 pb-8">
           <span className="section-label text-primary mb-1">TODAY'S WORKOUT</span>
           <h1 className="font-heading text-[42px] lg:text-[56px] font-extrabold text-foreground uppercase leading-none tracking-wide">
-            DAD STRENGTH
+            FITNESS AND NUTRITION
           </h1>
           <p className="text-sm text-foreground/50 mt-2">
-            {todaysMoves.length} moves · full-body session
+            {todaysMoves.length} moves · workout + meal planner hub
             {latestLogged?.performed_at
               ? ` · Last logged ${latestLogged.performed_at.slice(0, 10)}`
               : ""}
@@ -260,39 +267,43 @@ const FitnessPage = () => {
             ))}
           </div>
 
-          {/* Meals - login + Pro gated */}
-          {user && (
-            <>
-              <span className="section-label !p-0 mb-4 block">THIS WEEK'S MEALS</span>
-              <ProGate
-                featureName="Meal planner"
-                lockMessage="The hardest part of eating well is deciding what to eat. We've done that for you."
-              >
-                <div className="bg-primary text-primary-foreground p-5">
-                  <h3 className="font-heading text-lg font-extrabold uppercase mb-4">MEAL PLANNER</h3>
-                  {meals.length > 0 ? meals.map((meal: { day: string; name: string; kcal: number }, i: number) => (
-                    <div
-                      key={i}
-                      className="flex items-center gap-4 py-2.5 border-b border-primary-foreground/10 last:border-b-0"
-                    >
-                      <span className="font-heading text-[10px] font-bold tracking-wider uppercase opacity-60 w-8">{meal.day}</span>
-                      <span className="font-heading text-[13px] font-extrabold flex-1">{meal.name}</span>
-                      <span className="text-xs opacity-60">{meal.kcal} kcal</span>
-                    </div>
-                  )) : (
-                    <p className="text-sm opacity-60">No meal plan saved yet.</p>
-                  )}
-                  <button
-                    onClick={() => saveMealPlans.mutate(meals)}
-                    disabled={saveMealPlans.isPending || mealsLoading || meals.length === 0}
-                    className="mt-4 bg-primary-foreground text-primary font-heading font-bold text-[11px] tracking-wider uppercase px-4 py-2.5 border-none cursor-pointer transition-all duration-200 hover:brightness-110 hover:shadow-[0_0_20px_hsl(78,89%,65%,0.35)] active:scale-[0.97] disabled:opacity-50 disabled:hover:brightness-100 disabled:hover:shadow-none disabled:active:scale-100"
-                  >
-                    SAVE MEAL PLAN →
-                  </button>
+          {/* Meals - Pro gated */}
+          <span className="section-label !p-0 mb-4 block">THIS WEEK'S MEALS</span>
+          <ProGate
+            featureName="Meal planner"
+            lockMessage="The hardest part of eating well is deciding what to eat. We've done that for you."
+          >
+            <div className="bg-primary text-primary-foreground p-5">
+              <h3 className="font-heading text-lg font-extrabold uppercase mb-4">MEAL PLANNER</h3>
+              {meals.length > 0 ? meals.map((meal: { day: string; name: string; kcal: number; time?: string }, i: number) => (
+                <div
+                  key={i}
+                  className="flex items-center gap-4 py-2.5 border-b border-primary-foreground/10 last:border-b-0"
+                >
+                  <span className="font-heading text-[10px] font-bold tracking-wider uppercase opacity-60 w-8">{meal.day}</span>
+                  <span className="font-heading text-[13px] font-extrabold flex-1">{meal.name}</span>
+                  <span className="text-xs opacity-60">
+                    {meal.kcal} kcal{meal.time ? ` · ${meal.time}` : ""}
+                  </span>
                 </div>
-              </ProGate>
-            </>
-          )}
+              )) : (
+                <p className="text-sm opacity-60">No meal plan saved yet.</p>
+              )}
+              <button
+                onClick={() => {
+                  if (!user) {
+                    openAuthModal();
+                    return;
+                  }
+                  saveMealPlans.mutate(meals);
+                }}
+                disabled={saveMealPlans.isPending || mealsLoading || meals.length === 0}
+                className="mt-4 bg-primary-foreground text-primary font-heading font-bold text-[11px] tracking-wider uppercase px-4 py-2.5 border-none cursor-pointer transition-all duration-200 hover:brightness-110 hover:shadow-[0_0_20px_hsl(78,89%,65%,0.35)] active:scale-[0.97] disabled:opacity-50 disabled:hover:brightness-100 disabled:hover:shadow-none disabled:active:scale-100"
+              >
+                SAVE MEAL PLAN →
+              </button>
+            </div>
+          </ProGate>
             </div>
           </div>
         </div>
