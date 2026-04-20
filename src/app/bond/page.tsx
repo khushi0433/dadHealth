@@ -9,6 +9,7 @@ import { useProStatus } from "@/components/ProProvider";
 import { IMAGES } from "@/lib/images";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBond } from "@/hooks/useBond";
+import { trackEvent } from "@/lib/analytics";
 
 type DadDateRow = {
   icon?: string;
@@ -67,6 +68,14 @@ const BondPage = () => {
   const displayMilestones = milestones;
   const conversationStarters = prompts.map((p: { prompt: string }) => p.prompt);
 
+  const handlePresentModeToggle = () => {
+    const nextValue = !presentMode;
+    setPresentMode(nextValue);
+    trackEvent("present_dad_mode_toggled", {
+      enabled: nextValue,
+    });
+  };
+
   return (
     <SitePageShell>
       {/* Hero */}
@@ -96,7 +105,7 @@ const BondPage = () => {
             <p className="text-[11px] text-muted-foreground mt-0.5">Block distractions for 60 min</p>
           </div>
           <button
-            onClick={() => setPresentMode(!presentMode)}
+            onClick={handlePresentModeToggle}
             className="w-11 h-6 rounded-full bg-muted relative cursor-pointer"
           >
             <div
@@ -132,6 +141,13 @@ const BondPage = () => {
               {filteredDates.length > 0 ? filteredDates.map((d) => (
                 <div
                   key={d.name}
+                  onClick={() =>
+                    trackEvent("dad_date_clicked", {
+                      name: d.name,
+                      age_range: d.age_range ?? d.age ?? null,
+                      budget: d.budget ?? null,
+                    })
+                  }
                   className="border border-border p-3.5 cursor-pointer transition-all hover:border-primary group min-w-0"
                 >
                   <div className="text-2xl mb-2">{d.icon}</div>

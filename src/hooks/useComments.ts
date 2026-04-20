@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { supabase } from "@/utils/supabaseClient";
 import { communityQueryKey } from "@/lib/communityQueryKey";
 import { ANONYMOUS_AUTHOR_NAME, DEFAULT_DISPLAY_FALLBACK } from "@/lib/userDisplay";
+import { trackEvent } from "@/lib/analytics";
 
 export type EnrichedComment = {
   id: string;
@@ -180,6 +181,11 @@ export function useAddComment(sessionUserId?: string) {
       };
       const { data, error } = await supabase.from("comments").insert(insertRow).select().single();
       if (error) throw error;
+      trackEvent("comment_added", {
+        post_id: postId,
+        has_parent: Boolean(parent_id),
+        content_length: content.length,
+      });
       return data;
     },
     onMutate: async ({ postId, content, userId, parentId }) => {

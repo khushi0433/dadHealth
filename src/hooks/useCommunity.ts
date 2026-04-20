@@ -5,6 +5,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { supabase } from "@/utils/supabaseClient";
 import { communityQueryKey } from "@/lib/communityQueryKey";
+import { trackEvent } from "@/lib/analytics";
 import {
   ANONYMOUS_AUTHOR_NAME,
   DEFAULT_DISPLAY_FALLBACK,
@@ -252,6 +253,11 @@ export function useCommunity(userId?: string) {
         .select()
         .single();
       if (error) throw error;
+      trackEvent("community_post_created", {
+        tag,
+        anonymous: !!anonymous,
+        content_length: body.length,
+      });
       return data;
     },
     onSuccess: () => {
@@ -268,9 +274,17 @@ export function useCommunity(userId?: string) {
       if (liked) {
         const { error } = await supabase.from("likes").delete().eq("user_id", userId).eq("post_id", pid);
         if (error) throw error;
+        trackEvent("like_clicked", {
+          action: "unlike",
+          post_id: pid,
+        });
       } else {
         const { error } = await supabase.from("likes").insert({ user_id: userId, post_id: pid });
         if (error) throw error;
+        trackEvent("like_clicked", {
+          action: "like",
+          post_id: pid,
+        });
       }
     },
     onMutate: async ({ postId, liked }) => {
@@ -349,6 +363,9 @@ export function useCommunity(userId?: string) {
       if (join) {
         const { error } = await supabase.from("user_circles").insert({ user_id: userId, circle_id: circleId });
         if (error) throw error;
+        trackEvent("circle_joined", {
+          circle_id: circleId,
+        });
       } else {
         const { error } = await supabase.from("user_circles").delete().eq("user_id", userId).eq("circle_id", circleId);
         if (error) throw error;

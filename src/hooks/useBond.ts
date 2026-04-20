@@ -2,6 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/utils/supabaseClient";
+import { trackEvent } from "@/lib/analytics";
 
 export function useBond(userId?: string) {
   const queryClient = useQueryClient();
@@ -38,6 +39,11 @@ export function useBond(userId?: string) {
         .select()
         .single();
       if (error) throw error;
+      trackEvent("milestone_logged", {
+        tag: params.tag,
+        date: params.date,
+        text_length: params.text.length,
+      });
       return data;
     },
     onSuccess: () => {
