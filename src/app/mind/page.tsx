@@ -9,6 +9,7 @@ import LimeButton from "@/components/LimeButton";
 import { ProGate } from "@/components/ProProvider";
 import { useAuth } from "@/contexts/AuthContext";
 import { useMind } from "@/hooks/useMind";
+import { trackEvent } from "@/lib/analytics";
 
 const MindPage = () => {
   const router = useRouter();
@@ -59,6 +60,15 @@ const MindPage = () => {
 
   const therapistsList = therapists;
 
+  const handleBreathToggle = () => {
+    if (!breathActive) {
+      trackEvent("breath_session_started", {
+        pattern: "4-4-4",
+      });
+    }
+    setBreathActive((active) => !active);
+  };
+
   return (
     <SitePageShell>
       {/* Hero */}
@@ -101,7 +111,7 @@ const MindPage = () => {
               Inhale 4 · Hold 4 · Exhale 4.<br />Reduces cortisol.
             </p>
             <button
-              onClick={() => setBreathActive(!breathActive)}
+              onClick={handleBreathToggle}
               className="mt-6 bg-background text-foreground border-2 border-foreground px-8 py-3 font-heading font-extrabold text-sm tracking-wider uppercase cursor-pointer hover:border-primary hover:text-primary transition-colors"
             >
               {breathActive ? "STOP" : "BEGIN"}

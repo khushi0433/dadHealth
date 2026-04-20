@@ -2,6 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/utils/supabaseClient";
+import { trackEvent } from "@/lib/analytics";
 
 export function useMind(userId?: string) {
   const queryClient = useQueryClient();
@@ -49,6 +50,9 @@ export function useMind(userId?: string) {
         .select()
         .single();
       if (error) throw error;
+      trackEvent("journal_entry_created", {
+        content_length: content.length,
+      });
       return data;
     },
     onSuccess: () => {

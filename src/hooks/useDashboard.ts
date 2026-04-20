@@ -2,6 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/utils/supabaseClient";
+import { trackEvent } from "@/lib/analytics";
 
 async function updateStreak(supabaseClient: typeof supabase, userId: string) {
   const today = new Date().toISOString().slice(0, 10);
@@ -17,7 +18,7 @@ async function updateStreak(supabaseClient: typeof supabase, userId: string) {
 
   let newCount = 1;
   if (existing) {
-    if (existing.last_activity_date === today) return;
+    if (existing.last_activity_date === today) return null;
     if (existing.last_activity_date === yesterdayStr) {
       newCount = (existing.streak_count ?? 0) + 1;
     }
@@ -26,6 +27,8 @@ async function updateStreak(supabaseClient: typeof supabase, userId: string) {
   await supabaseClient
     .from("user_streaks")
     .upsert({ user_id: userId, streak_count: newCount, last_activity_date: today }, { onConflict: "user_id" });
+
+  return newCount;
 }
 
 async function fetchDashboard(userId: string) {
@@ -258,7 +261,16 @@ export function useDashboard(userId?: string) {
         supabase.from("mood_logs").upsert({ user_id: userId, date, mood_value }, { onConflict: "user_id,date" }),
         supabase.from("sleep_logs").upsert({ user_id: userId, date, hours: sleep_hours }, { onConflict: "user_id,date" }),
       ]);
-      await updateStreak(supabase, userId);
+      const streakCount = await updateStreak(supabase, userId);
+      trackEvent("check_in", {
+        mood: mood_value,
+        sleep_hours,
+      });
+      if (typeof streakCount === "number") {
+        trackEvent("streak_updated", {
+          streak_count: streakCount,
+        });
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["dashboard", userId] });

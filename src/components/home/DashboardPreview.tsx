@@ -15,6 +15,7 @@ import CommunityScreen from "./dashboardPreview/CommunityScreen";
 import ProgressScreen from "./dashboardPreview/ProgressScreen";
 import { useDashboardPreviewData } from "./dashboardPreview/useDashboardPreviewData";
 import type { DashboardGoal, DashboardScreen } from "./dashboardPreview/types";
+import { trackEvent } from "@/lib/analytics";
 
 const SIDEBAR_ITEMS = [
   { iconKey: "home", label: "HOME", id: "HOME" as DashboardScreen },
@@ -124,6 +125,10 @@ const DashboardPreview = ({ variant = "preview" }: DashboardPreviewProps) => {
       prev.map((goal, i) => {
         if (i !== index) return goal;
         if (goal.status === "done") return goal;
+        trackEvent("daily_plan_task_completed", {
+          task_name: goal.name,
+          task_pillar: goal.time,
+        });
         return { ...goal, status: "done" as const };
       })
     );
