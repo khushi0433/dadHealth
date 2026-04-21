@@ -168,4 +168,60 @@
   .therapist-card {
     @apply border border-border p-3.5 flex gap-3 mb-2 items-start;
   }
+
+  /**
+   * Cookie policy (Termly export): each cookie is a <section> with a key/value <table>.
+   * Force real table layout so label/value columns stay side-by-side (not stacked blocks).
+   */
+  .cookie-policy-content section {
+    @apply mb-4 rounded-md border border-border bg-card/35 overflow-hidden last:mb-0;
+  }
+
+  .cookie-policy-content section > div {
+    @apply p-0;
+  }
+
+  .cookie-policy-content table {
+    display: table;
+    width: 100%;
+    max-width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+  }
+
+  .cookie-policy-content table tbody {
+    display: table-row-group;
+  }
+
+  .cookie-policy-content table tr {
+    display: table-row;
+  }
+
+  .cookie-policy-content table th,
+  .cookie-policy-content table td {
+    display: table-cell;
+    vertical-align: top;
+  }
+
+  .cookie-policy-content table th {
+    @apply font-heading text-[10px] font-extrabold tracking-[1.8px] uppercase text-primary bg-muted/40;
+    width: 8.5rem;
+    max-width: 32%;
+    padding: 0.75rem 1rem;
+    text-align: left;
+    border-bottom: 1px solid hsl(var(--border));
+  }
+
+  .cookie-policy-content table td {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid hsl(var(--border));
+    text-align: left;
+    letter-spacing: normal;
+    word-break: break-word;
+  }
+
+  .cookie-policy-content table tr:last-child th,
+  .cookie-policy-content table tr:last-child td {
+    border-bottom: none;
+  }
 }
