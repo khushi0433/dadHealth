@@ -163,7 +163,7 @@ export const FOOTER_LINKS = {
     { label: "Contact", href: "#" },
   ],
   legal: [
-    { label: "Privacy policy", href: "#" },
+    { label: "Privacy policy", href: "/privacy" },
     { label: "Terms of service", href: "#" },
     { label: "Cookie settings", href: "#" },
   ],
