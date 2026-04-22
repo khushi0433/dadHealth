@@ -37,6 +37,16 @@ const wrapYesNoTableCells = (html: string) =>
     return `<td${attrs}>${cleanedInner}</td>`;
   });
 
+const fillMissingSensitiveInfoDescription = (html: string) =>
+  html.replace(
+    /(<tr[^>]*>[\s\S]*?<td[^>]*>[\s\S]*?Sensitive personal Information[\s\S]*?<\/td>\s*<td[^>]*>)([\s\S]*?)(<\/td>)/gi,
+    (_match, before: string, middle: string, after: string) => {
+      const text = middle.replace(/<[^>]+>/g, "").replace(/&nbsp;/gi, " ").trim();
+      if (text.length > 0) return `${before}${middle}${after}`;
+      return `${before}No sensitive personal information collected.${after}`;
+    }
+  );
+
 const getPolicyBodyHtml = async () => {
   const policyPath = path.join(process.cwd(), "policy.html");
   const raw = await readFile(policyPath, "utf8");
@@ -52,7 +62,7 @@ const getPolicyBodyHtml = async () => {
     .replace(/&nbsp;/gi, " ")
     .replace(/\u00a0/g, " ");
 
-  return wrapYesNoTableCells(cleaned);
+  return fillMissingSensitiveInfoDescription(wrapYesNoTableCells(cleaned));
 };
 
 const PrivacyPage = async () => {
@@ -75,10 +85,44 @@ const PrivacyPage = async () => {
 
       <section className="bg-background">
         <div className="max-w-[1400px] mx-auto px-5 lg:px-8 py-8 lg:py-10">
-          <article
-            className="max-w-none text-muted-foreground text-[15px] leading-7 [&_h1]:font-heading [&_h1]:text-[30px] [&_h1]:leading-tight [&_h1]:font-extrabold [&_h1]:uppercase [&_h1]:tracking-wide [&_h1]:!text-primary [&_h2]:font-heading [&_h2]:text-[28px] [&_h2]:leading-tight [&_h2]:font-extrabold [&_h2]:uppercase [&_h2]:tracking-wide [&_h2]:!text-primary [&_h3]:font-heading [&_h3]:text-[20px] [&_h3]:font-extrabold [&_h3]:uppercase [&_h3]:tracking-wide [&_h3]:!text-primary [&_p]:my-3 [&_li]:my-1 [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6 [&_table]:w-full [&_table]:min-w-[780px] [&_table]:text-sm [&_table]:border [&_table]:border-border [&_table]:rounded-sm [&_table]:overflow-hidden [&_table]:[border-collapse:collapse] [&_th]:px-4 [&_th]:py-3 [&_th]:!text-left [&_th]:font-heading [&_th]:text-[10px] [&_th]:font-extrabold [&_th]:tracking-[1.8px] [&_th]:uppercase [&_th]:!text-primary [&_th]:bg-muted/40 [&_td]:px-4 [&_td]:py-3 [&_td]:align-top [&_td]:tracking-normal [&_td]:leading-7 [&_td]:normal-case [&_td]:!tracking-normal [&_td]:!leading-7 [&_td]:![letter-spacing:0px] [&_td]:![word-spacing:0px] [&_td]:![text-rendering:auto] [&_td]:[text-align:left] [&_td]:[text-justify:auto] [&_td]:[font-kerning:none] [&_td]:break-words [&_td]:whitespace-normal [&_td_*]:!tracking-normal [&_td_*]:![letter-spacing:0px] [&_td_*]:![word-spacing:0px] [&_tr]:border-b [&_tr]:border-border [&_strong]:text-foreground [&_a]:text-primary [&_a]:no-underline [&_a]:decoration-transparent [&_a]:transition-all [&_a]:duration-200 [&_a:hover]:underline [&_a:hover]:underline-offset-4 [&_a:hover]:decoration-[hsl(78,89%,65%)]"
-            dangerouslySetInnerHTML={{ __html: policyHtml }}
-          />
+          <div className="w-full overflow-x-auto">
+            <article
+              className="max-w-none text-muted-foreground text-[15px] leading-7
+    [&_h1]:font-heading [&_h1]:text-[30px] [&_h1]:leading-tight [&_h1]:font-extrabold [&_h1]:uppercase [&_h1]:tracking-wide [&_h1]:!text-primary
+    [&_h2]:font-heading [&_h2]:text-[28px] [&_h2]:leading-tight [&_h2]:font-extrabold [&_h2]:uppercase [&_h2]:tracking-wide [&_h2]:!text-primary
+    [&_h3]:font-heading [&_h3]:text-[20px] [&_h3]:font-extrabold [&_h3]:uppercase [&_h3]:tracking-wide [&_h3]:!text-primary
+    [&_p]:my-3 [&_li]:my-1 [&_ul]:list-disc [&_ul]:pl-6 [&_ol]:list-decimal [&_ol]:pl-6
+
+    [&_table]:w-full [&_table]:min-w-[780px] [&_table]:table-fixed [&_table]:text-sm
+    [&_table]:mb-0 [&_table+table]:mt-0 [&_table+table]:border-t-0
+    [&_table]:border [&_table]:border-border [&_table]:rounded-sm
+    [&_table]:overflow-hidden [&_table]:[border-collapse:collapse]
+
+    [&_th]:px-4 [&_th]:py-3 [&_th]:!text-left [&_th]:font-heading [&_th]:text-[10px]
+    [&_th]:font-extrabold [&_th]:tracking-[1.8px] [&_th]:uppercase [&_th]:!text-primary [&_th]:bg-muted/40
+
+    [&_th:first-child]:w-[25%]
+    [&_th:nth-child(2)]:w-[60%]
+    [&_th:last-child]:w-[15%] [&_th:last-child]:text-right
+
+    [&_td]:px-4 [&_td]:py-3 [&_td]:align-top [&_td]:break-words [&_td]:whitespace-normal
+    [&_td]:!tracking-normal [&_td]:!leading-7 [&_td]:![letter-spacing:0px]
+    [&_td]:![word-spacing:0px] [&_td]:![text-rendering:auto]
+    [&_td]:[text-align:left] [&_td]:[font-kerning:none]
+    [&_td_*]:!tracking-normal [&_td_*]:![letter-spacing:0px] [&_td_*]:![word-spacing:0px]
+
+    [&_td:first-child]:w-[25%]
+    [&_td:nth-child(2)]:w-[60%]
+    [&_td:last-child]:w-[15%] [&_td:last-child]:text-right [&_td:last-child]:whitespace-nowrap
+
+    [&_tr]:border-b [&_tr]:border-border
+    [&_strong]:text-foreground
+    [&_a]:text-primary [&_a]:no-underline [&_a]:decoration-transparent [&_a]:transition-all
+    [&_a]:duration-200 [&_a:hover]:underline [&_a:hover]:underline-offset-4
+    [&_a:hover]:decoration-[hsl(78,89%,65%)]"
+              dangerouslySetInnerHTML={{ __html: policyHtml }}
+            />
+          </div>
         </div>
       </section>
 
