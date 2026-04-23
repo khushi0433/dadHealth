@@ -12,6 +12,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useMind } from "@/hooks/useMind";
 import { trackEvent } from "@/lib/analytics";
 
+const BREATH_AUDIO_VERSION = "2026-04-23-2";
+
 const MindPage = () => {
   const router = useRouter();
   const { user, openAuthModal } = useAuth();
@@ -25,6 +27,7 @@ const MindPage = () => {
   const [breathPhase, setBreathPhase] = useState<"inhale" | "hold" | "exhale">("inhale");
   const [breathCount, setBreathCount] = useState(4);
   const [breathActive, setBreathActive] = useState(false);
+  const [breathMuted, setBreathMuted] = useState(false);
 
   const last7 = Array.from({ length: 7 }, (_, i) => {
     const d = new Date();
@@ -40,6 +43,109 @@ const MindPage = () => {
   const avgMoodLabel = avgMoodValue >= 3.5 ? "Great" : avgMoodValue >= 3 ? "Good" : avgMoodValue >= 2 ? "Okay" : avgMoodValue > 0 ? "Low" : "—";
 
   const breathRef = useRef({ count: 4, phaseIdx: 0 });
+  const breathMutedRef = useRef(false);
+  const breathAudioRef = useRef<{
+    inhale: HTMLAudioElement | null;
+    hold: HTMLAudioElement | null;
+    exhale: HTMLAudioElement | null;
+  }>({
+    inhale: null,
+    hold: null,
+    exhale: null,
+  });
+  const breathStopTimeoutRef = useRef<{
+    inhale: ReturnType<typeof setTimeout> | null;
+    hold: ReturnType<typeof setTimeout> | null;
+    exhale: ReturnType<typeof setTimeout> | null;
+  }>({
+    inhale: null,
+    hold: null,
+    exhale: null,
+  });
+
+  const stopAllBreathAudio = () => {
+    const { inhale, hold, exhale } = breathAudioRef.current;
+    [inhale, hold, exhale].forEach((audio) => {
+      if (!audio) return;
+      audio.pause();
+      audio.currentTime = 0;
+    });
+    const { inhale: inhaleTimer, hold: holdTimer, exhale: exhaleTimer } = breathStopTimeoutRef.current;
+    [inhaleTimer, holdTimer, exhaleTimer].forEach((timer) => {
+      if (timer) clearTimeout(timer);
+    });
+    breathStopTimeoutRef.current = { inhale: null, hold: null, exhale: null };
+  };
+
+  const playBreathPhaseAudio = (phase: "inhale" | "hold" | "exhale") => {
+    if (breathMutedRef.current) return;
+    const nextAudio = breathAudioRef.current[phase];
+    if (!nextAudio) return;
+    const phaseStartOffsetSeconds: Record<"inhale" | "hold" | "exhale", number> = {
+      inhale: 1,
+      hold: 0,
+      exhale: 0,
+    };
+    const phaseMaxPlaybackMs: Record<"inhale" | "hold" | "exhale", number> = {
+      inhale: 5000,
+      hold: 4000,
+      exhale: 4000,
+    };
+
+    const activeTimer = breathStopTimeoutRef.current[phase];
+    if (activeTimer) clearTimeout(activeTimer);
+
+    // Keep a single phase cue audible at a time.
+    stopAllBreathAudio();
+    nextAudio.currentTime = Math.min(phaseStartOffsetSeconds[phase], Math.max(0, nextAudio.duration || 0));
+    void nextAudio.play().catch(() => {
+      // Silently ignore autoplay/playback failures.
+    });
+
+    // Hard-stop phase cues to avoid long custom audio overlaps.
+    breathStopTimeoutRef.current[phase] = setTimeout(() => {
+      nextAudio.pause();
+      nextAudio.currentTime = 0;
+      breathStopTimeoutRef.current[phase] = null;
+    }, phaseMaxPlaybackMs[phase]);
+  };
+
+  useEffect(() => {
+    breathMutedRef.current = breathMuted;
+    const { inhale, hold, exhale } = breathAudioRef.current;
+    [inhale, hold, exhale].forEach((audio) => {
+      if (audio) audio.muted = breathMuted;
+    });
+  }, [breathMuted]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const inhaleAudio = new Audio(`/sounds/inhale.mp3?v=${BREATH_AUDIO_VERSION}`);
+    const holdAudio = new Audio(`/sounds/hold.mp3?v=${BREATH_AUDIO_VERSION}`);
+    const exhaleAudio = new Audio(`/sounds/exhale.mp3?v=${BREATH_AUDIO_VERSION}`);
+
+    inhaleAudio.preload = "auto";
+    holdAudio.preload = "auto";
+    exhaleAudio.preload = "auto";
+    inhaleAudio.load();
+    holdAudio.load();
+    exhaleAudio.load();
+
+    inhaleAudio.volume = 0.35;
+    holdAudio.volume = 0.35;
+    exhaleAudio.volume = 0.35;
+
+    breathAudioRef.current = {
+      inhale: inhaleAudio,
+      hold: holdAudio,
+      exhale: exhaleAudio,
+    };
+
+    return () => {
+      stopAllBreathAudio();
+      breathAudioRef.current = { inhale: null, hold: null, exhale: null };
+    };
+  }, []);
 
   useEffect(() => {
     if (!breathActive) return;
@@ -47,14 +153,17 @@ const MindPage = () => {
     breathRef.current = { count: 4, phaseIdx: 0 };
     setBreathPhase(phases[0]);
     setBreathCount(4);
+    playBreathPhaseAudio("inhale");
     const id = setInterval(() => {
       const { count, phaseIdx } = breathRef.current;
       const nextCount = count - 1;
       if (nextCount < 1) {
         const nextPhaseIdx = (phaseIdx + 1) % 3;
+        const nextPhase = phases[nextPhaseIdx];
         breathRef.current = { count: 4, phaseIdx: nextPhaseIdx };
-        setBreathPhase(phases[nextPhaseIdx]);
+        setBreathPhase(nextPhase);
         setBreathCount(4);
+        playBreathPhaseAudio(nextPhase);
       } else {
         breathRef.current = { count: nextCount, phaseIdx };
         setBreathCount(nextCount);
@@ -63,14 +172,36 @@ const MindPage = () => {
     return () => clearInterval(id);
   }, [breathActive]);
 
+  useEffect(() => {
+    if (breathActive) return;
+    stopAllBreathAudio();
+  }, [breathActive]);
+
   const therapistsList = therapists;
 
-  const handleBreathToggle = () => {
+  const handleBreathToggle = async () => {
     if (!breathActive) {
       trackEvent("breath_session_started", {
         pattern: "4-4-4",
       });
+
+      // Unlock all phase clips from this user gesture (improves mobile/browser reliability).
+      const { inhale, hold, exhale } = breathAudioRef.current;
+      for (const audio of [inhale, hold, exhale]) {
+        if (!audio) continue;
+        const originalMuted = audio.muted;
+        audio.muted = true;
+        try {
+          await audio.play();
+          audio.pause();
+          audio.currentTime = 0;
+        } catch {
+          // Ignore unlock failures; regular phase playback will retry.
+        }
+        audio.muted = breathMutedRef.current || originalMuted;
+      }
     }
+
     setBreathActive((active) => !active);
   };
 
@@ -115,12 +246,23 @@ const MindPage = () => {
             <p className="text-xs text-muted-foreground text-center mt-4">
               Inhale 4 · Hold 4 · Exhale 4.<br />Reduces cortisol.
             </p>
-            <button
-              onClick={handleBreathToggle}
-              className="mt-6 bg-background text-foreground border-2 border-foreground px-8 py-3 font-heading font-extrabold text-sm tracking-wider uppercase cursor-pointer hover:border-primary hover:text-primary transition-colors"
-            >
-              {breathActive ? "STOP" : "BEGIN"}
-            </button>
+            <div className="mt-6 flex items-center gap-3">
+              <button
+                onClick={handleBreathToggle}
+                className="bg-background text-foreground border-2 border-foreground px-8 py-3 font-heading font-extrabold text-sm tracking-wider uppercase cursor-pointer hover:border-primary hover:text-primary transition-colors"
+              >
+                {breathActive ? "STOP" : "BEGIN"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setBreathMuted((muted) => !muted)}
+                className="bg-background text-foreground border border-foreground px-4 py-3 font-heading font-bold text-xs tracking-wider uppercase cursor-pointer hover:border-primary hover:text-primary transition-colors"
+                aria-pressed={breathMuted}
+                aria-label={breathMuted ? "Unmute breathing audio" : "Mute breathing audio"}
+              >
+                {breathMuted ? "UNMUTE" : "MUTE"}
+              </button>
+            </div>
           </div>
         </div>
         </div>
