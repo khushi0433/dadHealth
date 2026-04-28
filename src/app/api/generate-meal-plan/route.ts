@@ -312,7 +312,7 @@ export async function POST(req: Request) {
           source: 'ai_generated',
           plan,
           grocery_list: groceryList,
-          preferences: preferences || null,
+          preferences: preferences ? { text: preferences } : null,
           adults: Number(adults) || 1,
         })
         .select()
@@ -322,6 +322,8 @@ export async function POST(req: Request) {
 
       return NextResponse.json(data)
     }
+
+    const anthropic = new Anthropic({ apiKey: anthropicKey! })
 
     const prompt = `
 Create a 5-day meal plan.
@@ -376,7 +378,7 @@ Return ONLY JSON in this format:
         source: 'ai_generated',
         plan,
         grocery_list: groceryList,
-        preferences: preferences || null,
+        preferences: preferences ? { text: preferences } : null,
         adults: Number(adults) || 1,
       })
       .select()
