@@ -61,35 +61,128 @@ const getJsonFromText = (text: string) => {
   }
 }
 
+const getMealPlanErrorDetails = (err: unknown) => {
+  const error = err as {
+    name?: string
+    message?: string
+    status?: number
+    code?: string
+    type?: string
+    request_id?: string
+    response?: {
+      status?: number
+      data?: {
+        error?: {
+          message?: string
+          type?: string
+          code?: string
+          status?: number
+          request_id?: string
+        }
+      }
+    }
+    error?: {
+      message?: string
+      type?: string
+      code?: string
+      status?: number
+      request_id?: string
+    }
+  }
+
+  const providerError = error?.response?.data?.error ?? error?.error
+  const message = [
+    error?.message,
+    providerError?.message,
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .trim() || String(err)
+
+  return {
+    name: error?.name,
+    status: error?.status ?? error?.response?.status ?? providerError?.status,
+    type: error?.type ?? providerError?.type,
+    code: error?.code ?? providerError?.code,
+    requestId: error?.request_id ?? providerError?.request_id,
+    message,
+  }
+}
+
 const getPublicMealPlanError = (err: unknown) => {
-  const message = err instanceof Error ? err.message : String(err)
-  const status = typeof err === 'object' && err && 'status' in err ? (err as { status?: number }).status : undefined
-  const lowerMessage = message.toLowerCase()
+  const details = getMealPlanErrorDetails(err)
+  const lowerMessage = details.message.toLowerCase()
+  const lowerType = String(details.type ?? '').toLowerCase()
+  const lowerCode = String(details.code ?? '').toLowerCase()
 
   if (
-    status === 400 &&
-    (lowerMessage.includes('credit balance') ||
-      lowerMessage.includes('billing') ||
-      lowerMessage.includes('purchase credits'))
+    lowerMessage.includes('credit balance') ||
+    lowerMessage.includes('balance is too low') ||
+    lowerMessage.includes('purchase credits') ||
+    lowerMessage.includes('insufficient credits') ||
+    lowerMessage.includes('quota') ||
+    lowerType.includes('billing') ||
+    lowerCode.includes('billing') ||
+    lowerCode.includes('quota') ||
+    (
+      details.status === 400 &&
+      (lowerMessage.includes('billing') ||
+        lowerMessage.includes('credit') ||
+        lowerMessage.includes('balance'))
+    ) ||
+    (
+      details.status === 403 &&
+      (lowerMessage.includes('billing') ||
+        lowerMessage.includes('credit') ||
+        lowerMessage.includes('balance'))
+    )
   ) {
     return {
       status: 503,
       message:
-        "Meal planner is temporarily unavailable. We're upgrading this feature please try again shortly.or contact support.",
+        'Meal planner is temporarily unavailable because our AI provider needs billing credits. Please try again later or contact support.',
     }
   }
 
-  if (status === 401 || lowerMessage.includes('api key')) {
+  if (
+    details.status === 401 ||
+    details.status === 403 ||
+    lowerType.includes('authentication') ||
+    lowerType.includes('permission') ||
+    lowerMessage.includes('api key') ||
+    lowerMessage.includes('x-api-key') ||
+    lowerMessage.includes('not authorized') ||
+    lowerMessage.includes('permission')
+  ) {
     return {
       status: 503,
       message: 'Meal planner is temporarily unavailable because the AI service is not configured correctly.',
     }
   }
 
-  if (status === 429 || lowerMessage.includes('rate limit')) {
+  if (
+    details.status === 429 ||
+    lowerType.includes('rate') ||
+    lowerCode.includes('rate') ||
+    lowerMessage.includes('rate limit')
+  ) {
     return {
       status: 429,
       message: 'Meal planner is busy right now. Please wait a minute and try again.',
+    }
+  }
+
+  if (lowerMessage.includes('invalid json') || lowerMessage.includes('ai returned invalid json')) {
+    return {
+      status: 502,
+      message: 'Meal planner returned an unreadable plan. Please try again.',
+    }
+  }
+
+  if (lowerMessage.includes('server is missing required configuration')) {
+    return {
+      status: 503,
+      message: 'Meal planner is temporarily unavailable because the server is not configured correctly.',
     }
   }
 
@@ -97,6 +190,15 @@ const getPublicMealPlanError = (err: unknown) => {
     status: 500,
     message: 'We could not generate your meal plan right now. Please try again shortly.',
   }
+}
+
+const logMealPlanError = (err: unknown) => {
+  const details = getMealPlanErrorDetails(err)
+
+  console.error('[generate-meal-plan] failed', {
+    ...details,
+    raw: err,
+  })
 }
 
 export async function POST(req: Request) {
@@ -141,6 +243,16 @@ export async function POST(req: Request) {
     }
 
     const { calorieTarget, preferences, mealsPerDay, adults } = await req.json()
+
+    console.info('[generate-meal-plan] request', {
+      userId: user.id,
+      calorieTarget,
+      mealsPerDay,
+      adults,
+      hasPreferences: Boolean(preferences),
+      nodeEnv: process.env.NODE_ENV,
+    })
+
     const anthropic = new Anthropic({ apiKey: anthropicKey })
 
     const prompt = `
@@ -204,10 +316,16 @@ Return ONLY JSON in this format:
 
     if (error) throw error
 
+    console.info('[generate-meal-plan] saved', {
+      userId: user.id,
+      mealPlanId: data?.id,
+      grocerySections: Array.isArray(groceryList) ? groceryList.length : 0,
+    })
+
     return NextResponse.json(data)
   } catch (err) {
     const publicError = getPublicMealPlanError(err)
-    console.error('[generate-meal-plan]', err)
+    logMealPlanError(err)
     return NextResponse.json({ error: publicError.message }, { status: publicError.status })
   }
 }
