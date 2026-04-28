@@ -61,17 +61,214 @@ const getJsonFromText = (text: string) => {
   }
 }
 
+const getPublicMealPlanError = (err: unknown) => {
+  const message = err instanceof Error ? err.message : String(err)
+  const status = typeof err === 'object' && err && 'status' in err ? (err as { status?: number }).status : undefined
+  const lowerMessage = message.toLowerCase()
+
+  if (
+    status === 400 &&
+    (lowerMessage.includes('credit balance') ||
+      lowerMessage.includes('billing') ||
+      lowerMessage.includes('purchase credits'))
+  ) {
+    return {
+      status: 503,
+      message:
+        'Meal planner is temporarily unavailable because our AI provider needs billing credits. Please try again later or contact support.',
+    }
+  }
+
+  if (status === 401 || lowerMessage.includes('api key')) {
+    return {
+      status: 503,
+      message: 'Meal planner is temporarily unavailable because the AI service is not configured correctly.',
+    }
+  }
+
+  if (status === 429 || lowerMessage.includes('rate limit')) {
+    return {
+      status: 429,
+      message: 'Meal planner is busy right now. Please wait a minute and try again.',
+    }
+  }
+
+  return {
+    status: 500,
+    message: 'We could not generate your meal plan right now. Please try again shortly.',
+  }
+}
+
+const LOCAL_MOCK_PLAN = [
+  {
+    day: 'Day 1',
+    meals: {
+      breakfast: {
+        name: 'Greek yogurt power bowl',
+        ingredients: ['Greek yogurt', 'Blueberries', 'Granola', 'Chia seeds'],
+        macros: { protein: 28, carbs: 42, fat: 11 },
+        prep_time: '5 min',
+      },
+      lunch: {
+        name: 'Chicken rice bowl',
+        ingredients: ['Chicken breast', 'Brown rice', 'Spinach', 'Cherry tomatoes'],
+        macros: { protein: 38, carbs: 52, fat: 12 },
+        prep_time: '20 min',
+      },
+      dinner: {
+        name: 'Turkey taco plates',
+        ingredients: ['Ground turkey', 'Corn tortillas', 'Avocado', 'Lettuce'],
+        macros: { protein: 34, carbs: 36, fat: 16 },
+        prep_time: '25 min',
+      },
+      snack: {
+        name: 'Apple with almond butter',
+        ingredients: ['Apple', 'Almond butter'],
+        macros: { protein: 6, carbs: 28, fat: 12 },
+        prep_time: '2 min',
+      },
+    },
+  },
+  {
+    day: 'Day 2',
+    meals: {
+      breakfast: {
+        name: 'Egg and avocado toast',
+        ingredients: ['Eggs', 'Whole grain bread', 'Avocado', 'Spinach'],
+        macros: { protein: 24, carbs: 34, fat: 18 },
+        prep_time: '10 min',
+      },
+      lunch: {
+        name: 'Tuna pasta salad',
+        ingredients: ['Tuna', 'Whole wheat pasta', 'Cucumber', 'Greek yogurt'],
+        macros: { protein: 32, carbs: 45, fat: 10 },
+        prep_time: '15 min',
+      },
+      dinner: {
+        name: 'Beef and broccoli stir fry',
+        ingredients: ['Lean beef', 'Broccoli', 'Brown rice', 'Soy sauce'],
+        macros: { protein: 36, carbs: 48, fat: 14 },
+        prep_time: '20 min',
+      },
+      snack: {
+        name: 'Cottage cheese and pineapple',
+        ingredients: ['Cottage cheese', 'Pineapple'],
+        macros: { protein: 18, carbs: 20, fat: 3 },
+        prep_time: '2 min',
+      },
+    },
+  },
+  {
+    day: 'Day 3',
+    meals: {
+      breakfast: {
+        name: 'Protein oats',
+        ingredients: ['Rolled oats', 'Protein powder', 'Banana', 'Milk'],
+        macros: { protein: 32, carbs: 58, fat: 9 },
+        prep_time: '8 min',
+      },
+      lunch: {
+        name: 'Chicken salad wrap',
+        ingredients: ['Chicken breast', 'Whole wheat wrap', 'Lettuce', 'Tomato'],
+        macros: { protein: 35, carbs: 38, fat: 11 },
+        prep_time: '10 min',
+      },
+      dinner: {
+        name: 'Salmon quinoa tray',
+        ingredients: ['Salmon', 'Quinoa', 'Asparagus', 'Lemon'],
+        macros: { protein: 36, carbs: 40, fat: 19 },
+        prep_time: '25 min',
+      },
+      snack: {
+        name: 'Hummus and carrots',
+        ingredients: ['Hummus', 'Carrots'],
+        macros: { protein: 7, carbs: 20, fat: 8 },
+        prep_time: '2 min',
+      },
+    },
+  },
+  {
+    day: 'Day 4',
+    meals: {
+      breakfast: {
+        name: 'Smoothie bowl',
+        ingredients: ['Protein powder', 'Banana', 'Mixed berries', 'Greek yogurt'],
+        macros: { protein: 34, carbs: 46, fat: 8 },
+        prep_time: '5 min',
+      },
+      lunch: {
+        name: 'Turkey quinoa bowl',
+        ingredients: ['Ground turkey', 'Quinoa', 'Kale', 'Bell pepper'],
+        macros: { protein: 37, carbs: 44, fat: 13 },
+        prep_time: '20 min',
+      },
+      dinner: {
+        name: 'Shrimp noodle stir fry',
+        ingredients: ['Shrimp', 'Whole wheat noodles', 'Broccoli', 'Garlic'],
+        macros: { protein: 33, carbs: 50, fat: 9 },
+        prep_time: '18 min',
+      },
+      snack: {
+        name: 'Trail mix yogurt',
+        ingredients: ['Greek yogurt', 'Mixed nuts', 'Honey'],
+        macros: { protein: 20, carbs: 24, fat: 13 },
+        prep_time: '3 min',
+      },
+    },
+  },
+  {
+    day: 'Day 5',
+    meals: {
+      breakfast: {
+        name: 'Scrambled eggs and greens',
+        ingredients: ['Eggs', 'Spinach', 'Whole grain bread'],
+        macros: { protein: 26, carbs: 30, fat: 15 },
+        prep_time: '10 min',
+      },
+      lunch: {
+        name: 'Chicken burrito bowl',
+        ingredients: ['Chicken breast', 'Brown rice', 'Black beans', 'Salsa'],
+        macros: { protein: 40, carbs: 56, fat: 10 },
+        prep_time: '15 min',
+      },
+      dinner: {
+        name: 'Dad chilli',
+        ingredients: ['Lean beef', 'Kidney beans', 'Tomato', 'Onion'],
+        macros: { protein: 38, carbs: 42, fat: 14 },
+        prep_time: '30 min',
+      },
+      snack: {
+        name: 'Protein shake',
+        ingredients: ['Protein powder', 'Milk', 'Banana'],
+        macros: { protein: 30, carbs: 32, fat: 5 },
+        prep_time: '2 min',
+      },
+    },
+  },
+]
+
+const getIngredientsFromPlan = (plan: typeof LOCAL_MOCK_PLAN) => {
+  const ingredients: string[] = []
+  plan.forEach((day) => {
+    Object.values(day.meals || {}).forEach((meal) => {
+      Array.isArray(meal.ingredients) && meal.ingredients.forEach((ingredient) => ingredients.push(ingredient))
+    })
+  })
+  return ingredients
+}
+
 export async function POST(req: Request) {
   try {
+    const useLocalMock = process.env.NODE_ENV !== 'production'
     const anthropicKey = process.env.ANTHROPIC_API_KEY
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
 
-    if (!anthropicKey || !supabaseUrl || !serviceRoleKey) {
+    if (!supabaseUrl || !serviceRoleKey || (!useLocalMock && !anthropicKey)) {
       const missing = [
-        !anthropicKey && 'ANTHROPIC_API_KEY',
         !supabaseUrl && 'NEXT_PUBLIC_SUPABASE_URL',
         !serviceRoleKey && 'SUPABASE_SERVICE_ROLE_KEY',
+        !useLocalMock && !anthropicKey && 'ANTHROPIC_API_KEY',
       ].filter(Boolean)
 
       console.error('[generate-meal-plan] Missing env vars:', missing)
@@ -81,7 +278,6 @@ export async function POST(req: Request) {
       )
     }
 
-    const anthropic = new Anthropic({ apiKey: anthropicKey })
     const supabase = createClient(supabaseUrl, serviceRoleKey)
 
     const authSupabase = await createServerSupabaseClient()
@@ -104,6 +300,28 @@ export async function POST(req: Request) {
     }
 
     const { calorieTarget, preferences, mealsPerDay, adults } = await req.json()
+
+    if (useLocalMock) {
+      const plan = LOCAL_MOCK_PLAN
+      const groceryList = groupIngredients(getIngredientsFromPlan(plan))
+
+      const { data, error } = await supabase
+        .from('meal_plans')
+        .insert({
+          user_id: user.id,
+          source: 'ai_generated',
+          plan,
+          grocery_list: groceryList,
+          preferences: preferences || null,
+          adults: Number(adults) || 1,
+        })
+        .select()
+        .single()
+
+      if (error) throw error
+
+      return NextResponse.json(data)
+    }
 
     const prompt = `
 Create a 5-day meal plan.
@@ -168,8 +386,8 @@ Return ONLY JSON in this format:
 
     return NextResponse.json(data)
   } catch (err) {
-    const message = err instanceof Error ? err.message : 'Failed to generate meal plan'
+    const publicError = getPublicMealPlanError(err)
     console.error('[generate-meal-plan]', err)
-    return NextResponse.json({ error: message }, { status: 500 })
+    return NextResponse.json({ error: publicError.message }, { status: publicError.status })
   }
 }
