@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import SitePageShell from "@/components/SitePageShell";
 import SiteFooter from "@/components/SiteFooter";
 import LimeButton from "@/components/LimeButton";
-import PromptModal from "@/components/PromptModal";
-import { ProGate, useProStatus } from "@/components/ProProvider";
+import { useProStatus } from "@/components/ProProvider";
 import { IMAGES } from "@/lib/images";
 import { useAuth } from "@/contexts/AuthContext";
 import { useFitness } from "@/hooks/useFitness";
@@ -16,26 +16,240 @@ const timerGhostBtn =
   "bg-transparent border py-2.5 px-4 font-heading font-bold text-xs tracking-wider uppercase transition-colors";
 const timerGhostBtnMuted = `${timerGhostBtn} text-foreground/40 border-foreground/25`;
 const timerGhostBtnActive = `${timerGhostBtn} text-foreground border-foreground/25 hover:border-primary hover:text-primary cursor-pointer`;
-const DEFAULT_WEEKLY_MEAL_PLAN = [
-  { day: "MON", name: "Chicken & rice bowl", kcal: 520 },
-  { day: "TUE", name: "Eggs & avocado toast", kcal: 380 },
-  { day: "WED", name: "Salmon stir fry", kcal: 480 },
-  { day: "THU", name: "Turkey mince pasta", kcal: 560 },
-  { day: "FRI", name: "Dad's chilli", kcal: 490 },
+
+const SAMPLE_MEAL_PLAN = [
+  {
+    day: "Day 1",
+    meals: {
+      breakfast: {
+        name: "Greek yogurt parfait",
+        ingredients: ["Greek yogurt", "Blueberries", "Granola", "Honey"],
+        macros: { protein: 24, carbs: 38, fat: 10 },
+        prep_time: "5 min",
+      },
+      lunch: {
+        name: "Chicken grain bowl",
+        ingredients: ["Grilled chicken breast", "Brown rice", "Spinach", "Cherry tomatoes"],
+        macros: { protein: 32, carbs: 45, fat: 12 },
+        prep_time: "20 min",
+      },
+      dinner: {
+        name: "Turkey mince tacos",
+        ingredients: ["Ground turkey", "Corn tortillas", "Avocado", "Lettuce"],
+        macros: { protein: 30, carbs: 34, fat: 14 },
+        prep_time: "25 min",
+      },
+      snack: {
+        name: "Apple & nut butter",
+        ingredients: ["Apple", "Almond butter"],
+        macros: { protein: 6, carbs: 30, fat: 12 },
+        prep_time: "2 min",
+      },
+    },
+  },
+  {
+    day: "Day 2",
+    meals: {
+      breakfast: {
+        name: "Oatmeal with berries",
+        ingredients: ["Rolled oats", "Almond milk", "Mixed berries", "Walnuts"],
+        macros: { protein: 18, carbs: 55, fat: 14 },
+        prep_time: "10 min",
+      },
+      lunch: {
+        name: "Tuna salad wrap",
+        ingredients: ["Tuna", "Whole wheat wrap", "Cucumber", "Greek yogurt"],
+        macros: { protein: 28, carbs: 32, fat: 11 },
+        prep_time: "10 min",
+      },
+      dinner: {
+        name: "Beef stir fry",
+        ingredients: ["Lean beef", "Broccoli", "Bell pepper", "Soy sauce"],
+        macros: { protein: 35, carbs: 40, fat: 15 },
+        prep_time: "20 min",
+      },
+      snack: {
+        name: "Cottage cheese & pineapple",
+        ingredients: ["Cottage cheese", "Pineapple chunks"],
+        macros: { protein: 16, carbs: 18, fat: 3 },
+        prep_time: "2 min",
+      },
+    },
+  },
+  {
+    day: "Day 3",
+    meals: {
+      breakfast: {
+        name: "Protein pancakes",
+        ingredients: ["Protein powder", "Eggs", "Banana", "Maple syrup"],
+        macros: { protein: 28, carbs: 42, fat: 8 },
+        prep_time: "15 min",
+      },
+      lunch: {
+        name: "Chicken salad",
+        ingredients: ["Chicken breast", "Mixed greens", "Avocado", "Cherry tomatoes"],
+        macros: { protein: 30, carbs: 18, fat: 16 },
+        prep_time: "10 min",
+      },
+      dinner: {
+        name: "Salmon with veggies",
+        ingredients: ["Salmon fillet", "Asparagus", "Quinoa", "Lemon"],
+        macros: { protein: 33, carbs: 38, fat: 18 },
+        prep_time: "25 min",
+      },
+      snack: {
+        name: "Trail mix",
+        ingredients: ["Mixed nuts", "Dried cranberries"],
+        macros: { protein: 8, carbs: 20, fat: 14 },
+        prep_time: "1 min",
+      },
+    },
+  },
+  {
+    day: "Day 4",
+    meals: {
+      breakfast: {
+        name: "Scrambled eggs & toast",
+        ingredients: ["Eggs", "Whole grain bread", "Spinach"],
+        macros: { protein: 22, carbs: 30, fat: 14 },
+        prep_time: "10 min",
+      },
+      lunch: {
+        name: "Turkey quinoa bowl",
+        ingredients: ["Ground turkey", "Quinoa", "Kale", "Carrots"],
+        macros: { protein: 34, carbs: 42, fat: 13 },
+        prep_time: "20 min",
+      },
+      dinner: {
+        name: "Shrimp pasta",
+        ingredients: ["Shrimp", "Whole wheat pasta", "Garlic", "Zucchini"],
+        macros: { protein: 28, carbs: 45, fat: 12 },
+        prep_time: "20 min",
+      },
+      snack: {
+        name: "Greek yogurt with almonds",
+        ingredients: ["Greek yogurt", "Almonds", "Honey"],
+        macros: { protein: 18, carbs: 24, fat: 10 },
+        prep_time: "3 min",
+      },
+    },
+  },
+  {
+    day: "Day 5",
+    meals: {
+      breakfast: {
+        name: "Smoothie bowl",
+        ingredients: ["Frozen berries", "Spinach", "Protein powder", "Chia seeds"],
+        macros: { protein: 26, carbs: 40, fat: 10 },
+        prep_time: "5 min",
+      },
+      lunch: {
+        name: "Chicken burrito bowl",
+        ingredients: ["Chicken", "Brown rice", "Black beans", "Salsa"],
+        macros: { protein: 32, carbs: 46, fat: 12 },
+        prep_time: "15 min",
+      },
+      dinner: {
+        name: "Beef & veggie skillet",
+        ingredients: ["Ground beef", "Zucchini", "Bell pepper", "Onion"],
+        macros: { protein: 31, carbs: 28, fat: 14 },
+        prep_time: "25 min",
+      },
+      snack: {
+        name: "Hummus & carrots",
+        ingredients: ["Hummus", "Carrot sticks"],
+        macros: { protein: 7, carbs: 18, fat: 8 },
+        prep_time: "2 min",
+      },
+    },
+  },
 ];
+
+const SAMPLE_GROCERY_LIST = [
+  { category: "Produce", items: ["Blueberries", "Bananas", "Spinach", "Cherry tomatoes", "Avocado", "Broccoli", "Bell pepper", "Cucumber", "Lettuce", "Asparagus", "Zucchini", "Carrots", "Onion", "Lemon"] },
+  { category: "Protein", items: ["Greek yogurt", "Chicken breast", "Ground turkey", "Tuna", "Lean beef", "Salmon", "Eggs", "Cottage cheese", "Shrimp", "Protein powder"] },
+  { category: "Grains", items: ["Granola", "Brown rice", "Whole wheat wrap", "Corn tortillas", "Rolled oats", "Quinoa", "Whole wheat pasta", "Whole grain bread"] },
+  { category: "Pantry", items: ["Honey", "Soy sauce", "Olive oil", "Almond butter", "Maple syrup", "Mixed nuts", "Dried cranberries", "Chia seeds", "Hummus"] },
+];
+
+const renderMealPlan = (plan: any[]) => (
+  <div className="grid gap-4">
+    {plan.map((day, idx) => (
+      <div key={`${day.day ?? idx}-${idx}`} className="rounded-3xl border border-border bg-background p-4">
+        <div className="font-heading text-[11px] font-bold uppercase tracking-[0.38em] text-primary mb-3">
+          {day.day ?? `Day ${idx + 1}`}
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {Object.entries(day.meals || {}).map(([mealType, meal]: any) => (
+            <div key={mealType} className="rounded-3xl bg-card p-3 border border-border">
+              <div className="font-bold text-sm text-foreground uppercase tracking-[0.28em] mb-2">{mealType}</div>
+              <div className="font-semibold text-sm text-foreground">{meal?.name ?? "—"}</div>
+              <div className="text-[11px] text-muted-foreground mt-2">Prep: {meal?.prep_time ?? "—"}</div>
+              <div className="text-[11px] text-muted-foreground mt-2">
+                {meal?.ingredients?.join(", ") ?? "Ingredients not available"}
+              </div>
+              {meal?.macros && (
+                <div className="text-[11px] text-muted-foreground mt-2">
+                  {Object.entries(meal.macros).map(([key, value]) => (
+                    <span key={key} className="inline-block mr-2">
+                      {key}: {String(value)}
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    ))}
+  </div>
+);
+
+const formatGroceryList = (list: any) => {
+  if (!Array.isArray(list)) return [];
+  if (list.length === 0) return [];
+  if (typeof list[0] === "string") {
+    return [{ category: "Grocery", items: list }];
+  }
+  return list;
+};
 
 const FitnessPage = () => {
   const { user, openAuthModal } = useAuth();
   const { isPro, showPaywall } = useProStatus();
-  const { workouts, bodyMetrics, mealPlans, loading: mealsLoading, saveWorkout, saveMealPlans } = useFitness(user?.id);
+  const { workouts, bodyMetrics, activeMealPlan, loading: mealsLoading, saveWorkout } = useFitness(user?.id);
+  const queryClient = useQueryClient();
+
+  const [calorieTarget, setCalorieTarget] = useState("2200");
+  const [preferences, setPreferences] = useState("High protein, no fish");
+  const [mealsPerDay, setMealsPerDay] = useState(4);
+  const [adults, setAdults] = useState(1);
+
+  const generateMealPlan = useMutation<any, Error, {
+    calorieTarget: number;
+    preferences: string;
+    mealsPerDay: number;
+    adults: number;
+    userId: string;
+  }>({
+    mutationFn: async (payload) => {
+      const res = await fetch("/api/generate-meal-plan", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data?.error ?? "Unable to generate meal plan.");
+      }
+      await queryClient.invalidateQueries({ queryKey: ["fitness", user?.id] });
+      return data;
+    },
+  });
 
   const [timerSec, setTimerSec] = useState(0);
   const [timerRunning, setTimerRunning] = useState(false);
   const [currentExerciseIdx, setCurrentExerciseIdx] = useState(0);
-  const [saveMealPlanPrompt, setSaveMealPlanPrompt] = useState<{
-    title: string;
-    message: string;
-  } | null>(null);
 
   useEffect(() => {
     const stored = typeof localStorage !== "undefined" ? localStorage.getItem("dadHealth_workout_timer") : null;
@@ -99,34 +313,32 @@ const FitnessPage = () => {
     { value: timerSec > 0 ? formatTime(timerSec) : "0 min", label: "ACTIVE TODAY" },
   ];
 
-  const meals = mealPlans;
+  const planData = (generateMealPlan.data as any)?.plan ?? activeMealPlan?.plan ?? null;
+  const groceryListData = (generateMealPlan.data as any)?.grocery_list ?? activeMealPlan?.grocery_list ?? [];
+  const grocerySections = formatGroceryList(groceryListData);
+  const planSource = (generateMealPlan.data as any)?.source ?? activeMealPlan?.source ?? null;
+  const planError = generateMealPlan.error?.message;
+  const planLoading = generateMealPlan.status === "pending" || (mealsLoading && !planData);
+
   const todaysMoves = DAD_STRENGTH_MOVES;
   const latestLogged = workouts[0];
   const currentMove = todaysMoves[currentExerciseIdx] ?? todaysMoves[0];
 
-  const handleSaveMealPlan = () => {
+  const handleGenerateMealPlan = () => {
     if (!user) {
       openAuthModal();
       return;
     }
-
-    const mealsToSave = meals.length > 0 ? meals : DEFAULT_WEEKLY_MEAL_PLAN;
-    saveMealPlans.mutate(mealsToSave, {
-      onSuccess: () => {
-        setSaveMealPlanPrompt({
-          title: "MEAL PLANNER SAVED",
-          message: "Your meal planner has been saved to your account.",
-        });
-      },
-      onError: (error) => {
-        setSaveMealPlanPrompt({
-          title: "SAVE FAILED",
-          message:
-            error instanceof Error
-              ? error.message
-              : "We could not save your meal planner. Please try again.",
-        });
-      },
+    if (!isPro) {
+      showPaywall("Meal planner");
+      return;
+    }
+    generateMealPlan.mutate({
+      calorieTarget: Number(calorieTarget),
+      preferences: preferences.trim(),
+      mealsPerDay: Number(mealsPerDay),
+      adults: Number(adults),
+      userId: user.id,
     });
   };
 
@@ -287,59 +499,234 @@ const FitnessPage = () => {
 
             {/* Right side */}
             <div className="p-5 lg:p-8 min-w-0">
-              {/* Progress */}
               <span className="section-label !p-0 mb-4 block">PROGRESS THIS MONTH</span>
               <div className="grid grid-cols-2 gap-3 mb-8">
                 {progressStats.map((stat) => (
                   <div key={stat.label} className="bg-card border border-border rounded-lg p-3.5">
-                <div className="font-heading text-xl font-extrabold text-primary leading-none">{stat.value}</div>
-                <div className="text-[10px] text-muted-foreground mt-1.5 uppercase tracking-wide">{stat.label}</div>
+                    <div className="font-heading text-xl font-extrabold text-primary leading-none">{stat.value}</div>
+                    <div className="text-[10px] text-muted-foreground mt-1.5 uppercase tracking-wide">{stat.label}</div>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
-
-          {/* Meals - Pro gated */}
-          <span className="section-label !p-0 mb-4 block">THIS WEEK'S MEALS</span>
-          <ProGate
-            featureName="Meal planner"
-            lockMessage="The hardest part of eating well is deciding what to eat. We've done that for you."
-          >
-            <div className="bg-primary text-primary-foreground p-5">
-              <h3 className="font-heading text-lg font-extrabold uppercase mb-4">MEAL PLANNER</h3>
-              {meals.length > 0 ? meals.map((meal: { day: string; name: string; kcal: number }, i: number) => (
-                <div
-                  key={i}
-                  className="flex items-center gap-4 py-2.5 border-b border-primary-foreground/10 last:border-b-0"
-                >
-                  <span className="font-heading text-[10px] font-bold tracking-wider uppercase opacity-60 w-8">{meal.day}</span>
-                  <span className="font-heading text-[13px] font-extrabold flex-1">{meal.name}</span>
-                  <span className="text-xs opacity-60">{meal.kcal} kcal</span>
-                </div>
-              )) : (
-                <p className="text-sm opacity-60">No meal plan saved yet.</p>
-              )}
-              <button
-                onClick={handleSaveMealPlan}
-                disabled={saveMealPlans.isPending || mealsLoading}
-                className="mt-4 bg-primary-foreground text-primary font-heading font-bold text-[11px] tracking-wider uppercase px-4 py-2.5 border-none cursor-pointer transition-all duration-200 hover:brightness-110 hover:shadow-[0_0_20px_hsl(78,89%,65%,0.35)] active:scale-[0.97] disabled:opacity-50 disabled:hover:brightness-100 disabled:hover:shadow-none disabled:active:scale-100"
-              >
-                {saveMealPlans.isPending ? "SAVING..." : "SAVE MEAL PLAN →"}
-              </button>
             </div>
-          </ProGate>
+          </div>
+        </div>
+      </div>
+
+      <div className="w-full px-0 mt-8">
+        <div className="bg-card overflow-hidden w-full">
+          <div className="p-5 lg:p-8 min-w-0">
+            <span className="section-label !p-0 mb-4 block">MEAL PLANNER</span>
+            <div className="rounded-lg border border-border bg-card overflow-hidden">
+              <div className="grid grid-cols-1 gap-6">
+                {/* Planner */}
+                <div className="bg-background p-5 lg:p-6 rounded-2xl border border-border">
+                  <div className="flex items-start justify-between gap-4 mb-4">
+                    <div className="min-w-0">
+                      <div className="font-heading text-lg font-extrabold text-foreground uppercase tracking-wide">
+                        PERSONALISED MEAL PLAN
+                      </div>
+                      <p className="text-xs text-muted-foreground leading-relaxed mt-2 max-w-2xl">
+                        Set your target and preferences. Generate a 5‑day plan with recipes, macros and a grocery list.
+                      </p>
+                    </div>
+                    <span className="tag-pill shrink-0">{isPro ? "PRO" : "PREVIEW"}</span>
+                  </div>
+
+                  {!isPro ? (
+                    <div className="space-y-4">
+                      <div className="rounded-lg border border-border bg-background/40 p-4">
+                        <p className="text-sm text-foreground font-semibold">Free preview</p>
+                        <p className="text-sm text-muted-foreground mt-2">
+                          Upgrade to Dad Health Pro to generate your personalised plan. Here&apos;s a sample plan so you can see the format.
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-5">
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <label className="flex flex-col gap-2 text-sm text-muted-foreground">
+                          <span className="text-[11px] font-heading font-bold uppercase tracking-wide text-muted-foreground">
+                            Calorie target
+                          </span>
+                          <input
+                            type="number"
+                            value={calorieTarget}
+                            onChange={(event) => setCalorieTarget(event.target.value)}
+                            className="rounded-lg border border-border bg-background px-4 py-3 text-sm text-foreground outline-none focus:border-primary"
+                          />
+                        </label>
+                        <label className="flex flex-col gap-2 text-sm text-muted-foreground">
+                          <span className="text-[11px] font-heading font-bold uppercase tracking-wide text-muted-foreground">
+                            Meals per day
+                          </span>
+                          <input
+                            type="number"
+                            min={1}
+                            max={6}
+                            value={mealsPerDay}
+                            onChange={(event) => setMealsPerDay(Number(event.target.value))}
+                            className="rounded-lg border border-border bg-background px-4 py-3 text-sm text-foreground outline-none focus:border-primary"
+                          />
+                        </label>
+                        <label className="flex flex-col gap-2 text-sm text-muted-foreground sm:col-span-2">
+                          <span className="text-[11px] font-heading font-bold uppercase tracking-wide text-muted-foreground">
+                            Dietary preferences
+                          </span>
+                          <input
+                            type="text"
+                            value={preferences}
+                            onChange={(event) => setPreferences(event.target.value)}
+                            placeholder="e.g. high protein, no fish"
+                            className="rounded-lg border border-border bg-background px-4 py-3 text-sm text-foreground outline-none focus:border-primary"
+                          />
+                        </label>
+                        <label className="flex flex-col gap-2 text-sm text-muted-foreground sm:col-span-2">
+                          <span className="text-[11px] font-heading font-bold uppercase tracking-wide text-muted-foreground">
+                            Adults
+                          </span>
+                          <input
+                            type="number"
+                            min={1}
+                            value={adults}
+                            onChange={(event) => setAdults(Number(event.target.value))}
+                            className="w-28 rounded-lg border border-border bg-background px-4 py-3 text-sm text-foreground outline-none focus:border-primary"
+                          />
+                        </label>
+                      </div>
+
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="text-sm text-muted-foreground">
+                          {planSource ? `Last saved from ${planSource.replaceAll("_", " ")} plan` : "No plan generated yet."}
+                        </div>
+                        <LimeButton onClick={handleGenerateMealPlan} disabled={planLoading}>
+                          {planLoading ? "GENERATING..." : planData ? "REGENERATE MEAL PLAN →" : "GENERATE MEAL PLAN →"}
+                        </LimeButton>
+                      </div>
+
+                      {planError && (
+                        <div className="rounded-lg border border-red-500/20 bg-red-500/10 p-4 text-sm text-red-700">
+                          {planError}
+                        </div>
+                      )}
+
+                      {!planData && (
+                        <div className="rounded-lg border border-dashed border-border p-6 text-sm text-muted-foreground">
+                          Enter your details and tap generate to create a personalised 5‑day meal plan.
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Grocery / Tips */}
+                <aside className="bg-background p-5 lg:p-6 rounded-2xl border border-border">
+                  <div className="font-heading text-[11px] font-bold uppercase tracking-[0.35em] text-primary mb-4">
+                    {grocerySections.length > 0 && planData ? "GROCERY LIST" : "HOW IT WORKS"}
+                  </div>
+
+                  {grocerySections.length > 0 && planData ? (
+                    <div className="space-y-4">
+                      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                        {grocerySections.map((section: any) => (
+                          <div key={section.category} className="rounded-lg border border-border bg-background/40 p-4">
+                            <div className="font-heading text-xs font-extrabold text-foreground uppercase tracking-wide mb-2">
+                              {section.category}
+                            </div>
+                            <ul className="text-sm text-muted-foreground list-disc list-inside space-y-1">
+                              {section.items.map((item: string) => (
+                                <li key={item}>{item}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="grid gap-4 md:grid-cols-3">
+                      <div className="rounded-lg border border-border bg-background/40 p-4">
+                        <div className="font-heading text-sm font-extrabold text-foreground uppercase tracking-wide">
+                          Built for real life
+                        </div>
+                        <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
+                          Simple meals, clear prep time, and a grocery list you can actually use — no “dashboard” vibes.
+                        </p>
+                      </div>
+
+                      <div className="rounded-lg border border-border bg-background/40 p-4">
+                        <div className="font-heading text-sm font-extrabold text-foreground uppercase tracking-wide">
+                          Preview grocery list
+                        </div>
+                        <div className="grid gap-3 mt-3">
+                          {SAMPLE_GROCERY_LIST.slice(0, 3).map((section) => (
+                            <div key={section.category}>
+                              <div className="text-[11px] font-heading font-bold uppercase tracking-wide text-muted-foreground">
+                                {section.category}
+                              </div>
+                              <div className="text-sm text-muted-foreground mt-1">
+                                {section.items.slice(0, 6).join(", ")}
+                                {section.items.length > 6 ? "…" : ""}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div className="rounded-lg border border-border bg-background/40 p-4">
+                        <div className="text-[11px] font-heading font-bold uppercase tracking-wide text-muted-foreground">
+                          Tip
+                        </div>
+                        <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
+                          Start with “high protein” and one hard rule (e.g. “no fish”). The more specific, the better the plan.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </aside>
+
+                {!isPro && (
+                  <div className="space-y-5">
+                    <div className="rounded-lg border border-border bg-background p-4 sm:p-5">
+                      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                        <div className="min-w-0">
+                          <div className="font-heading text-sm font-extrabold text-foreground uppercase tracking-wide">
+                            Unlock tailored plans
+                          </div>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            Get personalised macros, recipes, and a grocery list you can shop from.
+                          </p>
+                        </div>
+                        <LimeButton
+                          className="w-full sm:w-auto shrink-0"
+                          onClick={() => {
+                            if (!user) {
+                              openAuthModal();
+                            } else {
+                              showPaywall("Meal planner");
+                            }
+                          }}
+                        >
+                          Upgrade to Pro →
+                        </LimeButton>
+                      </div>
+                    </div>
+
+                    {renderMealPlan(SAMPLE_MEAL_PLAN)}
+                  </div>
+                )}
+
+                {isPro && planData && (
+                  <div>
+                    {renderMealPlan(planData)}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
       </div>
 
       <SiteFooter />
-      {saveMealPlanPrompt && (
-        <PromptModal
-          title={saveMealPlanPrompt.title}
-          message={saveMealPlanPrompt.message}
-          onClose={() => setSaveMealPlanPrompt(null)}
-        />
-      )}
     </SitePageShell>
   );
 };
