@@ -4,15 +4,6 @@ import { createClient } from '@supabase/supabase-js'
 import { isProSubscriptionStatus } from '@/lib/stripe/subscription'
 import { createServerSupabaseClient } from '@/utils/supabase/server'
 
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY!,
-})
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY! // server only
-)
-
 const CATEGORY_RULES: Array<{ category: string; keywords: string[] }> = [
   { category: 'Produce', keywords: ['spinach', 'broccoli', 'tomato', 'lettuce', 'avocado', 'banana', 'apple', 'berry', 'carrot', 'onion', 'zucchini', 'pepper', 'lemon', 'asparagus', 'cucumber', 'kale'] },
   { category: 'Protein', keywords: ['chicken', 'turkey', 'beef', 'pork', 'salmon', 'tuna', 'shrimp', 'egg', 'yogurt', 'cottage cheese', 'protein powder', 'tofu'] },
@@ -51,8 +42,48 @@ const groupIngredients = (ingredients: string[]) => {
   return Object.entries(buckets).map(([category, items]) => ({ category, items }))
 }
 
+const getJsonFromText = (text: string) => {
+  const cleaned = text
+    .trim()
+    .replace(/^```(?:json)?/i, '')
+    .replace(/```$/i, '')
+    .trim()
+
+  try {
+    return JSON.parse(cleaned)
+  } catch {
+    const firstArray = cleaned.indexOf('[')
+    const lastArray = cleaned.lastIndexOf(']')
+    if (firstArray >= 0 && lastArray > firstArray) {
+      return JSON.parse(cleaned.slice(firstArray, lastArray + 1))
+    }
+    throw new Error('AI returned invalid JSON')
+  }
+}
+
 export async function POST(req: Request) {
   try {
+    const anthropicKey = process.env.ANTHROPIC_API_KEY
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+    if (!anthropicKey || !supabaseUrl || !serviceRoleKey) {
+      const missing = [
+        !anthropicKey && 'ANTHROPIC_API_KEY',
+        !supabaseUrl && 'NEXT_PUBLIC_SUPABASE_URL',
+        !serviceRoleKey && 'SUPABASE_SERVICE_ROLE_KEY',
+      ].filter(Boolean)
+
+      console.error('[generate-meal-plan] Missing env vars:', missing)
+      return NextResponse.json(
+        { error: `Server is missing required configuration: ${missing.join(', ')}` },
+        { status: 503 },
+      )
+    }
+
+    const anthropic = new Anthropic({ apiKey: anthropicKey })
+    const supabase = createClient(supabaseUrl, serviceRoleKey)
+
     const authSupabase = await createServerSupabaseClient()
     const {
       data: { user },
@@ -105,7 +136,7 @@ Return ONLY JSON in this format:
 
     const textBlock = response.content.find((block) => (block as any)?.type === 'text') as { type: 'text'; text: string } | undefined
     const text = textBlock?.text ?? ''
-    const plan = JSON.parse(text)
+    const plan = getJsonFromText(text)
 
     if (!Array.isArray(plan)) {
       throw new Error('Invalid meal plan response from AI')
@@ -137,7 +168,8 @@ Return ONLY JSON in this format:
 
     return NextResponse.json(data)
   } catch (err) {
-    console.error(err)
-    return NextResponse.json({ error: 'Failed to generate meal plan' }, { status: 500 })
+    const message = err instanceof Error ? err.message : 'Failed to generate meal plan'
+    console.error('[generate-meal-plan]', err)
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }

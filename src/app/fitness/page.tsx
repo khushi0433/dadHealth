@@ -230,7 +230,6 @@ const FitnessPage = () => {
     preferences: string;
     mealsPerDay: number;
     adults: number;
-    userId: string;
   }>({
     mutationFn: async (payload) => {
       const res = await fetch("/api/generate-meal-plan", {
@@ -338,7 +337,6 @@ const FitnessPage = () => {
       preferences: preferences.trim(),
       mealsPerDay: Number(mealsPerDay),
       adults: Number(adults),
-      userId: user.id,
     });
   };
 
