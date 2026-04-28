@@ -137,12 +137,24 @@ where not exists (select 1 from weekly_challenges);
 create table if not exists meal_plans (
   id uuid primary key default gen_random_uuid(),
   user_id uuid references auth.users(id) on delete cascade not null,
-  day text not null,
-  name text not null,
-  kcal int not null,
+  day text,
+  name text,
+  kcal int,
   created_at timestamptz default now(),
   unique(user_id, day)
 );
+
+alter table meal_plans
+  add column if not exists source text default 'user_custom',
+  add column if not exists grocery_list jsonb,
+  add column if not exists preferences jsonb,
+  add column if not exists adults int default 1,
+  add column if not exists plan jsonb;
+
+alter table meal_plans
+  alter column day drop not null,
+  alter column name drop not null,
+  alter column kcal drop not null;
 
 -- body_metrics
 create table if not exists body_metrics (

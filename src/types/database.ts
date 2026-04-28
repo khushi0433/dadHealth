@@ -109,12 +109,19 @@ export interface WeeklyChallenge {
 }
 
 export interface MealPlan {
-  id: string;
-  user_id: string;
-  day: string;
-  name: string;
-  kcal: number;
-  created_at?: string;
+   Row: {
+    id: string
+    user_id: string
+    day: string | null
+    name: string | null
+    kcal: number | null
+    created_at: string
+    source: 'admin' | 'ai_generated' | 'user_custom'
+    grocery_list: any
+    preferences: any
+    adults: number
+    plan: any
+  };
 }
 
 export interface BodyMetric {
