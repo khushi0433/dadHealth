@@ -21,6 +21,8 @@ export default function CookTogetherRecipes({ className = "" }: CookTogetherReci
   const {
     recipes,
     savedIds,
+    completedIds,
+    bondScore,
     filters,
     error,
     isLoading,
@@ -69,8 +71,21 @@ export default function CookTogetherRecipes({ className = "" }: CookTogetherReci
             Kid-friendly recipes that build connection and log active minutes when completed.
           </p>
         </div>
-        <div className="text-[11px] font-bold uppercase tracking-[0.28em] text-primary">
-          + Bond score
+        <div className="flex items-center gap-2">
+          {user && bondScore !== null ? (
+            <div className="flex items-center gap-1.5">
+              <span className="text-[11px] font-bold uppercase tracking-[0.28em] text-primary">
+                Bond score
+              </span>
+              <span className="font-heading text-lg font-extrabold text-primary leading-none">
+                {bondScore}
+              </span>
+            </div>
+          ) : (
+            <div className="text-[11px] font-bold uppercase tracking-[0.28em] text-primary">
+              +20 pts per recipe
+            </div>
+          )}
         </div>
       </div>
 
@@ -135,23 +150,45 @@ export default function CookTogetherRecipes({ className = "" }: CookTogetherReci
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {recipes.map((recipe) => {
             const isSaved = savedIds.has(recipe.id);
+            const isCompleted = completedIds.has(recipe.id);
 
             return (
               <article
                 key={recipe.id}
-                className="overflow-hidden rounded-3xl border border-border bg-card transition-all hover:border-primary/70"
+                className={`overflow-hidden rounded-3xl border bg-card transition-all ${
+                  isCompleted
+                    ? "border-primary/40 bg-primary/[0.03]"
+                    : "border-border hover:border-primary/70"
+                }`}
               >
                 {recipe.image_url ? (
-                  <img
-                    src={recipe.image_url}
-                    alt={recipe.title}
-                    className="h-44 w-full object-cover"
-                  />
+                  <div className="relative">
+                    <img
+                      src={recipe.image_url}
+                      alt={recipe.title}
+                      className="h-44 w-full object-cover"
+                    />
+                    {isCompleted && (
+                      <div className="absolute inset-0 bg-background/50 flex items-center justify-center">
+                        <div className="flex items-center gap-1.5 bg-primary text-primary-foreground rounded-full px-3 py-1.5 text-[11px] font-bold uppercase tracking-wide">
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                          Completed
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 ) : (
-                  <div className="h-28 bg-primary/[0.06] border-b border-border flex items-center justify-center">
-                    <span className="font-heading text-[11px] font-bold uppercase tracking-[0.32em] text-primary">
-                      Cook Together
-                    </span>
+                  <div className={`h-28 border-b border-border flex items-center justify-center ${isCompleted ? "bg-primary/10" : "bg-primary/[0.06]"}`}>
+                    {isCompleted ? (
+                      <div className="flex items-center gap-1.5 text-primary text-[11px] font-bold uppercase tracking-[0.32em]">
+                        <CheckCircle2 className="h-4 w-4" />
+                        Completed
+                      </div>
+                    ) : (
+                      <span className="font-heading text-[11px] font-bold uppercase tracking-[0.32em] text-primary">
+                        Cook Together
+                      </span>
+                    )}
                   </div>
                 )}
 
@@ -190,15 +227,25 @@ export default function CookTogetherRecipes({ className = "" }: CookTogetherReci
                       Age {recipe.age_min}+
                     </span>
                     <span className="text-primary">{recipe.difficulty}</span>
-                    {isSaved ? <span className="text-primary">Saved</span> : null}
+                    {isSaved && <span className="text-primary">Saved</span>}
+                    {isCompleted && (
+                      <span className="inline-flex items-center gap-1 text-primary">
+                        <CheckCircle2 className="h-3 w-3" />
+                        Done
+                      </span>
+                    )}
                   </div>
 
                   <button
                     type="button"
                     onClick={() => setActiveRecipe(recipe)}
-                    className="mt-4 w-full rounded-full bg-primary px-4 py-2.5 text-xs font-bold uppercase tracking-wide text-primary-foreground transition-all hover:brightness-110"
+                    className={`mt-4 w-full rounded-full px-4 py-2.5 text-xs font-bold uppercase tracking-wide transition-all ${
+                      isCompleted
+                        ? "bg-primary/10 text-primary border border-primary/30 hover:bg-primary/20"
+                        : "bg-primary text-primary-foreground hover:brightness-110"
+                    }`}
                   >
-                    Start Recipe
+                    {isCompleted ? "Cook Again" : "Start Recipe"}
                   </button>
                 </div>
               </article>
@@ -279,21 +326,28 @@ export default function CookTogetherRecipes({ className = "" }: CookTogetherReci
               </div>
             </div>
 
-            <button
-              type="button"
-              disabled={completeRecipe.isPending}
-              onClick={() =>
-                requireAuth(() =>
-                  completeRecipe.mutate(activeRecipe, {
-                    onSuccess: () => setActiveRecipe(null),
-                  })
-                )
-              }
-              className="mt-6 w-full rounded-full bg-primary px-4 py-3 text-xs font-bold uppercase tracking-wide text-primary-foreground transition-all hover:brightness-110 disabled:opacity-60"
-            >
-              <CheckCircle2 className="mr-2 inline h-4 w-4" />
-              {completeRecipe.isPending ? "Logging..." : "Mark Complete"}
-            </button>
+            {completedIds.has(activeRecipe.id) ? (
+              <div className="mt-6 w-full rounded-full bg-primary/10 border border-primary/30 px-4 py-3 text-xs font-bold uppercase tracking-wide text-primary flex items-center justify-center gap-2">
+                <CheckCircle2 className="h-4 w-4" />
+                Completed — Cook Again Any Time
+              </div>
+            ) : (
+              <button
+                type="button"
+                disabled={completeRecipe.isPending}
+                onClick={() =>
+                  requireAuth(() =>
+                    completeRecipe.mutate(activeRecipe, {
+                      onSuccess: () => setActiveRecipe(null),
+                    })
+                  )
+                }
+                className="mt-6 w-full rounded-full bg-primary px-4 py-3 text-xs font-bold uppercase tracking-wide text-primary-foreground transition-all hover:brightness-110 disabled:opacity-60"
+              >
+                <CheckCircle2 className="mr-2 inline h-4 w-4" />
+                {completeRecipe.isPending ? "Logging..." : "Mark Complete"}
+              </button>
+            )}
           </div>
         </div>
       ) : null}

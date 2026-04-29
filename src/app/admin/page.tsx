@@ -380,23 +380,50 @@ function ChallengesTab() {
 
 // ── Recipes Tab ───────────────────────────────────────────────────────────────
 
+const BLANK_RECIPE_FORM = {
+  title: "", description: "", difficulty: "easy" as "easy" | "medium",
+  age_min: 3, prep_mins: 20, cook_together: true, image_url: "",
+  ingredients: "", steps: "",
+};
+
+function recipeToForm(item: Recipe) {
+  const ingredientsStr = Array.isArray(item.ingredients)
+    ? (item.ingredients as unknown[])
+        .map((i) => (typeof i === "string" ? i : (i as Record<string, unknown>)?.name ?? ""))
+        .filter(Boolean)
+        .join("\n")
+    : "";
+  const stepsStr = Array.isArray(item.steps)
+    ? (item.steps as unknown[])
+        .map((s) =>
+          typeof s === "string"
+            ? s
+            : (s as Record<string, unknown>)?.instruction ?? "",
+        )
+        .filter(Boolean)
+        .join("\n")
+    : "";
+  return {
+    title: item.title,
+    description: item.description ?? "",
+    difficulty: item.difficulty,
+    age_min: item.age_min,
+    prep_mins: item.prep_mins,
+    cook_together: item.cook_together,
+    image_url: item.image_url ?? "",
+    ingredients: ingredientsStr,
+    steps: stepsStr,
+  };
+}
+
 function RecipesTab() {
   const [items, setItems] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [filter, setFilter] = useState<"all" | "cook_together" | "standard">("all");
-  const [form, setForm] = useState({
-    title: "",
-    description: "",
-    difficulty: "easy" as "easy" | "medium",
-    age_min: 3,
-    prep_mins: 20,
-    cook_together: true,
-    image_url: "",
-    ingredients: "",
-    steps: "",
-  });
+  const [form, setForm] = useState(BLANK_RECIPE_FORM);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -410,33 +437,27 @@ function RecipesTab() {
 
   useEffect(() => { load(); }, [load]);
 
-  const handleCreate = async () => {
+  const buildPayload = () => {
+    const ingredientsArr = form.ingredients.split("\n").map((s) => s.trim()).filter(Boolean);
+    const stepsArr = form.steps
+      .split("\n")
+      .map((s, i) => ({ step: i + 1, instruction: s.trim() }))
+      .filter((s) => s.instruction);
+    return { ...form, ingredients: ingredientsArr, steps: stepsArr, image_url: form.image_url || null };
+  };
+
+  const handleSave = async () => {
     if (!form.title.trim()) return;
     setSaving(true);
     try {
-      const ingredientsArr = form.ingredients
-        .split("\n")
-        .map((s) => s.trim())
-        .filter(Boolean);
-      const stepsArr = form.steps
-        .split("\n")
-        .map((s, i) => ({ step: i + 1, instruction: s.trim() }))
-        .filter((s) => s.instruction);
+      const payload = buildPayload();
+      const res = editId
+        ? await adminFetch("/api/admin/recipes", { method: "PATCH", body: JSON.stringify({ id: editId, ...payload }) })
+        : await adminFetch("/api/admin/recipes", { method: "POST", body: JSON.stringify(payload) });
 
-      const res = await adminFetch("/api/admin/recipes", {
-        method: "POST",
-        body: JSON.stringify({
-          ...form,
-          ingredients: ingredientsArr,
-          steps: stepsArr,
-          image_url: form.image_url || null,
-        }),
-      });
       if (res.ok) {
-        setForm({
-          title: "", description: "", difficulty: "easy", age_min: 3,
-          prep_mins: 20, cook_together: true, image_url: "", ingredients: "", steps: "",
-        });
+        setForm(BLANK_RECIPE_FORM);
+        setEditId(null);
         setShowForm(false);
         load();
       }
@@ -445,12 +466,24 @@ function RecipesTab() {
     }
   };
 
+  const startEdit = (item: Recipe) => {
+    setForm(recipeToForm(item));
+    setEditId(item.id);
+    setShowForm(true);
+    // scroll form into view
+    setTimeout(() => document.getElementById("recipe-form")?.scrollIntoView({ behavior: "smooth", block: "start" }), 50);
+  };
+
+  const cancelForm = () => {
+    setForm(BLANK_RECIPE_FORM);
+    setEditId(null);
+    setShowForm(false);
+  };
+
   const handleDelete = async (id: string) => {
     if (!confirm("Delete this recipe?")) return;
-    await adminFetch("/api/admin/recipes", {
-      method: "DELETE",
-      body: JSON.stringify({ id }),
-    });
+    await adminFetch("/api/admin/recipes", { method: "DELETE", body: JSON.stringify({ id }) });
+    if (editId === id) cancelForm();
     load();
   };
 
@@ -463,31 +496,29 @@ function RecipesTab() {
   return (
     <div>
       <SectionHeader title="Recipe Manager" onRefresh={load}>
-        <button type="button" onClick={() => setShowForm((v) => !v)} className={btnPrimary}>
+        <button
+          type="button"
+          onClick={() => { cancelForm(); setShowForm((v) => !v); }}
+          className={btnPrimary}
+        >
           <Plus className="h-3 w-3" /> Add Recipe
         </button>
       </SectionHeader>
 
       <div className="flex gap-2 mb-4 flex-wrap">
         {(["all", "cook_together", "standard"] as const).map((f) => (
-          <button
-            key={f}
-            type="button"
-            onClick={() => setFilter(f)}
-            className={`px-3 py-1.5 border text-[11px] font-bold uppercase tracking-wide transition-all ${
-              filter === f
-                ? "border-primary text-primary bg-primary/10"
-                : "border-border text-muted-foreground hover:border-primary hover:text-primary"
-            }`}
-          >
+          <button key={f} type="button" onClick={() => setFilter(f)}
+            className={`px-3 py-1.5 border text-[11px] font-bold uppercase tracking-wide transition-all ${filter === f ? "border-primary text-primary bg-primary/10" : "border-border text-muted-foreground hover:border-primary hover:text-primary"}`}>
             {f === "all" ? "All" : f === "cook_together" ? "Cook Together" : "Standard"}
           </button>
         ))}
       </div>
 
       {showForm && (
-        <div className="mb-6 rounded-2xl border border-border bg-card p-4 space-y-3">
-          <h3 className="font-heading text-sm font-extrabold uppercase text-foreground">Add Recipe</h3>
+        <div id="recipe-form" className="mb-6 rounded-2xl border border-border bg-card p-4 space-y-3">
+          <h3 className="font-heading text-sm font-extrabold uppercase text-foreground">
+            {editId ? "Edit Recipe" : "Add Recipe"}
+          </h3>
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="sm:col-span-2">
               <label className={labelCls}>Title *</label>
@@ -518,11 +549,11 @@ function RecipesTab() {
             </div>
             <div className="sm:col-span-2">
               <label className={labelCls}>Ingredients (one per line)</label>
-              <textarea className={`${inputCls} min-h-[100px] resize-none`} value={form.ingredients} onChange={(e) => setForm((f) => ({ ...f, ingredients: e.target.value }))} placeholder="200g chicken breast&#10;2 tbsp olive oil&#10;…" />
+              <textarea className={`${inputCls} min-h-[100px] resize-none`} value={form.ingredients} onChange={(e) => setForm((f) => ({ ...f, ingredients: e.target.value }))} placeholder={"200g chicken breast\n2 tbsp olive oil\n1 clove garlic"} />
             </div>
             <div className="sm:col-span-2">
               <label className={labelCls}>Steps (one instruction per line)</label>
-              <textarea className={`${inputCls} min-h-[100px] resize-none`} value={form.steps} onChange={(e) => setForm((f) => ({ ...f, steps: e.target.value }))} placeholder="Preheat oven to 180°C&#10;Mix ingredients…" />
+              <textarea className={`${inputCls} min-h-[100px] resize-none`} value={form.steps} onChange={(e) => setForm((f) => ({ ...f, steps: e.target.value }))} placeholder={"Preheat oven to 180°C\nMix all ingredients together\nBake for 25 minutes"} />
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -530,10 +561,10 @@ function RecipesTab() {
             <label htmlFor="cook-together" className="text-sm text-foreground">Cook Together recipe</label>
           </div>
           <div className="flex gap-2">
-            <button type="button" onClick={handleCreate} disabled={saving} className={btnPrimary}>
-              {saving ? "Saving…" : "Save Recipe"}
+            <button type="button" onClick={handleSave} disabled={saving} className={btnPrimary}>
+              {saving ? "Saving…" : editId ? "Update Recipe" : "Save Recipe"}
             </button>
-            <button type="button" onClick={() => setShowForm(false)} className={btnGhost}>Cancel</button>
+            <button type="button" onClick={cancelForm} className={btnGhost}>Cancel</button>
           </div>
         </div>
       )}
@@ -545,7 +576,7 @@ function RecipesTab() {
       ) : (
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {filtered.map((item) => (
-            <div key={item.id} className="rounded-2xl border border-border bg-card p-4">
+            <div key={item.id} className={`rounded-2xl border bg-card p-4 transition-colors ${editId === item.id ? "border-primary" : "border-border"}`}>
               {item.image_url && (
                 <img src={item.image_url} alt={item.title} className="h-32 w-full object-cover rounded-xl mb-3" />
               )}
@@ -559,9 +590,12 @@ function RecipesTab() {
                   <span className="text-[10px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded-full">Cook Together</span>
                 )}
               </div>
-              <button type="button" onClick={() => handleDelete(item.id)} className={`${btnDanger} mt-3`}>
-                <Trash2 className="h-3 w-3" /> Delete
-              </button>
+              <div className="flex gap-2 mt-3">
+                <button type="button" onClick={() => startEdit(item)} className={btnGhost}>Edit</button>
+                <button type="button" onClick={() => handleDelete(item.id)} className={btnDanger}>
+                  <Trash2 className="h-3 w-3" /> Delete
+                </button>
+              </div>
             </div>
           ))}
         </div>
@@ -899,14 +933,16 @@ function ExpertEventsTab() {
                   {item.expert_name} · {new Date(item.event_date).toLocaleString()}
                 </div>
                 {item.description && <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{item.description}</p>}
-                {item.booking_url && (
-                  <a href={item.booking_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary mt-1 hover:underline inline-block">
-                    Booking link →
-                  </a>
-                )}
-                <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full mt-2 inline-block ${item.active ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>
-                  {item.active ? "Active" : "Inactive"}
-                </span>
+                <div className="flex items-center gap-2 mt-2 flex-wrap">
+                  <span className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full ${item.active ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"}`}>
+                    {item.active ? "Active" : "Inactive"}
+                  </span>
+                  {item.booking_url && (
+                    <a href={item.booking_url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary hover:underline">
+                      Booking link →
+                    </a>
+                  )}
+                </div>
               </div>
               <div className="flex gap-2 shrink-0">
                 <button type="button" onClick={() => toggleActive(item)} className={btnGhost}>{item.active ? "Hide" : "Show"}</button>

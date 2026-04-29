@@ -37,6 +37,10 @@ type SavedRecipeRow = {
   recipe_id: string;
 };
 
+type CompletedRecipeRow = {
+  recipe_id: string | null;
+};
+
 const normalizeStringArray = (value: unknown): string[] => {
   if (!Array.isArray(value)) return [];
   return value.filter((item): item is string => typeof item === "string");
@@ -105,7 +109,29 @@ export function useCookTogetherRecipes(userId?: string) {
         ? supabase.from("user_saved_recipes").select("recipe_id").eq("user_id", userId)
         : Promise.resolve({ data: [] as SavedRecipeRow[], error: null });
 
-      const [recipesRes, savedRes] = await Promise.all([recipesQuery, savedQuery]);
+      const bondScoreQuery = userId
+        ? supabase
+            .from("dad_score_view")
+            .select("bond_score")
+            .eq("user_id", userId)
+            .maybeSingle()
+        : Promise.resolve({ data: null, error: null });
+
+      const completedQuery = userId
+        ? supabase
+            .from("bond_logs")
+            .select("recipe_id")
+            .eq("user_id", userId)
+            .eq("activity_type", "cook_together_recipe")
+            .not("recipe_id", "is", null)
+        : Promise.resolve({ data: [] as CompletedRecipeRow[], error: null });
+
+      const [recipesRes, savedRes, bondScoreRes, completedRes] = await Promise.all([
+        recipesQuery,
+        savedQuery,
+        bondScoreQuery,
+        completedQuery,
+      ]);
 
       if (recipesRes.error) throw recipesRes.error;
       if (savedRes.error) throw savedRes.error;
@@ -113,6 +139,14 @@ export function useCookTogetherRecipes(userId?: string) {
       return {
         recipes: ((recipesRes.data ?? []) as Record<string, unknown>[]).map(normalizeRecipe),
         savedIds: new Set((savedRes.data ?? []).map((row) => row.recipe_id)),
+        completedIds: new Set(
+          ((completedRes.data ?? []) as CompletedRecipeRow[])
+            .map((r) => r.recipe_id)
+            .filter((id): id is string => id !== null),
+        ),
+        bondScore: typeof bondScoreRes.data?.bond_score === "number"
+          ? bondScoreRes.data.bond_score
+          : null,
       };
     },
   });
@@ -198,6 +232,8 @@ export function useCookTogetherRecipes(userId?: string) {
   return {
     recipes,
     savedIds: data?.savedIds ?? new Set<string>(),
+    completedIds: data?.completedIds ?? new Set<string>(),
+    bondScore: data?.bondScore ?? null,
     filters,
     error,
     isLoading,
