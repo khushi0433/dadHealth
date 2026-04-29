@@ -48,6 +48,8 @@ interface Recipe {
   prep_mins: number;
   cook_together: boolean;
   image_url?: string;
+  ingredients?: unknown[];
+  steps?: unknown[];
   created_at?: string;
 }
 
