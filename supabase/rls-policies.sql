@@ -110,3 +110,10 @@ create policy "Users can CRUD own bond logs"
 on bond_logs for all
 using (auth.uid() = user_id)
 with check (auth.uid() = user_id);
+
+-- Expert events: public read, no user writes (admin via service role only)
+alter table expert_events enable row level security;
+drop policy if exists "Anyone can read active expert events" on expert_events;
+create policy "Anyone can read active expert events"
+on expert_events for select
+using (active = true);

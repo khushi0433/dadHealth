@@ -130,8 +130,15 @@ create table if not exists weekly_challenges (
 );
 
 insert into weekly_challenges (title, description, participants_count, active) 
-select 'Screen-free Sunday', '847 dads taking part', 847, true 
+select 'Screen-free Sunday', 'Put the phone down for a full Sunday. Be fully present with your kids.', 0, true 
 where not exists (select 1 from weekly_challenges);
+
+-- Fix stale seed data if description was left as the hardcoded marketing copy
+update weekly_challenges
+set description = 'Put the phone down for a full Sunday. Be fully present with your kids.',
+    participants_count = 0
+where title = 'Screen-free Sunday'
+  and description = '847 dads taking part';
 
 -- meal_plans
 create table if not exists meal_plans (
@@ -774,3 +781,19 @@ grant execute on function public.trending_post_tags(int) to anon, authenticated;
 -- =========================
 alter table comments add column if not exists parent_id uuid references comments(id) on delete cascade;
 create index if not exists idx_comments_post_parent on comments(post_id, parent_id);
+
+-- =========================
+-- EXPERT Q&A EVENTS (Feature 10 — Admin Dashboard)
+-- =========================
+create table if not exists expert_events (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  description text,
+  expert_name text not null,
+  event_date timestamptz not null,
+  booking_url text,
+  active boolean not null default true,
+  created_at timestamptz default now()
+);
+
+alter table expert_events enable row level security;
