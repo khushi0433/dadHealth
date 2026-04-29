@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { format } from "date-fns";
 import { Lock } from "lucide-react";
+import CookTogetherRecipes from "@/components/CookTogetherRecipes";
 import SitePageShell from "@/components/SitePageShell";
 import SiteFooter from "@/components/SiteFooter";
 import { useProStatus } from "@/components/ProProvider";
@@ -26,7 +27,7 @@ type DadDateDisplay = DadDateRow & { time: string };
 const BondPage = () => {
   const { user } = useAuth();
   const { isPro, showPaywall } = useProStatus();
-  const { dadDates, milestones, prompts, saveMilestone } = useBond(user?.id);
+  const { dadDates, milestones, prompts } = useBond(user?.id);
 
   const [presentMode, setPresentMode] = useState(false);
   const [dateFilter, setDateFilter] = useState("all");
@@ -214,6 +215,8 @@ const BondPage = () => {
             <p className="text-sm text-muted-foreground">No conversation starters yet.</p>
           )}
         </div>
+
+        <CookTogetherRecipes />
       </div>
 
       <SiteFooter />

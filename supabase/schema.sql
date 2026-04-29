@@ -167,6 +167,10 @@ create table if not exists body_metrics (
   created_at timestamptz default now()
 );
 
+-- Allow non-weight activity metrics such as active_mins.
+alter table body_metrics
+  alter column weight_kg drop not null;
+
 -- journal_entries
 create table if not exists journal_entries (
   id uuid primary key default gen_random_uuid(),
@@ -205,6 +209,38 @@ create table if not exists dad_dates (
   budget text not null,
   duration_minutes int not null,
   time_of_day text
+);
+
+-- cook together recipes
+create table if not exists recipes (
+  id uuid primary key default gen_random_uuid(),
+  title text not null,
+  description text,
+  difficulty text not null check (difficulty in ('easy', 'medium')),
+  age_min int not null check (age_min >= 0),
+  prep_mins int not null check (prep_mins > 0),
+  ingredients jsonb not null default '[]'::jsonb,
+  steps jsonb not null default '[]'::jsonb,
+  cook_together boolean not null default true,
+  image_url text,
+  created_at timestamptz default now()
+);
+
+create table if not exists user_saved_recipes (
+  user_id uuid references auth.users(id) on delete cascade not null,
+  recipe_id uuid references recipes(id) on delete cascade not null,
+  saved_at timestamptz not null default now(),
+  primary key (user_id, recipe_id)
+);
+
+create table if not exists bond_logs (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references auth.users(id) on delete cascade not null,
+  recipe_id uuid references recipes(id) on delete set null,
+  activity_type text not null,
+  quality int not null check (quality between 1 and 5),
+  minutes int,
+  created_at timestamptz default now()
 );
 
 -- posts
@@ -473,6 +509,84 @@ begin
 end;
 $$;
 
+-- complete cook together recipe
+create or replace function public.complete_cook_together_recipe(
+  p_recipe_id uuid
+)
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_user_id uuid := auth.uid();
+  v_recipe recipes%rowtype;
+begin
+  if v_user_id is null then
+    raise exception 'Not authenticated';
+  end if;
+
+  select *
+  into v_recipe
+  from recipes
+  where id = p_recipe_id
+    and cook_together = true;
+
+  if not found then
+    raise exception 'Recipe not found';
+  end if;
+
+  insert into bond_logs (
+    user_id,
+    recipe_id,
+    activity_type,
+    quality,
+    minutes
+  )
+  values (
+    v_user_id,
+    p_recipe_id,
+    'cook_together_recipe',
+    4,
+    v_recipe.prep_mins
+  );
+
+  insert into workout_sessions (
+    user_id,
+    exercise_name,
+    duration_minutes,
+    calories,
+    exercises_completed,
+    performed_at
+  )
+  values (
+    v_user_id,
+    'Cook Together: ' || v_recipe.title,
+    v_recipe.prep_mins,
+    0,
+    1,
+    now()
+  );
+
+  insert into body_metrics (
+    user_id,
+    metric_type,
+    value,
+    recorded_at
+  )
+  values (
+    v_user_id,
+    'active_mins',
+    v_recipe.prep_mins,
+    now()
+  );
+
+  perform update_streak(v_user_id);
+end;
+$$;
+
+grant execute on function public.complete_cook_together_recipe(uuid) to authenticated;
+
 -- =========================
 -- VIEWS
 -- =========================
@@ -500,10 +614,19 @@ select
   ), 100) as body_score,
 
   least((
-    select count(*) * 15
-    from journal_entries j
-    where j.user_id = p.user_id
-    and j.created_at >= now() - interval '7 days'
+    coalesce((
+      select count(*) * 15
+      from journal_entries j
+      where j.user_id = p.user_id
+      and j.created_at >= now() - interval '7 days'
+    ), 0)
+    +
+    coalesce((
+      select sum(bl.quality * 5)
+      from bond_logs bl
+      where bl.user_id = p.user_id
+      and bl.created_at >= now() - interval '7 days'
+    ), 0)
   ), 100) as bond_score
 
 from public.user_profile p;
@@ -569,6 +692,10 @@ create index if not exists idx_mood_user_date on mood_logs(user_id, date);
 create index if not exists idx_sleep_user_date on sleep_logs(user_id, date);
 create index if not exists idx_workout_user on workout_sessions(user_id);
 create index if not exists idx_tasks_user_date on daily_tasks(user_id, date);
+create index if not exists idx_recipes_cook_together on recipes(cook_together);
+create index if not exists idx_recipes_filters on recipes(difficulty, age_min, prep_mins);
+create index if not exists idx_user_saved_recipes_user on user_saved_recipes(user_id);
+create index if not exists idx_bond_logs_user_created on bond_logs(user_id, created_at desc);
 
 create unique index if not exists limit_posts_per_hour
 on posts(user_id, date_trunc('hour', created_at AT TIME ZONE 'UTC'));
