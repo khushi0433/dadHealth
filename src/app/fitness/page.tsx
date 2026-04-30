@@ -643,14 +643,6 @@ const FitnessPage = () => {
                   ) : (
                     <div className="flex items-center gap-2 shrink-0">
                       <span className="tag-pill">FREE</span>
-                      <button
-                        type="button"
-                        onClick={() => showPaywall("AI workout generator")}
-                        className={timerGhostBtnActive}
-                        title="Upgrade to Pro to generate AI workouts"
-                      >
-                        UPGRADE
-                      </button>
                     </div>
                   )}
                 </div>
@@ -704,14 +696,6 @@ const FitnessPage = () => {
                     START
                   </button>
                 </div>
-                {!isPro && (
-                  <p className="text-[11px] text-muted-foreground">
-                    Free plan includes 8 pre-built workouts. Tap Generate to upgrade for unlimited AI workouts.
-                  </p>
-                )}
-                {generateWorkout.error && (
-                  <p className="text-xs text-red-600">{generateWorkout.error.message}</p>
-                )}
 
                 <div className="space-y-2">
                   <div className="flex items-center justify-between gap-2">

@@ -71,6 +71,16 @@ export async function GET(
         return NextResponse.json(data);
       }
 
+      case "workouts": {
+        const { data, error } = await supabase
+          .from("workouts")
+          .select("*")
+          .eq("source", "admin")
+          .order("created_at", { ascending: false });
+        if (error) throw error;
+        return NextResponse.json(data);
+      }
+
       case "therapists": {
         const { data, error } = await supabase
           .from("therapists")
@@ -211,6 +221,24 @@ export async function POST(
         return NextResponse.json(data);
       }
 
+      case "workouts": {
+        const { data, error } = await supabase
+          .from("workouts")
+          .insert({
+            user_id: null,
+            title: body.title,
+            duration_mins: body.duration_mins,
+            equipment: body.equipment,
+            focus: body.focus,
+            exercises: body.exercises ?? [],
+            source: "admin",
+          })
+          .select()
+          .single();
+        if (error) throw error;
+        return NextResponse.json(data);
+      }
+
       case "therapists": {
         const { data, error } = await supabase
           .from("therapists")
@@ -287,6 +315,7 @@ export async function PATCH(
   const TABLE_MAP: Record<string, string> = {
     challenges: "weekly_challenges",
     recipes: "recipes",
+    workouts: "workouts",
     therapists: "therapists",
     dad_dates: "dad_dates",
     expert_events: "expert_events",
@@ -328,6 +357,7 @@ export async function DELETE(
   const TABLE_MAP: Record<string, string> = {
     challenges: "weekly_challenges",
     recipes: "recipes",
+    workouts: "workouts",
     therapists: "therapists",
     dad_dates: "dad_dates",
     expert_events: "expert_events",

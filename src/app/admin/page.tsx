@@ -6,6 +6,7 @@ import {
   BookOpen,
   CalendarDays,
   ChevronRight,
+  Dumbbell,
   Flag,
   Heart,
   LogOut,
@@ -25,6 +26,7 @@ type Tab =
   | "analytics"
   | "challenges"
   | "recipes"
+  | "workouts"
   | "therapists"
   | "dad_dates"
   | "expert_events"
@@ -50,6 +52,26 @@ interface Recipe {
   image_url?: string;
   ingredients?: unknown[];
   steps?: unknown[];
+  created_at?: string;
+}
+
+interface WorkoutExercise {
+  name: string;
+  sets: number;
+  reps_or_duration: string;
+  rest_period: string;
+  muscle_group: string;
+  beginner_modification: string;
+}
+
+interface WorkoutItem {
+  id: string;
+  title: string;
+  duration_mins: 10 | 20 | 30 | 45;
+  equipment: "none" | "dumbbells" | "full_gym";
+  focus: "full_body" | "upper" | "lower" | "core";
+  exercises: WorkoutExercise[];
+  source: "admin" | "ai_generated";
   created_at?: string;
 }
 
@@ -606,6 +628,220 @@ function RecipesTab() {
   );
 }
 
+// ── Workouts Tab ──────────────────────────────────────────────────────────────
+
+const BLANK_WORKOUT_FORM = {
+  title: "",
+  duration_mins: 20 as 10 | 20 | 30 | 45,
+  equipment: "none" as "none" | "dumbbells" | "full_gym",
+  focus: "full_body" as "full_body" | "upper" | "lower" | "core",
+  exercisesText: "",
+};
+
+function workoutsToText(exercises: unknown): string {
+  if (!Array.isArray(exercises)) return "";
+  return (exercises as WorkoutExercise[])
+    .map((ex) => {
+      return [
+        ex.name ?? "",
+        String(ex.sets ?? ""),
+        ex.reps_or_duration ?? "",
+        ex.rest_period ?? "",
+        ex.muscle_group ?? "",
+        ex.beginner_modification ?? "",
+      ].join(" | ");
+    })
+    .join("\n");
+}
+
+function parseExercises(text: string): WorkoutExercise[] {
+  return text
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const [name, sets, reps_or_duration, rest_period, muscle_group, beginner_modification] =
+        line.split("|").map((v) => v.trim());
+      return {
+        name: name || "Untitled exercise",
+        sets: Math.max(1, Number(sets) || 1),
+        reps_or_duration: reps_or_duration || "10 reps",
+        rest_period: rest_period || "45 sec",
+        muscle_group: muscle_group || "full_body",
+        beginner_modification: beginner_modification || "Reduce range of motion",
+      };
+    });
+}
+
+function workoutToForm(item: WorkoutItem) {
+  return {
+    title: item.title,
+    duration_mins: item.duration_mins,
+    equipment: item.equipment,
+    focus: item.focus,
+    exercisesText: workoutsToText(item.exercises),
+  };
+}
+
+function WorkoutsTab() {
+  const [items, setItems] = useState<WorkoutItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showForm, setShowForm] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [editId, setEditId] = useState<string | null>(null);
+  const [form, setForm] = useState(BLANK_WORKOUT_FORM);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await adminFetch("/api/admin/workouts");
+      if (res.ok) setItems(await res.json());
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  const resetForm = () => {
+    setForm(BLANK_WORKOUT_FORM);
+    setEditId(null);
+    setShowForm(false);
+  };
+
+  const handleSave = async () => {
+    if (!form.title.trim()) return;
+    const exercises = parseExercises(form.exercisesText);
+    if (exercises.length === 0) return;
+    setSaving(true);
+    try {
+      const payload = {
+        title: form.title.trim(),
+        duration_mins: form.duration_mins,
+        equipment: form.equipment,
+        focus: form.focus,
+        exercises,
+      };
+      const res = editId
+        ? await adminFetch("/api/admin/workouts", { method: "PATCH", body: JSON.stringify({ id: editId, ...payload }) })
+        : await adminFetch("/api/admin/workouts", { method: "POST", body: JSON.stringify(payload) });
+      if (res.ok) {
+        resetForm();
+        load();
+      }
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const startEdit = (item: WorkoutItem) => {
+    setForm(workoutToForm(item));
+    setEditId(item.id);
+    setShowForm(true);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm("Delete this workout?")) return;
+    await adminFetch("/api/admin/workouts", { method: "DELETE", body: JSON.stringify({ id }) });
+    if (editId === id) resetForm();
+    load();
+  };
+
+  return (
+    <div>
+      <SectionHeader title="Workout Library (Free 8)" onRefresh={load}>
+        <button type="button" onClick={() => { if (showForm) resetForm(); else setShowForm(true); }} className={btnPrimary}>
+          <Plus className="h-3 w-3" /> Add Workout
+        </button>
+      </SectionHeader>
+
+      {showForm && (
+        <div className="mb-6 rounded-2xl border border-border bg-card p-4 space-y-3">
+          <h3 className="font-heading text-sm font-extrabold uppercase text-foreground">
+            {editId ? "Edit Workout" : "Add Workout"}
+          </h3>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="sm:col-span-2">
+              <label className={labelCls}>Title *</label>
+              <input className={inputCls} value={form.title} onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))} />
+            </div>
+            <div>
+              <label className={labelCls}>Duration</label>
+              <select className={inputCls} value={form.duration_mins} onChange={(e) => setForm((f) => ({ ...f, duration_mins: Number(e.target.value) as 10 | 20 | 30 | 45 }))}>
+                <option value={10}>10 mins</option>
+                <option value={20}>20 mins</option>
+                <option value={30}>30 mins</option>
+                <option value={45}>45 mins</option>
+              </select>
+            </div>
+            <div>
+              <label className={labelCls}>Equipment</label>
+              <select className={inputCls} value={form.equipment} onChange={(e) => setForm((f) => ({ ...f, equipment: e.target.value as "none" | "dumbbells" | "full_gym" }))}>
+                <option value="none">None</option>
+                <option value="dumbbells">Dumbbells</option>
+                <option value="full_gym">Full gym</option>
+              </select>
+            </div>
+            <div className="sm:col-span-2">
+              <label className={labelCls}>Focus</label>
+              <select className={inputCls} value={form.focus} onChange={(e) => setForm((f) => ({ ...f, focus: e.target.value as "full_body" | "upper" | "lower" | "core" }))}>
+                <option value="full_body">Full body</option>
+                <option value="upper">Upper body</option>
+                <option value="lower">Lower body</option>
+                <option value="core">Core</option>
+              </select>
+            </div>
+            <div className="sm:col-span-2">
+              <label className={labelCls}>Exercises *</label>
+              <textarea
+                className={`${inputCls} min-h-[130px] resize-none`}
+                value={form.exercisesText}
+                onChange={(e) => setForm((f) => ({ ...f, exercisesText: e.target.value }))}
+                placeholder={"Push-up | 3 | 10 reps | 45 sec | chest | Incline push-up\nPlank | 3 | 45 sec | 30 sec | core | Knee plank"}
+              />
+              <p className="mt-2 text-[11px] text-muted-foreground">
+                One line per exercise: Name | Sets | Reps/Duration | Rest | Muscle group | Beginner modification
+              </p>
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <button type="button" onClick={handleSave} disabled={saving} className={btnPrimary}>
+              {saving ? "Saving…" : editId ? "Update Workout" : "Save Workout"}
+            </button>
+            <button type="button" onClick={resetForm} className={btnGhost}>Cancel</button>
+          </div>
+        </div>
+      )}
+
+      {loading ? (
+        <p className="text-sm text-muted-foreground">Loading…</p>
+      ) : items.length === 0 ? (
+        <p className="text-sm text-muted-foreground">No admin workouts yet.</p>
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          {items.map((item) => (
+            <div key={item.id} className={`rounded-2xl border bg-card p-4 ${editId === item.id ? "border-primary" : "border-border"}`}>
+              <div className="font-heading text-sm font-bold uppercase text-foreground">{item.title}</div>
+              <div className="text-[10px] text-muted-foreground mt-1">
+                {item.duration_mins} min · {item.equipment.replace("_", " ")} · {item.focus.replace("_", " ")}
+              </div>
+              <div className="text-xs text-muted-foreground mt-2">
+                {Array.isArray(item.exercises) ? item.exercises.length : 0} exercises
+              </div>
+              <div className="flex gap-2 mt-3">
+                <button type="button" onClick={() => startEdit(item)} className={btnGhost}>Edit</button>
+                <button type="button" onClick={() => handleDelete(item.id)} className={btnDanger}>
+                  <Trash2 className="h-3 w-3" /> Delete
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Therapists Tab ────────────────────────────────────────────────────────────
 
 function TherapistsTab() {
@@ -1121,6 +1357,7 @@ const NAV_ITEMS: { id: Tab; label: string; icon: React.ReactNode }[] = [
   { id: "analytics", label: "Analytics", icon: <BarChart2 className="h-4 w-4" /> },
   { id: "challenges", label: "Challenges", icon: <Trophy className="h-4 w-4" /> },
   { id: "recipes", label: "Recipes", icon: <UtensilsCrossed className="h-4 w-4" /> },
+  { id: "workouts", label: "Workouts", icon: <Dumbbell className="h-4 w-4" /> },
   { id: "therapists", label: "Therapists", icon: <Stethoscope className="h-4 w-4" /> },
   { id: "dad_dates", label: "Dad Dates", icon: <Heart className="h-4 w-4" /> },
   { id: "expert_events", label: "Expert Q&A", icon: <CalendarDays className="h-4 w-4" /> },
@@ -1166,6 +1403,7 @@ export default function AdminPage() {
       case "analytics": return <AnalyticsTab />;
       case "challenges": return <ChallengesTab />;
       case "recipes": return <RecipesTab />;
+      case "workouts": return <WorkoutsTab />;
       case "therapists": return <TherapistsTab />;
       case "dad_dates": return <DadDatesTab />;
       case "expert_events": return <ExpertEventsTab />;
