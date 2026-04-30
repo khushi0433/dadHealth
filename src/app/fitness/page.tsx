@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import SitePageShell from "@/components/SitePageShell";
 import SiteFooter from "@/components/SiteFooter";
 import LimeButton from "@/components/LimeButton";
@@ -11,6 +11,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useFitness } from "@/hooks/useFitness";
 import { DAD_STRENGTH_MOVES } from "@/lib/dadStrengthProgram";
 import { trackEvent } from "@/lib/analytics";
+import { supabase } from "@/utils/supabaseClient";
+import type { Workout, WorkoutEquipment, WorkoutExercise, WorkoutFocus } from "@/types/database";
 
 const timerGhostBtn =
   "bg-transparent border py-2.5 px-4 font-heading font-bold text-xs tracking-wider uppercase transition-colors";
@@ -214,11 +216,86 @@ const formatGroceryList = (list: any) => {
   return list;
 };
 
+const EQUIPMENT_LABEL: Record<WorkoutEquipment, string> = {
+  none: "None",
+  dumbbells: "Dumbbells",
+  full_gym: "Full gym",
+};
+
+const FOCUS_LABEL: Record<WorkoutFocus, string> = {
+  full_body: "Full body",
+  upper: "Upper body",
+  lower: "Lower body",
+  core: "Core",
+};
+
+const mapExerciseToMove = (exercise: WorkoutExercise) => ({
+  title: exercise.name,
+  detail: `${exercise.sets} sets · ${exercise.reps_or_duration} · Rest ${exercise.rest_period}`,
+  tag: exercise.muscle_group,
+});
+
 const FitnessPage = () => {
   const { user, openAuthModal } = useAuth();
   const { isPro, showPaywall } = useProStatus();
   const { workouts, bodyMetrics, activeMealPlan, loading: mealsLoading, saveWorkout } = useFitness(user?.id);
   const queryClient = useQueryClient();
+  const [selectedWorkoutId, setSelectedWorkoutId] = useState<string | null>(null);
+  const [durationMins, setDurationMins] = useState<10 | 20 | 30 | 45>(20);
+  const [equipment, setEquipment] = useState<WorkoutEquipment>("none");
+  const [focus, setFocus] = useState<WorkoutFocus>("full_body");
+
+  const workoutsQuery = useQuery({
+    queryKey: ["workouts-library", user?.id, isPro],
+    queryFn: async () => {
+      const base = supabase.from("workouts").select("*").eq("source", "admin").order("created_at", { ascending: false }).limit(8);
+      const userGenerated = user?.id
+        ? supabase
+            .from("workouts")
+            .select("*")
+            .eq("user_id", user.id)
+            .eq("source", "ai_generated")
+            .order("created_at", { ascending: false })
+            .limit(20)
+        : Promise.resolve({ data: [], error: null } as { data: any[]; error: null });
+      const [adminRes, userRes] = await Promise.all([base, userGenerated]);
+      if (adminRes.error) throw adminRes.error;
+      if ((userRes as any).error) throw (userRes as any).error;
+      const adminRows = (adminRes.data ?? []) as Workout[];
+      const userRows = ((userRes as any).data ?? []) as Workout[];
+      return isPro ? [...userRows, ...adminRows] : adminRows;
+    },
+    refetchOnWindowFocus: false,
+  });
+
+  const completeGeneratedWorkout = useMutation({
+    mutationFn: async (payload: { workoutId: string; durationActualSeconds: number }) => {
+      if (!user?.id) throw new Error("Not authenticated");
+      const { error } = await supabase.from("workout_completions").insert({
+        user_id: user.id,
+        workout_id: payload.workoutId,
+        duration_actual_seconds: payload.durationActualSeconds,
+      });
+      if (error) throw error;
+    },
+  });
+
+  const generateWorkout = useMutation<Workout, Error, { durationMins: number; equipment: WorkoutEquipment; focus: WorkoutFocus }>({
+    mutationFn: async (payload) => {
+      const res = await fetch("/api/generate-workout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error ?? "Unable to generate workout.");
+      return data as Workout;
+    },
+    onSuccess: async (workout) => {
+      await queryClient.invalidateQueries({ queryKey: ["workouts-library", user?.id, isPro] });
+      setSelectedWorkoutId(workout.id);
+    },
+  });
 
   const [calorieTarget, setCalorieTarget] = useState("2200");
   const [preferences, setPreferences] = useState("High protein, no fish");
@@ -275,6 +352,10 @@ const FitnessPage = () => {
     return () => clearInterval(id);
   }, [timerRunning]);
 
+  useEffect(() => {
+    setCurrentExerciseIdx(0);
+  }, [selectedWorkoutId, workoutsQuery.dataUpdatedAt, generateWorkout.data?.id]);
+
   const formatTime = (s: number) => {
     const m = Math.floor(s / 60);
     const sec = s % 60;
@@ -319,7 +400,15 @@ const FitnessPage = () => {
   const planError = generateMealPlan.error?.message;
   const planLoading = generateMealPlan.status === "pending" || (mealsLoading && !planData);
 
-  const todaysMoves = DAD_STRENGTH_MOVES;
+  const libraryWorkouts = (workoutsQuery.data ?? []) as Workout[];
+  const selectedWorkout =
+    libraryWorkouts.find((w) => w.id === selectedWorkoutId) ??
+    generateWorkout.data ??
+    libraryWorkouts[0] ??
+    null;
+  const todaysMoves = selectedWorkout?.exercises?.length
+    ? selectedWorkout.exercises.map(mapExerciseToMove)
+    : DAD_STRENGTH_MOVES;
   const latestLogged = workouts[0];
   const currentMove = todaysMoves[currentExerciseIdx] ?? todaysMoves[0];
 
@@ -357,6 +446,24 @@ const FitnessPage = () => {
       duration_minutes: totalMin,
       calories: undefined,
     });
+    if (selectedWorkout?.id) {
+      completeGeneratedWorkout.mutate({
+        workoutId: selectedWorkout.id,
+        durationActualSeconds: timerSec,
+      });
+    }
+  };
+
+  const handleGenerateAiWorkout = () => {
+    if (!user) {
+      openAuthModal();
+      return;
+    }
+    if (!isPro) {
+      showPaywall("AI workout generator");
+      return;
+    }
+    generateWorkout.mutate({ durationMins, equipment, focus });
   };
 
   const canUseNextExercise = Boolean(user && isPro);
@@ -395,6 +502,21 @@ const FitnessPage = () => {
       });
     }
     setTimerRunning((running) => !running);
+  };
+
+  const handleStartSelectedWorkout = () => {
+    if (!user) {
+      openAuthModal();
+      return;
+    }
+    if (!timerRunning) {
+      trackEvent("workout_started", {
+        workout_name: selectedWorkout?.title ?? currentMove?.title ?? "Dad Strength",
+        workout_type: selectedWorkout?.focus ?? currentMove?.tag ?? "DAD_STRENGTH",
+        planned_moves: todaysMoves.length,
+      });
+      setTimerRunning(true);
+    }
   };
 
   return (
@@ -505,6 +627,84 @@ const FitnessPage = () => {
                     <div className="text-[10px] text-muted-foreground mt-1.5 uppercase tracking-wide">{stat.label}</div>
                   </div>
                 ))}
+              </div>
+
+              <div className="rounded-2xl border border-border bg-background p-4 lg:p-5 space-y-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <div className="font-heading text-xs font-extrabold uppercase tracking-[0.25em] text-primary">
+                      AI Workout Generator
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Build a custom session by time, equipment and focus.
+                    </p>
+                  </div>
+                  {isPro ? (
+                    <span className="tag-pill shrink-0">PRO</span>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => showPaywall("AI workout generator")}
+                      className="tag-pill shrink-0 cursor-pointer hover:brightness-110 transition"
+                      title="Upgrade to Pro to generate AI workouts"
+                    >
+                      FREE · UPGRADE
+                    </button>
+                  )}
+                </div>
+
+                <div className="grid gap-2">
+                  <label className="text-[11px] text-muted-foreground">
+                    Duration
+                    <select
+                      value={durationMins}
+                      onChange={(e) => setDurationMins(Number(e.target.value) as 10 | 20 | 30 | 45)}
+                      className="mt-1 w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground"
+                    >
+                      <option value={10}>10 mins</option>
+                      <option value={20}>20 mins</option>
+                      <option value={30}>30 mins</option>
+                      <option value={45}>45 mins</option>
+                    </select>
+                  </label>
+                  <label className="text-[11px] text-muted-foreground">
+                    Equipment
+                    <select
+                      value={equipment}
+                      onChange={(e) => setEquipment(e.target.value as WorkoutEquipment)}
+                      className="mt-1 w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground"
+                    >
+                      <option value="none">None</option>
+                      <option value="dumbbells">Dumbbells</option>
+                      <option value="full_gym">Full gym</option>
+                    </select>
+                  </label>
+                  <label className="text-[11px] text-muted-foreground">
+                    Focus
+                    <select
+                      value={focus}
+                      onChange={(e) => setFocus(e.target.value as WorkoutFocus)}
+                      className="mt-1 w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground"
+                    >
+                      <option value="full_body">Full body</option>
+                      <option value="upper">Upper body</option>
+                      <option value="lower">Lower body</option>
+                      <option value="core">Core</option>
+                    </select>
+                  </label>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  <LimeButton onClick={handleGenerateAiWorkout} disabled={generateWorkout.isPending}>
+                    {generateWorkout.isPending ? "GENERATING..." : "GENERATE →"}
+                  </LimeButton>
+                  <button type="button" onClick={handleStartSelectedWorkout} className={timerGhostBtnActive}>
+                    START
+                  </button>
+                </div>
+                {generateWorkout.error && (
+                  <p className="text-xs text-red-600">{generateWorkout.error.message}</p>
+                )}
               </div>
             </div>
           </div>

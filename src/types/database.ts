@@ -91,6 +91,39 @@ export interface WorkoutSession {
   created_at?: string;
 }
 
+export type WorkoutEquipment = "none" | "dumbbells" | "full_gym";
+export type WorkoutFocus = "full_body" | "upper" | "lower" | "core";
+export type WorkoutSource = "admin" | "ai_generated";
+
+export interface WorkoutExercise {
+  name: string;
+  sets: number;
+  reps_or_duration: string;
+  rest_period: string;
+  muscle_group: string;
+  beginner_modification: string;
+}
+
+export interface Workout {
+  id: string;
+  user_id: string | null;
+  title: string;
+  duration_mins: number;
+  equipment: WorkoutEquipment;
+  focus: WorkoutFocus;
+  exercises: WorkoutExercise[];
+  source: WorkoutSource;
+  created_at?: string;
+}
+
+export interface WorkoutCompletion {
+  id: string;
+  user_id: string;
+  workout_id: string;
+  completed_at: string;
+  duration_actual_seconds: number;
+}
+
 export interface UserStreak {
   id: string;
   user_id: string;

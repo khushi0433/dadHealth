@@ -5,6 +5,8 @@ alter table clients enable row level security;
 alter table mood_logs enable row level security;
 alter table sleep_logs enable row level security;
 alter table workout_sessions enable row level security;
+alter table workouts enable row level security;
+alter table workout_completions enable row level security;
 alter table user_profile enable row level security;
 alter table user_streaks enable row level security;
 alter table meal_plans enable row level security;
@@ -33,6 +35,33 @@ create policy "Users can CRUD own sleep_logs" on sleep_logs for all using (auth.
 
 drop policy if exists "Users can CRUD own workout_sessions" on workout_sessions;
 create policy "Users can CRUD own workout_sessions" on workout_sessions for all using (auth.uid() = user_id);
+
+drop policy if exists "Users can read admin and own workouts" on workouts;
+create policy "Users can read admin and own workouts"
+on workouts for select
+using (source = 'admin' or auth.uid() = user_id);
+
+drop policy if exists "Users can insert own ai workouts" on workouts;
+create policy "Users can insert own ai workouts"
+on workouts for insert
+with check (auth.uid() = user_id and source = 'ai_generated');
+
+drop policy if exists "Users can update own ai workouts" on workouts;
+create policy "Users can update own ai workouts"
+on workouts for update
+using (auth.uid() = user_id and source = 'ai_generated')
+with check (auth.uid() = user_id and source = 'ai_generated');
+
+drop policy if exists "Users can delete own ai workouts" on workouts;
+create policy "Users can delete own ai workouts"
+on workouts for delete
+using (auth.uid() = user_id and source = 'ai_generated');
+
+drop policy if exists "Users can CRUD own workout_completions" on workout_completions;
+create policy "Users can CRUD own workout_completions"
+on workout_completions for all
+using (auth.uid() = user_id)
+with check (auth.uid() = user_id);
 
 drop policy if exists "Users can CRUD own user_profile" on user_profile;
 create policy "Users can CRUD own user_profile" on user_profile for all using (auth.uid() = user_id);

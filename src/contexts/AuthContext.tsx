@@ -40,9 +40,20 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [authModalOpen, setAuthModalOpen] = useState(false);
 
   const refreshSession = useCallback(async () => {
-    const { data: { session } } = await supabase.auth.getSession();
-    setSession(session);
-    setUser(session?.user ?? null);
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      setSession(session);
+      setUser(session?.user ?? null);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      // Supabase lock races can happen under concurrent auth reads in development/hot reload.
+      if (message.includes("was released because another request stole it")) {
+        return;
+      }
+      throw error;
+    }
   }, []);
 
   useEffect(() => {

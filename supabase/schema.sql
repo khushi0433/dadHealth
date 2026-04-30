@@ -42,6 +42,27 @@ create table if not exists workout_sessions (
   created_at timestamptz default now()
 );
 
+-- workouts (library + AI generated)
+create table if not exists workouts (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references auth.users(id) on delete cascade,
+  title text not null,
+  duration_mins int not null check (duration_mins in (10, 20, 30, 45)),
+  equipment text not null check (equipment in ('none', 'dumbbells', 'full_gym')),
+  focus text not null check (focus in ('full_body', 'upper', 'lower', 'core')),
+  exercises jsonb not null default '[]'::jsonb,
+  source text not null check (source in ('admin', 'ai_generated')),
+  created_at timestamptz default now()
+);
+
+create table if not exists workout_completions (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references auth.users(id) on delete cascade not null,
+  workout_id uuid references workouts(id) on delete cascade not null,
+  completed_at timestamptz not null default now(),
+  duration_actual_seconds int not null default 0 check (duration_actual_seconds >= 0)
+);
+
 -- clients (brand config per organization) - must exist before user_profile
 create table if not exists clients (
   id uuid primary key default gen_random_uuid(),
@@ -698,6 +719,9 @@ for each row execute function handle_new_user();
 create index if not exists idx_mood_user_date on mood_logs(user_id, date);
 create index if not exists idx_sleep_user_date on sleep_logs(user_id, date);
 create index if not exists idx_workout_user on workout_sessions(user_id);
+create index if not exists idx_workouts_source_created on workouts(source, created_at desc);
+create index if not exists idx_workouts_user_created on workouts(user_id, created_at desc);
+create index if not exists idx_workout_completions_user_completed on workout_completions(user_id, completed_at desc);
 create index if not exists idx_tasks_user_date on daily_tasks(user_id, date);
 create index if not exists idx_recipes_cook_together on recipes(cook_together);
 create index if not exists idx_recipes_filters on recipes(difficulty, age_min, prep_mins);
