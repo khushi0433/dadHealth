@@ -256,7 +256,6 @@ const FitnessPage = () => {
             .eq("user_id", user.id)
             .eq("source", "ai_generated")
             .order("created_at", { ascending: false })
-            .limit(20)
         : Promise.resolve({ data: [], error: null } as { data: any[]; error: null });
       const [adminRes, userRes] = await Promise.all([base, userGenerated]);
       if (adminRes.error) throw adminRes.error;
@@ -642,14 +641,17 @@ const FitnessPage = () => {
                   {isPro ? (
                     <span className="tag-pill shrink-0">PRO</span>
                   ) : (
-                    <button
-                      type="button"
-                      onClick={() => showPaywall("AI workout generator")}
-                      className="tag-pill shrink-0 cursor-pointer hover:brightness-110 transition"
-                      title="Upgrade to Pro to generate AI workouts"
-                    >
-                      FREE · UPGRADE
-                    </button>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="tag-pill">FREE</span>
+                      <button
+                        type="button"
+                        onClick={() => showPaywall("AI workout generator")}
+                        className={timerGhostBtnActive}
+                        title="Upgrade to Pro to generate AI workouts"
+                      >
+                        UPGRADE
+                      </button>
+                    </div>
                   )}
                 </div>
 
@@ -695,16 +697,50 @@ const FitnessPage = () => {
                 </div>
 
                 <div className="flex flex-wrap gap-2">
-                  <LimeButton onClick={handleGenerateAiWorkout} disabled={generateWorkout.isPending}>
-                    {generateWorkout.isPending ? "GENERATING..." : "GENERATE →"}
+                  <LimeButton onClick={handleGenerateAiWorkout} disabled={isPro && generateWorkout.isPending}>
+                    {isPro ? (generateWorkout.isPending ? "GENERATING..." : "GENERATE →") : "GENERATE →"}
                   </LimeButton>
                   <button type="button" onClick={handleStartSelectedWorkout} className={timerGhostBtnActive}>
                     START
                   </button>
                 </div>
+                {!isPro && (
+                  <p className="text-[11px] text-muted-foreground">
+                    Free plan includes 8 pre-built workouts. Tap Generate to upgrade for unlimited AI workouts.
+                  </p>
+                )}
                 {generateWorkout.error && (
                   <p className="text-xs text-red-600">{generateWorkout.error.message}</p>
                 )}
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-[11px] font-heading font-bold uppercase tracking-wide text-muted-foreground">
+                      {isPro ? "All available workouts" : "Free workouts (8 max)"}
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">{libraryWorkouts.length} shown</p>
+                  </div>
+                  <div className="grid gap-2 max-h-56 overflow-y-auto pr-1">
+                    {libraryWorkouts.map((workout) => {
+                      const active = selectedWorkout?.id === workout.id;
+                      return (
+                        <button
+                          key={workout.id}
+                          type="button"
+                          onClick={() => setSelectedWorkoutId(workout.id)}
+                          className={`text-left rounded-xl border p-2.5 transition-colors ${
+                            active ? "border-primary bg-primary/10" : "border-border bg-card hover:border-primary/50"
+                          }`}
+                        >
+                          <div className="font-heading text-[11px] font-extrabold uppercase text-foreground">{workout.title}</div>
+                          <div className="text-[10px] text-muted-foreground mt-1">
+                            {workout.duration_mins} mins · {EQUIPMENT_LABEL[workout.equipment]} · {FOCUS_LABEL[workout.focus]}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
