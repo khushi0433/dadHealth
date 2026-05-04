@@ -395,7 +395,7 @@ const FitnessPage = () => {
   const planData = (generateMealPlan.data as any)?.plan ?? activeMealPlan?.plan ?? null;
   const groceryListData = (generateMealPlan.data as any)?.grocery_list ?? activeMealPlan?.grocery_list ?? [];
   const grocerySections = formatGroceryList(groceryListData);
-  const planSource = (generateMealPlan.data as any)?.source ?? activeMealPlan?.source ?? null;
+  const hasSavedPlan = Boolean((generateMealPlan.data as any)?.plan ?? activeMealPlan?.plan);
   const planError = generateMealPlan.error?.message;
   const planLoading = generateMealPlan.status === "pending" || (mealsLoading && !planData);
 
@@ -815,7 +815,7 @@ const FitnessPage = () => {
 
                       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                         <div className="text-sm text-muted-foreground">
-                          {planSource ? `Last saved from ${planSource.replaceAll("_", " ")} plan` : "No plan generated yet."}
+                          {hasSavedPlan ? "Last saved meal plan ready." : "No plan generated yet."}
                         </div>
                         <LimeButton onClick={handleGenerateMealPlan} disabled={planLoading}>
                           {planLoading ? "GENERATING..." : planData ? "REGENERATE MEAL PLAN →" : "GENERATE MEAL PLAN →"}
@@ -928,8 +928,6 @@ const FitnessPage = () => {
                         </LimeButton>
                       </div>
                     </div>
-
-                    {renderMealPlan(SAMPLE_MEAL_PLAN)}
                   </div>
                 )}
 
