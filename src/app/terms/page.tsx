@@ -114,9 +114,24 @@ const sanitizeTermsHtml = (html: string) => {
   return out.trim();
 };
 
+const FALLBACK_TERMS_HTML = `
+  <div>
+    <p>Our terms of service content is temporarily unavailable.</p>
+    <p>Please contact support for the latest version of this policy.</p>
+  </div>
+`;
+
 const getTermsBodyHtml = async () => {
   const termsPath = path.join(process.cwd(), "terms.html");
-  const raw = await readFile(termsPath, "utf8");
+  let raw: string;
+  try {
+    raw = await readFile(termsPath, "utf8");
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      return FALLBACK_TERMS_HTML.trim();
+    }
+    throw error;
+  }
 
   const stripped = raw
     .replace(/<script[\s\S]*?<\/script>/gi, "")

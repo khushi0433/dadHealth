@@ -115,9 +115,24 @@ const sanitizeEulaHtml = (html: string) => {
   return out.trim();
 };
 
+const FALLBACK_EULA_HTML = `
+  <div>
+    <p>Our end user licence agreement content is temporarily unavailable.</p>
+    <p>Please contact support for the latest version of this policy.</p>
+  </div>
+`;
+
 const getEulaBodyHtml = async () => {
   const eulaPath = path.join(process.cwd(), "EULA.html");
-  const raw = await readFile(eulaPath, "utf8");
+  let raw: string;
+  try {
+    raw = await readFile(eulaPath, "utf8");
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      return FALLBACK_EULA_HTML.trim();
+    }
+    throw error;
+  }
 
   const stripped = raw
     .replace(/<script[\s\S]*?<\/script>/gi, "")

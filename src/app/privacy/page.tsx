@@ -47,9 +47,24 @@ const fillMissingSensitiveInfoDescription = (html: string) =>
     }
   );
 
+const FALLBACK_PRIVACY_HTML = `
+  <div>
+    <p>Our privacy policy content is temporarily unavailable.</p>
+    <p>Please contact support for the latest version of this policy.</p>
+  </div>
+`;
+
 const getPolicyBodyHtml = async () => {
   const policyPath = path.join(process.cwd(), "policy.html");
-  const raw = await readFile(policyPath, "utf8");
+  let raw: string;
+  try {
+    raw = await readFile(policyPath, "utf8");
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      return FALLBACK_PRIVACY_HTML.trim();
+    }
+    throw error;
+  }
   const body = raw.match(/<body[^>]*>([\s\S]*?)<\/body>/i)?.[1] ?? raw;
 
   const cleaned = body
