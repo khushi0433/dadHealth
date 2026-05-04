@@ -201,6 +201,25 @@ const logMealPlanError = (err: unknown) => {
   })
 }
 
+const isLikelyBillingProviderError = (details: ReturnType<typeof getMealPlanErrorDetails>) => {
+  const raw = JSON.stringify(details).toLowerCase()
+  const hasBillingKeyword =
+    raw.includes('credit') ||
+    raw.includes('balance') ||
+    raw.includes('billing') ||
+    raw.includes('quota') ||
+    raw.includes('insufficient')
+
+  const status = Number(details.status ?? 0)
+  const hasBillingStatus = status === 400 || status === 402 || status === 403 || status === 429
+  const fromAnthropic =
+    raw.includes('anthropic') ||
+    raw.includes('claude') ||
+    String(details.name ?? '').toLowerCase().includes('anthropic')
+
+  return hasBillingKeyword && (hasBillingStatus || fromAnthropic)
+}
+
 type MealEntry = {
   name: string
   ingredients: string[]
@@ -414,13 +433,7 @@ Return ONLY JSON in this format:
     logMealPlanError(err)
 
     const details = getMealPlanErrorDetails(err)
-    const rawError = JSON.stringify(details).toLowerCase()
-    const isBillingIssue =
-      rawError.includes('credit') ||
-      rawError.includes('balance') ||
-      rawError.includes('billing') ||
-      rawError.includes('quota') ||
-      rawError.includes('insufficient')
+    const isBillingIssue = isLikelyBillingProviderError(details)
 
     if (isBillingIssue) {
       try {
