@@ -140,7 +140,7 @@ const getPublicMealPlanError = (err: unknown) => {
     return {
       status: 503,
       message:
-        'Meal planner is temporarily unavailable because our AI provider needs billing credits. Please try again later or contact support.',
+        'Meal planner is temporarily unavailable. Please try again later or contact support.',
     }
   }
 
@@ -201,7 +201,88 @@ const logMealPlanError = (err: unknown) => {
   })
 }
 
+type MealEntry = {
+  name: string
+  ingredients: string[]
+  macros: Record<string, number>
+  prep_time: string
+}
+
+type MealPlanDay = {
+  day: string
+  meals: {
+    breakfast: MealEntry
+    lunch: MealEntry
+    dinner: MealEntry
+    snack: MealEntry
+  }
+}
+
+const buildFallbackMealPlan = (calorieTarget: number, adults: number): MealPlanDay[] => {
+  const safeAdults = Math.max(1, Number.isFinite(adults) ? adults : 1)
+  const calories = Math.max(1600, Number.isFinite(calorieTarget) ? calorieTarget : 2200)
+  const perMeal = Math.round(calories / 4)
+  const proteinPerMeal = Math.max(20, Math.round((calories * 0.3) / 4 / 4))
+  const carbsPerMeal = Math.max(20, Math.round((calories * 0.4) / 4 / 4))
+  const fatPerMeal = Math.max(8, Math.round((calories * 0.3) / 4 / 9))
+  const portions = safeAdults > 1 ? ` (x${safeAdults})` : ''
+
+  const dayMeals = [
+    ['Greek yogurt bowl', ['Greek yogurt', 'Mixed berries', 'Oats', 'Honey']],
+    ['Chicken rice bowl', ['Chicken breast', 'Brown rice', 'Spinach', 'Olive oil']],
+    ['Turkey chilli', ['Turkey mince', 'Kidney beans', 'Tomatoes', 'Onion']],
+    ['Apple and nut butter', ['Apple', 'Almond butter']],
+    ['Protein oats', ['Rolled oats', 'Milk', 'Protein powder', 'Banana']],
+    ['Tuna wrap', ['Tuna', 'Whole wheat wrap', 'Lettuce', 'Greek yogurt']],
+    ['Salmon tray bake', ['Salmon', 'Potatoes', 'Broccoli', 'Olive oil']],
+    ['Cottage cheese snack', ['Cottage cheese', 'Pineapple']],
+    ['Egg scramble toast', ['Eggs', 'Whole grain toast', 'Spinach', 'Tomato']],
+    ['Turkey pasta', ['Turkey mince', 'Whole wheat pasta', 'Tomato sauce', 'Parmesan']],
+    ['Beef stir fry', ['Lean beef', 'Rice', 'Peppers', 'Soy sauce']],
+    ['Yogurt and nuts', ['Greek yogurt', 'Mixed nuts']],
+    ['Smoothie bowl', ['Protein powder', 'Banana', 'Berries', 'Chia seeds']],
+    ['Chicken quinoa salad', ['Chicken breast', 'Quinoa', 'Cucumber', 'Avocado']],
+    ['Prawn noodle stir fry', ['Prawns', 'Noodles', 'Broccoli', 'Garlic']],
+    ['Hummus and carrots', ['Hummus', 'Carrots']],
+    ['Overnight oats', ['Rolled oats', 'Greek yogurt', 'Blueberries', 'Honey']],
+    ['Chicken fajita bowl', ['Chicken breast', 'Rice', 'Peppers', 'Onion']],
+    ['Beef and veg skillet', ['Lean beef', 'Courgette', 'Tomatoes', 'Garlic']],
+    ['Protein shake', ['Protein powder', 'Milk', 'Banana']],
+  ] as const
+
+  const makeMeal = (idx: number): MealEntry => {
+    const [name, ingredients] = dayMeals[idx]
+    return {
+      name: `${name}${portions}`,
+      ingredients,
+      macros: {
+        protein: proteinPerMeal,
+        carbs: carbsPerMeal,
+        fat: fatPerMeal,
+      },
+      prep_time: '15-25 min',
+    }
+  }
+
+  return Array.from({ length: 5 }, (_, i) => ({
+    day: `Day ${i + 1}`,
+    meals: {
+      breakfast: makeMeal(i * 4),
+      lunch: makeMeal(i * 4 + 1),
+      dinner: makeMeal(i * 4 + 2),
+      snack: makeMeal(i * 4 + 3),
+    },
+  }))
+}
+
 export async function POST(req: Request) {
+  let requestBody: {
+    calorieTarget?: number
+    preferences?: string
+    mealsPerDay?: number
+    adults?: number
+  } | null = null
+
   try {
     const anthropicKey = process.env.ANTHROPIC_API_KEY
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -243,6 +324,7 @@ export async function POST(req: Request) {
     }
 
     const { calorieTarget, preferences, mealsPerDay, adults } = await req.json()
+    requestBody = { calorieTarget, preferences, mealsPerDay, adults }
 
     console.info('[generate-meal-plan] request', {
       userId: user.id,
@@ -326,6 +408,39 @@ Return ONLY JSON in this format:
   } catch (err) {
     const publicError = getPublicMealPlanError(err)
     logMealPlanError(err)
+
+    const isBillingCreditsIssue =
+      publicError.status === 503 &&
+      publicError.message.includes('AI provider needs billing credits')
+
+    if (isBillingCreditsIssue) {
+      const calorieTarget = Number(requestBody?.calorieTarget) || 2200
+      const adults = Number(requestBody?.adults) || 1
+      const preferences = typeof requestBody?.preferences === 'string' ? requestBody.preferences.trim() : ''
+
+      const plan = buildFallbackMealPlan(calorieTarget, adults)
+      const ingredients: string[] = []
+      plan.forEach((day) => {
+        Object.values(day.meals).forEach((meal) => {
+          meal.ingredients.forEach((ingredient) => ingredients.push(ingredient))
+        })
+      })
+      const groceryList = groupIngredients(ingredients)
+
+      return NextResponse.json(
+        {
+          source: 'ai_generated',
+          plan,
+          grocery_list: groceryList,
+          preferences: preferences ? { text: preferences } : null,
+          adults,
+          warning:
+            'AI provider billing credits are currently unavailable, so this is a smart fallback meal plan.',
+        },
+        { status: 200 },
+      )
+    }
+
     return NextResponse.json({ error: publicError.message }, { status: publicError.status })
   }
 }
