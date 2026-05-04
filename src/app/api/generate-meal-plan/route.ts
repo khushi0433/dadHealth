@@ -254,7 +254,7 @@ const buildFallbackMealPlan = (calorieTarget: number, adults: number): MealPlanD
     const [name, ingredients] = dayMeals[idx]
     return {
       name: `${name}${portions}`,
-      ingredients,
+      ingredients: [...ingredients],
       macros: {
         protein: proteinPerMeal,
         carbs: carbsPerMeal,
@@ -318,6 +318,11 @@ export async function POST(req: Request) {
       .select('subscription_status')
       .eq('user_id', user.id)
       .maybeSingle()
+
+    console.log('PROFILE DEBUG', {
+      userId: user.id,
+      subscription_status: (profile as { subscription_status?: string | null } | null)?.subscription_status,
+    })
 
     if (!isProSubscriptionStatus((profile as { subscription_status?: string | null } | null)?.subscription_status)) {
       return NextResponse.json({ error: 'Meal planner is a Pro feature' }, { status: 403 })
@@ -406,41 +411,58 @@ Return ONLY JSON in this format:
 
     return NextResponse.json(data)
   } catch (err) {
-    const publicError = getPublicMealPlanError(err)
     logMealPlanError(err)
 
-    const isBillingCreditsIssue =
-      publicError.status === 503 &&
-      publicError.message.includes('AI provider needs billing credits')
+    const details = getMealPlanErrorDetails(err)
+    const rawError = JSON.stringify(details).toLowerCase()
+    const isBillingIssue =
+      rawError.includes('credit') ||
+      rawError.includes('balance') ||
+      rawError.includes('billing') ||
+      rawError.includes('quota') ||
+      rawError.includes('insufficient')
 
-    if (isBillingCreditsIssue) {
-      const calorieTarget = Number(requestBody?.calorieTarget) || 2200
-      const adults = Number(requestBody?.adults) || 1
-      const preferences = typeof requestBody?.preferences === 'string' ? requestBody.preferences.trim() : ''
+    if (isBillingIssue) {
+      try {
+        const calorieTarget = Number(requestBody?.calorieTarget) || 2200
+        const adults = Number(requestBody?.adults) || 1
+        const preferences =
+          typeof requestBody?.preferences === 'string'
+            ? requestBody.preferences.trim()
+            : ''
 
-      const plan = buildFallbackMealPlan(calorieTarget, adults)
-      const ingredients: string[] = []
-      plan.forEach((day) => {
-        Object.values(day.meals).forEach((meal) => {
-          meal.ingredients.forEach((ingredient) => ingredients.push(ingredient))
+        const plan = buildFallbackMealPlan(calorieTarget, adults)
+        const ingredients: string[] = []
+
+        plan.forEach((day) => {
+          Object.values(day.meals).forEach((meal) => {
+            meal.ingredients.forEach((ingredient) => ingredients.push(ingredient))
+          })
         })
-      })
-      const groceryList = groupIngredients(ingredients)
 
-      return NextResponse.json(
-        {
-          source: 'ai_generated',
-          plan,
-          grocery_list: groceryList,
-          preferences: preferences ? { text: preferences } : null,
-          adults,
-          warning:
-            'AI provider billing credits are currently unavailable, so this is a smart fallback meal plan.',
-        },
-        { status: 200 },
-      )
+        const groceryList = groupIngredients(ingredients)
+
+        return NextResponse.json(
+          {
+            source: 'fallback',
+            plan,
+            grocery_list: groceryList,
+            preferences: preferences ? { text: preferences } : null,
+            adults,
+            warning: 'Fallback meal plan used because AI credits are unavailable.',
+          },
+          { status: 200 },
+        )
+      } catch (fallbackErr) {
+        console.error('Fallback failed:', fallbackErr)
+      }
     }
 
-    return NextResponse.json({ error: publicError.message }, { status: publicError.status })
+    const publicError = getPublicMealPlanError(err)
+
+    return NextResponse.json(
+      { error: publicError.message },
+      { status: publicError.status },
+    )
   }
 }
