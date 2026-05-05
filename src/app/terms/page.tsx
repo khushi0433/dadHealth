@@ -122,7 +122,7 @@ const FALLBACK_TERMS_HTML = `
 `;
 
 const getTermsBodyHtml = async () => {
-  const termsPath = path.join(process.cwd(), "terms.html");
+  const termsPath = path.join(process.cwd(), "public/terms_files/terms.html");
   let raw: string;
   try {
     raw = await readFile(termsPath, "utf8");

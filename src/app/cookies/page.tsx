@@ -108,7 +108,7 @@ const FALLBACK_COOKIES_HTML = `
 `;
 
 const getCookiesBodyHtml = async () => {
-  const cookiesPath = path.join(process.cwd(), "cookies.html");
+  const cookiesPath = path.join(process.cwd(), "public/terms_files/cookies.html")
   let raw: string;
   try {
     raw = await readFile(cookiesPath, "utf8");

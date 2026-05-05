@@ -55,7 +55,7 @@ const FALLBACK_PRIVACY_HTML = `
 `;
 
 const getPolicyBodyHtml = async () => {
-  const policyPath = path.join(process.cwd(), "policy.html");
+  const policyPath = path.join(process.cwd(), "public/terms_files/policy.html");
   let raw: string;
   try {
     raw = await readFile(policyPath, "utf8");

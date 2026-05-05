@@ -123,7 +123,7 @@ const FALLBACK_EULA_HTML = `
 `;
 
 const getEulaBodyHtml = async () => {
-  const eulaPath = path.join(process.cwd(), "EULA.html");
+  const eulaPath = path.join(process.cwd(), "public/terms_files/EULA.html");
   let raw: string;
   try {
     raw = await readFile(eulaPath, "utf8");
