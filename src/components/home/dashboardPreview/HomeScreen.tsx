@@ -105,7 +105,7 @@ export default function HomeScreen({
               <div className="flex flex-wrap items-end gap-3 sm:gap-4">
                 <div className="min-w-0 shrink-0">
                   <label htmlFor="checkin-sleep" className="block text-[10px] text-muted-foreground uppercase mb-1.5">
-                    Sleep (hrs)
+                    Sleep (h)
                   </label>
                   <input
                     id="checkin-sleep"

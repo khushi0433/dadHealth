@@ -19,7 +19,7 @@ export const STATS = [
 ] as const;
 
 export const STATS_EXTENDED = [
-  { value: "4.2", sub: "MILLION", label: "Men in the UK suffering with mental health issues" },
+  { value: "4.2", sub: "MILLION", label: "Men in the UK living with mental health challenges" },
   { value: "60%", sub: "", label: "Of adult males could be classed as obese by 2050" },
   { value: "4 IN 10", sub: "", label: "Men with mental health concerns won't discuss it with anyone" },
   { value: "18%", sub: "", label: "UK Dads doing more childcare since pre-pandemic" },
@@ -28,22 +28,22 @@ export const STATS_EXTENDED = [
 export const PILLARS = [
   {
     tag: "MENTAL HEALTH",
-    description: "One of the most commonly avoided subjects in a man's vocabulary",
+    description: "One of the most commonly avoided conversations for men",
     href: "/mind",
   },
   {
     tag: "FITNESS",
-    description: "Its not too late to start, believe me",
+    description: "It is not too late to start, honestly",
     href: "/fitness",
   },
   {
     tag: "NUTRITION",
-    description: "Dialling in your nutrition is step 1 if you want to lose weight",
+    description: "Dialling in your nutrition is step one if you want to lose weight",
     href: "/fitness",
   },
   {
     tag: "PARENTING",
-    description: "The never-ending labyrinth of life, let's tackle this together",
+    description: "The never-ending challenge of family life, tackled together",
     href: "/bond",
   },
 ] as const;
@@ -62,7 +62,7 @@ export const FAQ_ITEMS = [
   },
   {
     q: "Is my data private?",
-    a: "Your journal, moods and milestones are private by default. We never sell your data. Crisis support is always accessible without login.",
+    a: "Your journal, moods and milestones are private by default. We never sell your data. Crisis support is always accessible without logging in.",
   },
   {
     q: "What's included in the Business plan?",
@@ -70,7 +70,7 @@ export const FAQ_ITEMS = [
   },
   {
     q: "Do you have a native app?",
-    a: "We're launching as a web app first. Native iOS and Android apps are on the roadmap — sign up to be notified when they launch.",
+    a: "We're launching as a web app first. Native iOS and Android apps are on the roadmap - sign up to be notified when they launch.",
   },
 ] as const;
 
@@ -104,10 +104,10 @@ export const PRICING_PLANS = [
       "Everything in Free",
       "Full workout library (40+)",
       "Live workout timer",
-      "Meal planner + grocery list",
+      "Meal planner + shopping list",
       "Mood & sleep trend graphs",
       "Full Dad Health Score breakdown",
-      "Therapist directory & booking",
+      "Therapist and counsellor directory & booking",
       "DH badges & report card",
       "Milestone photo uploads",
     ],
@@ -164,7 +164,7 @@ export const FOOTER_LINKS = {
   ],
   legal: [
     { label: "Privacy policy", href: "/privacy" },
-    { label: "Terms of service", href: "/terms" },
+    { label: "Terms and conditions", href: "/terms" },
     { label: "EULA", href: "/eula" },
     { label: "Cookie settings", href: "/cookies" },
   ],

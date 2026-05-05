@@ -21,7 +21,7 @@ export default function MindScreen({ isFullDashboard, moodWeek, moodLabels }: Mi
         </div>
         <div className="border border-primary/20 p-4 mb-4">
           <div className="font-heading text-[11px] font-bold tracking-wider uppercase text-primary mb-2">4-4-4 BREATHING</div>
-          <p className="text-xs text-muted-foreground mb-2">Inhale 4 · Hold 4 · Exhale 4. Reduces cortisol.</p>
+          <p className="text-xs text-muted-foreground mb-2">Inhale 4 - Hold 4 - Exhale 4. Helps lower stress.</p>
           <Link href="/mind" className="font-heading font-bold text-[10px] tracking-wider uppercase text-primary hover:underline">
             BEGIN SESSION →
           </Link>

@@ -103,7 +103,7 @@ const BondPage = () => {
         <div className="w-full max-w-[1400px] mx-auto px-5 lg:px-8 py-4 flex items-center justify-between min-w-0">
           <div>
             <h3 className="font-heading text-sm font-extrabold text-foreground uppercase tracking-wide">Present Dad Mode</h3>
-            <p className="text-[11px] text-muted-foreground mt-0.5">Block distractions for 60 min</p>
+            <p className="text-[11px] text-muted-foreground mt-0.5">Block distractions for 60 minutes</p>
           </div>
           <button
             onClick={handlePresentModeToggle}

@@ -101,7 +101,7 @@ export async function POST(req: Request) {
     }
 
     const anthropic = new Anthropic({ apiKey: anthropicKey });
-    const prompt = `Generate a ${body.durationMins}-minute workout.
+    const prompt = `Generate a ${body.durationMins}-minute workout for a UK dad.
 Equipment: ${body.equipment}
 Focus area: ${body.focus}
 
@@ -120,7 +120,8 @@ Return ONLY valid JSON in this exact shape:
 Rules:
 - 4 to 8 exercises
 - realistic for the requested time and equipment
-- safe progression and warm-up friendly ordering`;
+- safe progression and warm-up friendly ordering
+- use British English wording only where language appears`;
 
     const ai = await anthropic.messages.create({
       model: "claude-3-5-sonnet-latest",

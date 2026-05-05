@@ -27,13 +27,13 @@ const LoginPromptModal = ({ onClose, onLogin, message }: LoginPromptModalProps) 
       </button>
       <Logo className="mb-5" />
       <h2 className="font-heading text-[22px] font-extrabold text-foreground uppercase leading-tight mb-2">
-        Login to continue
+        Sign in to continue
       </h2>
       <p className="text-sm text-muted-foreground mb-6">
-        {message ?? "Log in or create a free account to continue."}
+        {message ?? "Sign in or create a free account to continue."}
       </p>
       <LimeButton type="button" full onClick={() => { onLogin(); onClose(); }}>
-        LOG IN →
+        SIGN IN →
       </LimeButton>
       <button
         type="button"

@@ -20,13 +20,13 @@ const TYPES: Array<{
   {
     type: "morning_checkin",
     title: "Morning check-in",
-    description: "7:30am daily — Good morning. How are you feeling today?",
+    description: "07:30 daily - Good morning. How are you feeling today?",
     linkLabel: "Home",
   },
   {
     type: "bedtime_story",
     title: "Bedtime story reminder",
-    description: "30 mins before your set bedtime — Bedtime in 30 mins. Story time?",
+    description: "30 minutes before your set bedtime - Bedtime in 30 minutes. Story time?",
     linkLabel: "Bond",
     needsTime: true,
     timeHint: "Bedtime (local time)",
@@ -34,7 +34,7 @@ const TYPES: Array<{
   {
     type: "workout_window",
     title: "Workout window",
-    description: "At your set time — Your workout window is now. 20 mins is enough.",
+    description: "At your set time - Your workout window is now. 20 minutes is enough.",
     linkLabel: "Fitness",
     needsTime: true,
     timeHint: "Workout time (local time)",
@@ -42,19 +42,19 @@ const TYPES: Array<{
   {
     type: "weekly_score",
     title: "Weekly score",
-    description: "Sunday 6pm — Your Dad Health Score this week: [score]",
+    description: "Sunday 18:00 - Your Dad Health Score this week: [score]",
     linkLabel: "Progress",
   },
   {
     type: "streak_at_risk",
     title: "Streak at risk",
-    description: "9pm if you haven’t checked in — Your [n]-day streak ends at midnight.",
+    description: "21:00 if you have not checked in - Your [n]-day streak ends at midnight.",
     linkLabel: "Home",
   },
   {
     type: "weekly_challenge",
     title: "Weekly challenge",
-    description: "Monday 8am — Weekly challenge title + description",
+    description: "Monday 08:00 - Weekly challenge title + description",
     linkLabel: "Home",
   },
   {

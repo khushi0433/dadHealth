@@ -48,7 +48,7 @@ export default function FitnessScreen({
         {featuredWorkoutTitle ? (
           <div className="border border-primary/20 p-3 mb-4">
             <div className="font-heading text-[13px] font-bold text-foreground mb-1">{featuredWorkoutTitle}</div>
-            <p className="text-[10px] text-muted-foreground mb-2">{featuredWorkoutMeta || "Latest logged workout"}</p>
+            <p className="text-[10px] text-muted-foreground mb-2">{featuredWorkoutMeta || "Latest logged session"}</p>
             <Link href="/fitness" className="font-heading font-bold text-[10px] tracking-wider uppercase text-primary hover:underline">
               START WORKOUT →
             </Link>

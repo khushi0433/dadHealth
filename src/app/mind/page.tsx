@@ -366,12 +366,12 @@ const MindPage = () => {
             </div>
           </ProGate>
 
-          {/* Find a Therapist - Pro gated */}
-          <ProGate featureName="Therapist booking" lockMessage="The gap between 'I should talk to someone' and actually doing it is where most men get stuck. We close that gap.">
+          {/* Find a Therapist/Counsellor - Pro gated */}
+          <ProGate featureName="Therapist and counsellor booking" lockMessage="The gap between 'I should talk to someone' and actually doing it is where most men get stuck. We close that gap.">
             <div className="bg-card p-6">
               <Stethoscope className="h-8 w-8 mb-3 text-primary" strokeWidth={1.5} aria-hidden="true" />
               <h3 className="font-heading text-lg font-extrabold text-foreground uppercase tracking-wide mb-2">
-                FIND A THERAPIST
+                FIND A THERAPIST OR COUNSELLOR
               </h3>
               <p className="text-xs text-muted-foreground leading-relaxed mb-4">
                 Filtered for dad-friendly sessions, evening & weekend slots. Verified by the Dad Health community.
@@ -394,7 +394,7 @@ const MindPage = () => {
                   </button>
                 </div>
               )) : (
-                <p className="text-xs text-muted-foreground">No therapists available yet.</p>
+                <p className="text-xs text-muted-foreground">No therapists or counsellors available yet.</p>
               )}
             </div>
           </ProGate>

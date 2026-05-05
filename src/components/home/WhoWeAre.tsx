@@ -21,19 +21,19 @@ const WhoWeAre = ({ gymImg }: WhoWeAreProps) => (
           WHO WE ARE
         </h2>
         <p className="text-sm text-muted-foreground leading-[1.75] mb-4">
-          Dad Health is helping to get men talking about their mental health — the stigmas
-          attached to it, the anxiety of being a parent, the stresses we all encounter. What
-          we go through, what we worry about, and how can we combat it together.
+          Dad Health helps men talk openly about mental health - the stigma around it, the
+          anxiety of parenting, and the pressure many dads carry every day across the UK.
+          What we go through, what we worry about, and how we tackle it together.
         </p>
         <p className="text-sm text-muted-foreground leading-[1.75] mb-4">
-          Through real-life experiences, Dad Health will offer both exercise and nutrition
-          guidance, the necessary accountability checks and motivation needed to "kill the old
-          version" of you in search of the best version for your family.
+          Through real-life experiences, Dad Health offers exercise and nutrition guidance,
+          practical accountability check-ins, and the motivation to "kill the old version" of
+          yourself in pursuit of the best version for your family.
         </p>
         <p className="text-sm text-muted-foreground leading-[1.75] mb-8">
-          Lastly, Dad Health, being a community based around being a parent, will offer tips
-          for fun days with the kids, recipes to cook together, takeaway alternatives and any
-          other snippets we wish we knew sooner.
+          As a parent-focused community, we also share ideas for days out with the kids,
+          recipes to cook together, healthier takeaway alternatives, and the sort of advice we
+          wish we had sooner.
         </p>
         <Link href="/pricing">
           <LimeButton>TAKE ACTION →</LimeButton>

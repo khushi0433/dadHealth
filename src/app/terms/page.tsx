@@ -5,8 +5,8 @@ import SitePageShell from "@/components/SitePageShell";
 import SiteFooter from "@/components/SiteFooter";
 
 export const metadata: Metadata = {
-  title: "Terms of Service | Dad Health",
-  description: "Dad Health terms of service and legal terms.",
+  title: "Terms and Conditions | Dad Health",
+  description: "Dad Health terms and conditions and legal terms.",
 };
 
 const cleanTdInner = (html: string) =>
@@ -116,7 +116,7 @@ const sanitizeTermsHtml = (html: string) => {
 
 const FALLBACK_TERMS_HTML = `
   <div>
-    <p>Our terms of service content is temporarily unavailable.</p>
+    <p>Our terms and conditions content is temporarily unavailable.</p>
     <p>Please contact support for the latest version of this policy.</p>
   </div>
 `;
@@ -156,7 +156,7 @@ const TermsPage = async () => {
           </span>
           <div className="flex items-end justify-between flex-wrap gap-4">
             <h1 className="font-heading text-[42px] lg:text-[56px] font-extrabold uppercase leading-none tracking-wide">
-              TERMS OF SERVICE
+              TERMS AND CONDITIONS
             </h1>
           </div>
         </div>

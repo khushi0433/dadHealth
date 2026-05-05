@@ -43,7 +43,7 @@ const ProgressPage = () => {
         [String(reportStats.workouts), "Workouts"],
         [String(reportStats.journal), "Journal entries"],
         [String(reportStats.dadDates), "Dad dates"],
-        [reportStats.avgSleep == null ? "—" : `${reportStats.avgSleep}hrs`, "Avg sleep"],
+        [reportStats.avgSleep == null ? "—" : `${reportStats.avgSleep}h`, "Avg sleep"],
         [String(reportStats.streak), "Day streak"],
         [reportStats.avgMood ?? "—", "Avg mood"],
       ]

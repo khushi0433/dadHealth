@@ -24,8 +24,8 @@ const SAMPLE_MEAL_PLAN = [
     day: "Day 1",
     meals: {
       breakfast: {
-        name: "Greek yogurt parfait",
-        ingredients: ["Greek yogurt", "Blueberries", "Granola", "Honey"],
+        name: "Greek yoghurt parfait",
+        ingredients: ["Greek yoghurt", "Blueberries", "Granola", "Honey"],
         macros: { protein: 24, carbs: 38, fat: 10 },
         prep_time: "5 min",
       },
@@ -37,7 +37,7 @@ const SAMPLE_MEAL_PLAN = [
       },
       dinner: {
         name: "Turkey mince tacos",
-        ingredients: ["Ground turkey", "Corn tortillas", "Avocado", "Lettuce"],
+        ingredients: ["Turkey mince", "Corn tortillas", "Avocado", "Lettuce"],
         macros: { protein: 30, carbs: 34, fat: 14 },
         prep_time: "25 min",
       },
@@ -60,13 +60,13 @@ const SAMPLE_MEAL_PLAN = [
       },
       lunch: {
         name: "Tuna salad wrap",
-        ingredients: ["Tuna", "Whole wheat wrap", "Cucumber", "Greek yogurt"],
+        ingredients: ["Tuna", "Wholemeal wrap", "Cucumber", "Greek yoghurt"],
         macros: { protein: 28, carbs: 32, fat: 11 },
         prep_time: "10 min",
       },
       dinner: {
         name: "Beef stir fry",
-        ingredients: ["Lean beef", "Broccoli", "Bell pepper", "Soy sauce"],
+        ingredients: ["Lean beef", "Broccoli", "Pepper", "Soy sauce"],
         macros: { protein: 35, carbs: 40, fat: 15 },
         prep_time: "20 min",
       },
@@ -112,25 +112,25 @@ const SAMPLE_MEAL_PLAN = [
     meals: {
       breakfast: {
         name: "Scrambled eggs & toast",
-        ingredients: ["Eggs", "Whole grain bread", "Spinach"],
+        ingredients: ["Eggs", "Wholemeal bread", "Spinach"],
         macros: { protein: 22, carbs: 30, fat: 14 },
         prep_time: "10 min",
       },
       lunch: {
         name: "Turkey quinoa bowl",
-        ingredients: ["Ground turkey", "Quinoa", "Kale", "Carrots"],
+        ingredients: ["Turkey mince", "Quinoa", "Kale", "Carrots"],
         macros: { protein: 34, carbs: 42, fat: 13 },
         prep_time: "20 min",
       },
       dinner: {
-        name: "Shrimp pasta",
-        ingredients: ["Shrimp", "Whole wheat pasta", "Garlic", "Zucchini"],
+        name: "Prawn pasta",
+        ingredients: ["Prawns", "Wholewheat pasta", "Garlic", "Courgette"],
         macros: { protein: 28, carbs: 45, fat: 12 },
         prep_time: "20 min",
       },
       snack: {
-        name: "Greek yogurt with almonds",
-        ingredients: ["Greek yogurt", "Almonds", "Honey"],
+        name: "Greek yoghurt with almonds",
+        ingredients: ["Greek yoghurt", "Almonds", "Honey"],
         macros: { protein: 18, carbs: 24, fat: 10 },
         prep_time: "3 min",
       },
@@ -153,7 +153,7 @@ const SAMPLE_MEAL_PLAN = [
       },
       dinner: {
         name: "Beef & veggie skillet",
-        ingredients: ["Ground beef", "Zucchini", "Bell pepper", "Onion"],
+        ingredients: ["Beef mince", "Courgette", "Pepper", "Onion"],
         macros: { protein: 31, carbs: 28, fat: 14 },
         prep_time: "25 min",
       },
@@ -168,9 +168,9 @@ const SAMPLE_MEAL_PLAN = [
 ];
 
 const SAMPLE_GROCERY_LIST = [
-  { category: "Produce", items: ["Blueberries", "Bananas", "Spinach", "Cherry tomatoes", "Avocado", "Broccoli", "Bell pepper", "Cucumber", "Lettuce", "Asparagus", "Zucchini", "Carrots", "Onion", "Lemon"] },
-  { category: "Protein", items: ["Greek yogurt", "Chicken breast", "Ground turkey", "Tuna", "Lean beef", "Salmon", "Eggs", "Cottage cheese", "Shrimp", "Protein powder"] },
-  { category: "Grains", items: ["Granola", "Brown rice", "Whole wheat wrap", "Corn tortillas", "Rolled oats", "Quinoa", "Whole wheat pasta", "Whole grain bread"] },
+  { category: "Produce", items: ["Blueberries", "Bananas", "Spinach", "Cherry tomatoes", "Avocado", "Broccoli", "Pepper", "Cucumber", "Lettuce", "Asparagus", "Courgette", "Carrots", "Onion", "Lemon"] },
+  { category: "Protein", items: ["Greek yoghurt", "Chicken breast", "Turkey mince", "Tuna", "Lean beef", "Salmon", "Eggs", "Cottage cheese", "Prawns", "Protein powder"] },
+  { category: "Grains", items: ["Granola", "Brown rice", "Wholemeal wrap", "Corn tortillas", "Rolled oats", "Quinoa", "Wholewheat pasta", "Wholemeal bread"] },
   { category: "Pantry", items: ["Honey", "Soy sauce", "Olive oil", "Almond butter", "Maple syrup", "Mixed nuts", "Dried cranberries", "Chia seeds", "Hummus"] },
 ];
 
@@ -211,7 +211,7 @@ const formatGroceryList = (list: any) => {
   if (!Array.isArray(list)) return [];
   if (list.length === 0) return [];
   if (typeof list[0] === "string") {
-    return [{ category: "Grocery", items: list }];
+    return [{ category: "Shopping", items: list }];
   }
   return list;
 };
@@ -297,7 +297,7 @@ const FitnessPage = () => {
   });
 
   const [calorieTarget, setCalorieTarget] = useState("2200");
-  const [preferences, setPreferences] = useState("High protein, no fish");
+  const [preferences, setPreferences] = useState("High-protein, no fish");
   const [mealsPerDay, setMealsPerDay] = useState(4);
   const [adults, setAdults] = useState(1);
 
@@ -632,7 +632,7 @@ const FitnessPage = () => {
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <div className="font-heading text-xs font-extrabold uppercase tracking-[0.25em] text-primary">
-                      AI Workout Generator
+                      Workout Generator
                     </div>
                     <p className="text-xs text-muted-foreground mt-2">
                       Build a custom session by time, equipment and focus.
@@ -655,10 +655,10 @@ const FitnessPage = () => {
                       onChange={(e) => setDurationMins(Number(e.target.value) as 10 | 20 | 30 | 45)}
                       className="mt-1 w-full rounded-lg border border-border bg-card px-3 py-2 text-sm text-foreground"
                     >
-                      <option value={10}>10 mins</option>
-                      <option value={20}>20 mins</option>
-                      <option value={30}>30 mins</option>
-                      <option value={45}>45 mins</option>
+                      <option value={10}>10 min</option>
+                      <option value={20}>20 min</option>
+                      <option value={30}>30 min</option>
+                      <option value={45}>45 min</option>
                     </select>
                   </label>
                   <label className="text-[11px] text-muted-foreground">
@@ -718,7 +718,7 @@ const FitnessPage = () => {
                         >
                           <div className="font-heading text-[11px] font-extrabold uppercase text-foreground">{workout.title}</div>
                           <div className="text-[10px] text-muted-foreground mt-1">
-                            {workout.duration_mins} mins · {EQUIPMENT_LABEL[workout.equipment]} · {FOCUS_LABEL[workout.focus]}
+                            {workout.duration_mins} min · {EQUIPMENT_LABEL[workout.equipment]} · {FOCUS_LABEL[workout.focus]}
                           </div>
                         </button>
                       );
@@ -745,7 +745,7 @@ const FitnessPage = () => {
                         PERSONALISED MEAL PLAN
                       </div>
                       <p className="text-xs text-muted-foreground leading-relaxed mt-2 max-w-2xl">
-                        Set your target and preferences. Generate a 5‑day plan with recipes, macros and a grocery list.
+                        Set your target and preferences. Generate a 5-day plan with recipes, macros and a shopping list.
                       </p>
                     </div>
                     <span className="tag-pill shrink-0">{isPro ? "PRO" : "PREVIEW"}</span>
@@ -795,7 +795,7 @@ const FitnessPage = () => {
                             type="text"
                             value={preferences}
                             onChange={(event) => setPreferences(event.target.value)}
-                            placeholder="e.g. high protein, no fish"
+                            placeholder="e.g. high-protein, no fish"
                             className="rounded-lg border border-border bg-background px-4 py-3 text-sm text-foreground outline-none focus:border-primary"
                           />
                         </label>
@@ -830,7 +830,7 @@ const FitnessPage = () => {
 
                       {!planData && (
                         <div className="rounded-lg border border-dashed border-border p-6 text-sm text-muted-foreground">
-                          Enter your details and tap generate to create a personalised 5‑day meal plan.
+                          Enter your details and tap generate to create a personalised 5-day meal plan.
                         </div>
                       )}
                     </div>
@@ -840,7 +840,7 @@ const FitnessPage = () => {
                 {/* Grocery / Tips */}
                 <aside className="bg-background p-5 lg:p-6 rounded-2xl border border-border">
                   <div className="font-heading text-[11px] font-bold uppercase tracking-[0.35em] text-primary mb-4">
-                    {grocerySections.length > 0 && planData ? "GROCERY LIST" : "HOW IT WORKS"}
+                    {grocerySections.length > 0 && planData ? "SHOPPING LIST" : "HOW IT WORKS"}
                   </div>
 
                   {grocerySections.length > 0 && planData ? (
@@ -867,13 +867,13 @@ const FitnessPage = () => {
                           Built for real life
                         </div>
                         <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
-                          Simple meals, clear prep time, and a grocery list you can actually use — no “dashboard” vibes.
+                          Simple meals, clear prep time, and a shopping list you can actually use - no "dashboard" vibes.
                         </p>
                       </div>
 
                       <div className="rounded-lg border border-border bg-background/40 p-4">
                         <div className="font-heading text-sm font-extrabold text-foreground uppercase tracking-wide">
-                          Preview grocery list
+                          Preview shopping list
                         </div>
                         <div className="grid gap-3 mt-3">
                           {SAMPLE_GROCERY_LIST.slice(0, 3).map((section) => (
@@ -911,7 +911,7 @@ const FitnessPage = () => {
                             Unlock tailored plans
                           </div>
                           <p className="text-sm text-muted-foreground mt-1">
-                            Get personalised macros, recipes, and a grocery list you can shop from.
+                            Get personalised macros, recipes, and a shopping list you can use in your local supermarket.
                           </p>
                         </div>
                         <LimeButton

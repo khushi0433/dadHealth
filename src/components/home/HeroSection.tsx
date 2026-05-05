@@ -26,9 +26,9 @@ const HeroSection = ({ heroImg }: HeroSectionProps) => (
         <span className="text-foreground">HEALTH</span>
       </h1>
       <p className="text-base sm:text-lg text-foreground/80 leading-relaxed max-w-lg mb-8">
-        "1 in 8 men in the UK have experienced mental health symptoms. Obesity is now more
-        of a global crisis than malnutrition. Be the stronger Dad you aspire to be, both
-        mentally and physically."
+        "1 in 8 men in the UK have experienced mental health symptoms. From Manchester to
+        London, dads are carrying a lot. Be the stronger dad you aspire to be, both mentally
+        and physically."
       </p>
       <div className="flex gap-3">
         <Link href="/pricing">

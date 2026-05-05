@@ -768,10 +768,10 @@ function WorkoutsTab() {
             <div>
               <label className={labelCls}>Duration</label>
               <select className={inputCls} value={form.duration_mins} onChange={(e) => setForm((f) => ({ ...f, duration_mins: Number(e.target.value) as 10 | 20 | 30 | 45 }))}>
-                <option value={10}>10 mins</option>
-                <option value={20}>20 mins</option>
-                <option value={30}>30 mins</option>
-                <option value={45}>45 mins</option>
+                <option value={10}>10 min</option>
+                <option value={20}>20 min</option>
+                <option value={30}>30 min</option>
+                <option value={45}>45 min</option>
               </select>
             </div>
             <div>

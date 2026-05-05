@@ -5,7 +5,7 @@ import { isProSubscriptionStatus } from '@/lib/stripe/subscription'
 import { createServerSupabaseClient } from '@/utils/supabase/server'
 
 const CATEGORY_RULES: Array<{ category: string; keywords: string[] }> = [
-  { category: 'Produce', keywords: ['spinach', 'broccoli', 'tomato', 'lettuce', 'avocado', 'banana', 'apple', 'berry', 'carrot', 'onion', 'zucchini', 'pepper', 'lemon', 'asparagus', 'cucumber', 'kale'] },
+  { category: 'Produce', keywords: ['spinach', 'broccoli', 'tomato', 'lettuce', 'avocado', 'banana', 'apple', 'berry', 'carrot', 'onion', 'zucchini', 'courgette', 'pepper', 'lemon', 'asparagus', 'cucumber', 'kale', 'aubergine'] },
   { category: 'Protein', keywords: ['chicken', 'turkey', 'beef', 'pork', 'salmon', 'tuna', 'shrimp', 'egg', 'yogurt', 'cottage cheese', 'protein powder', 'tofu'] },
   { category: 'Grains', keywords: ['rice', 'quinoa', 'pasta', 'oat', 'bread', 'wrap', 'tortilla', 'granola'] },
   { category: 'Dairy', keywords: ['milk', 'cheese', 'butter', 'cream', 'yogurt', 'cottage cheese'] },
@@ -247,23 +247,23 @@ const buildFallbackMealPlan = (calorieTarget: number, adults: number): MealPlanD
   const portions = safeAdults > 1 ? ` (x${safeAdults})` : ''
 
   const dayMeals = [
-    ['Greek yogurt bowl', ['Greek yogurt', 'Mixed berries', 'Oats', 'Honey']],
+    ['Greek yoghurt bowl', ['Greek yoghurt', 'Mixed berries', 'Oats', 'Honey']],
     ['Chicken rice bowl', ['Chicken breast', 'Brown rice', 'Spinach', 'Olive oil']],
     ['Turkey chilli', ['Turkey mince', 'Kidney beans', 'Tomatoes', 'Onion']],
     ['Apple and nut butter', ['Apple', 'Almond butter']],
     ['Protein oats', ['Rolled oats', 'Milk', 'Protein powder', 'Banana']],
-    ['Tuna wrap', ['Tuna', 'Whole wheat wrap', 'Lettuce', 'Greek yogurt']],
+    ['Tuna wrap', ['Tuna', 'Wholemeal wrap', 'Lettuce', 'Greek yoghurt']],
     ['Salmon tray bake', ['Salmon', 'Potatoes', 'Broccoli', 'Olive oil']],
     ['Cottage cheese snack', ['Cottage cheese', 'Pineapple']],
-    ['Egg scramble toast', ['Eggs', 'Whole grain toast', 'Spinach', 'Tomato']],
-    ['Turkey pasta', ['Turkey mince', 'Whole wheat pasta', 'Tomato sauce', 'Parmesan']],
+    ['Egg scramble toast', ['Eggs', 'Wholemeal toast', 'Spinach', 'Tomato']],
+    ['Turkey pasta', ['Turkey mince', 'Wholewheat pasta', 'Tomato sauce', 'Parmesan']],
     ['Beef stir fry', ['Lean beef', 'Rice', 'Peppers', 'Soy sauce']],
-    ['Yogurt and nuts', ['Greek yogurt', 'Mixed nuts']],
+    ['Yoghurt and nuts', ['Greek yoghurt', 'Mixed nuts']],
     ['Smoothie bowl', ['Protein powder', 'Banana', 'Berries', 'Chia seeds']],
     ['Chicken quinoa salad', ['Chicken breast', 'Quinoa', 'Cucumber', 'Avocado']],
     ['Prawn noodle stir fry', ['Prawns', 'Noodles', 'Broccoli', 'Garlic']],
     ['Hummus and carrots', ['Hummus', 'Carrots']],
-    ['Overnight oats', ['Rolled oats', 'Greek yogurt', 'Blueberries', 'Honey']],
+    ['Overnight oats', ['Rolled oats', 'Greek yoghurt', 'Blueberries', 'Honey']],
     ['Chicken fajita bowl', ['Chicken breast', 'Rice', 'Peppers', 'Onion']],
     ['Beef and veg skillet', ['Lean beef', 'Courgette', 'Tomatoes', 'Garlic']],
     ['Protein shake', ['Protein powder', 'Milk', 'Banana']],
@@ -369,6 +369,11 @@ Requirements:
 - Preferences: ${preferences}
 - Meals per day: ${mealsPerDay}
 - Adults: ${adults}
+- Use British English spelling and wording only (for example: favourite, yoghurt, courgette, aubergine, mince, wholemeal).
+- Use UK context where examples are needed, with a natural Manchester/United Kingdom tone.
+- Use metric measurements for ingredients and prep directions (g, kg, ml, l, tsp, tbsp).
+- Keep meal names and ingredient choices realistic for UK supermarkets.
+- Keep the response culturally neutral and practical for families living in the UK.
 
 Return ONLY JSON in this format:
 [

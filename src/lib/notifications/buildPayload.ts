@@ -30,10 +30,10 @@ export function buildPayload(args: {
     return { type: t, heading: "Morning check-in", content: "Good morning. How are you feeling today?", link: "/" };
   }
   if (t === "bedtime_story") {
-    return { type: t, heading: "Bedtime soon", content: "Bedtime in 30 mins. Story time?", link: "/bond" };
+    return { type: t, heading: "Bedtime soon", content: "Bedtime in 30 minutes. Story time?", link: "/bond" };
   }
   if (t === "workout_window") {
-    return { type: t, heading: "Workout window", content: "Your workout window is now. 20 mins is enough.", link: "/fitness" };
+    return { type: t, heading: "Workout window", content: "Your workout window is now. 20 minutes is enough.", link: "/fitness" };
   }
   if (t === "weekly_score") {
     const score = typeof args.weeklyScore === "number" ? args.weeklyScore : null;

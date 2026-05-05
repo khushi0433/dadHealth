@@ -209,7 +209,7 @@ export default function AuthModal({ open, onClose, onSuccess }: AuthModalProps) 
             }}
             className="w-full text-center font-heading text-[11px] font-bold tracking-wider uppercase text-muted-foreground hover:text-primary transition-colors"
           >
-            {mode === "login" ? "Need an account? Sign up" : "Have an account? Sign in"}
+            {mode === "login" ? "Need an account? Create one" : "Already have an account? Sign in"}
           </button>
         </form>
       </DialogContent>
