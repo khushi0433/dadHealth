@@ -361,7 +361,7 @@ export async function POST(req: Request) {
 
     const anthropic = new Anthropic({ apiKey: anthropicKey })
 
-    const anthropicModel = process.env.ANTHROPIC_MODEL || 'claude-3-5-sonnet-latest'
+    const anthropicModel = process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-6'
 
     const prompt = `
 Create a 5-day meal plan.
@@ -392,11 +392,16 @@ Return ONLY JSON in this format:
 ]
 `
 
-    const response = await anthropic.messages.create({
-      model: anthropicModel,
-      max_tokens: 2000,
-      messages: [{ role: 'user', content: prompt }],
-    })
+    const response = await Promise.race([
+  anthropic.messages.create({
+    model: anthropicModel,
+    max_tokens: 2000,
+    messages: [{ role: 'user', content: prompt }],
+  }),
+  new Promise((_, reject) =>
+    setTimeout(() => reject(new Error('Anthropic request timeout')), 25000)
+  ),
+]) as Anthropic.Message
 
 
     const textBlock = response.content.find((block) => {
@@ -453,7 +458,7 @@ Return ONLY JSON in this format:
     // Add extra context for Anthropic issues (helps diagnose prod 404s)
     const details = getMealPlanErrorDetails(err)
     console.error('[generate-meal-plan] context', {
-      anthropicModel: process.env.ANTHROPIC_MODEL || 'claude-3-5-sonnet-latest',
+      anthropicModel: process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-6',
       hasAnthropicKey: Boolean(process.env.ANTHROPIC_API_KEY),
       supabaseUrlConfigured: Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL),
       providerStatus: details.status,
@@ -510,12 +515,27 @@ Return ONLY JSON in this format:
 
     // If the AI provider gives a hard failure (e.g. 404 model/endpoint), surface a clearer message.
     // Your current getPublicMealPlanError is mostly optimized for billing/JSON issues.
-    const extraMessage =
-      publicError.status === 500 &&
-      (String(details.type ?? '').toLowerCase().includes('not found') ||
-        String(details.message ?? '').toLowerCase().includes('404'))
-        ? 'Meal planner request failed (AI provider 404). Check the configured Anthropic model.'
-        : null
+    let extraMessage: string | null = null
+
+const message = String(details.message ?? '').toLowerCase()
+
+if (details.status === 404) {
+  extraMessage =
+    'The meal planning service is temporarily unavailable. Please try again in a few minutes.'
+} else if (details.status === 401 || details.status === 403) {
+  extraMessage =
+    'The AI service is currently unavailable. Please try again later.'
+} else if (details.status === 429) {
+  extraMessage =
+    'Too many requests right now. Please wait a minute and try again.'
+} else if (message.includes('timeout')) {
+  extraMessage =
+    'The meal planner took too long to respond. Please try again.'
+} else if (message.includes('invalid json')) {
+  extraMessage =
+    'The AI returned an invalid meal plan. Please try again.'
+}
+
 
 
     return NextResponse.json(
