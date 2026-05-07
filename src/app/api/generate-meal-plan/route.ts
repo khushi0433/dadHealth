@@ -361,8 +361,11 @@ export async function POST(req: Request) {
 
     const anthropic = new Anthropic({ apiKey: anthropicKey })
 
+    const anthropicModel = process.env.ANTHROPIC_MODEL || 'claude-3-5-sonnet-latest'
+
     const prompt = `
 Create a 5-day meal plan.
+
 
 Requirements:
 - Calories per day: ${calorieTarget}
@@ -390,12 +393,16 @@ Return ONLY JSON in this format:
 `
 
     const response = await anthropic.messages.create({
-      model: 'claude-3-5-sonnet-latest',
+      model: anthropicModel,
       max_tokens: 2000,
       messages: [{ role: 'user', content: prompt }],
     })
 
-    const textBlock = response.content.find((block) => (block as any)?.type === 'text') as { type: 'text'; text: string } | undefined
+
+    const textBlock = response.content.find((block) => {
+      return (block && typeof block === 'object' && (block as { type?: unknown }).type === 'text')
+    }) as { type: 'text'; text: string } | undefined
+
     const text = textBlock?.text ?? ''
     const plan = getJsonFromText(text)
 
@@ -404,11 +411,19 @@ Return ONLY JSON in this format:
     }
 
     const ingredients: string[] = []
-    plan.forEach((day: any) => {
-      Object.values(day.meals || {}).forEach((meal: any) => {
-        Array.isArray(meal.ingredients) && meal.ingredients.forEach((ingredient: string) => ingredients.push(ingredient))
+    type AiMeal = { ingredients?: unknown }
+    type AiDay = { meals?: Record<string, AiMeal> }
+
+    plan.forEach((day: AiDay) => {
+      Object.values(day.meals ?? {}).forEach((meal) => {
+        if (Array.isArray(meal.ingredients)) {
+          meal.ingredients.forEach((ingredient) => {
+            if (typeof ingredient === 'string') ingredients.push(ingredient)
+          })
+        }
       })
     })
+
 
     const groceryList = groupIngredients(ingredients)
 
@@ -435,13 +450,28 @@ Return ONLY JSON in this format:
 
     return NextResponse.json(data)
   } catch (err) {
+    // Add extra context for Anthropic issues (helps diagnose prod 404s)
+    const details = getMealPlanErrorDetails(err)
+    console.error('[generate-meal-plan] context', {
+      anthropicModel: process.env.ANTHROPIC_MODEL || 'claude-3-5-sonnet-latest',
+      hasAnthropicKey: Boolean(process.env.ANTHROPIC_API_KEY),
+      supabaseUrlConfigured: Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL),
+      providerStatus: details.status,
+      providerType: details.type,
+      providerCode: details.code,
+      providerRequestId: details.requestId,
+      providerMessage: details.message,
+      // raw error object may include useful fields; we keep it last to avoid missing info
+      raw: err,
+    })
+
     logMealPlanError(err)
 
-    const details = getMealPlanErrorDetails(err)
     const isBillingIssue = isLikelyBillingProviderError(details)
 
     if (isBillingIssue) {
       try {
+
         const calorieTarget = Number(requestBody?.calorieTarget) || 2200
         const adults = Number(requestBody?.adults) || 1
         const preferences =
@@ -478,9 +508,20 @@ Return ONLY JSON in this format:
 
     const publicError = getPublicMealPlanError(err)
 
+    // If the AI provider gives a hard failure (e.g. 404 model/endpoint), surface a clearer message.
+    // Your current getPublicMealPlanError is mostly optimized for billing/JSON issues.
+    const extraMessage =
+      publicError.status === 500 &&
+      (String(details.type ?? '').toLowerCase().includes('not found') ||
+        String(details.message ?? '').toLowerCase().includes('404'))
+        ? 'Meal planner request failed (AI provider 404). Check the configured Anthropic model.'
+        : null
+
+
     return NextResponse.json(
-      { error: publicError.message },
+      { error: extraMessage ?? publicError.message },
       { status: publicError.status },
     )
+
   }
 }
