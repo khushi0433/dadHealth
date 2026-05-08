@@ -361,11 +361,14 @@ export async function POST(req: Request) {
 
     const anthropic = new Anthropic({ apiKey: anthropicKey })
 
-    const anthropicModel = process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-6'
+    const anthropicModel = process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-20250514'
+
+    // ── Variety seed: unique per request so Claude never returns a cached/similar plan ──
+    const varietySeed = Math.random().toString(36).substring(2, 8)
+    const weekOffset = Math.floor(Date.now() / (1000 * 60 * 60 * 24 * 7))
 
     const prompt = `
-Create a 5-day meal plan.
-
+Create a 5-day meal plan. Session: ${varietySeed}-${weekOffset}
 
 Requirements:
 - Calories per day: ${calorieTarget}
@@ -377,6 +380,9 @@ Requirements:
 - Use metric measurements for ingredients and prep directions (g, kg, ml, l, tsp, tbsp).
 - Keep meal names and ingredient choices realistic for UK supermarkets.
 - Keep the response culturally neutral and practical for families living in the UK.
+- IMPORTANT: Generate COMPLETELY DIFFERENT meals each time — never repeat the same meal twice across the 5 days.
+- Vary cuisines across the week: include at least 2 different cultural influences (e.g. Italian, Asian, Mexican, Middle Eastern, British).
+- Vary protein sources each day — do not use the same main protein on consecutive days.
 
 Return ONLY JSON in this format:
 [
@@ -393,15 +399,16 @@ Return ONLY JSON in this format:
 `
 
     const response = await Promise.race([
-  anthropic.messages.create({
-    model: anthropicModel,
-    max_tokens: 2000,
-    messages: [{ role: 'user', content: prompt }],
-  }),
-  new Promise((_, reject) =>
-    setTimeout(() => reject(new Error('Anthropic request timeout')), 25000)
-  ),
-]) as Anthropic.Message
+      anthropic.messages.create({
+        model: anthropicModel,
+        max_tokens: 2000,
+        temperature: 1, // Higher temperature for more varied meal output each generation
+        messages: [{ role: 'user', content: prompt }],
+      }),
+      new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Anthropic request timeout')), 25000)
+      ),
+    ]) as Anthropic.Message
 
 
     const textBlock = response.content.find((block) => {
@@ -458,7 +465,7 @@ Return ONLY JSON in this format:
     // Add extra context for Anthropic issues (helps diagnose prod 404s)
     const details = getMealPlanErrorDetails(err)
     console.error('[generate-meal-plan] context', {
-      anthropicModel: process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-6',
+      anthropicModel: process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-20250514',
       hasAnthropicKey: Boolean(process.env.ANTHROPIC_API_KEY),
       supabaseUrlConfigured: Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL),
       providerStatus: details.status,
@@ -466,7 +473,6 @@ Return ONLY JSON in this format:
       providerCode: details.code,
       providerRequestId: details.requestId,
       providerMessage: details.message,
-      // raw error object may include useful fields; we keep it last to avoid missing info
       raw: err,
     })
 
@@ -513,30 +519,26 @@ Return ONLY JSON in this format:
 
     const publicError = getPublicMealPlanError(err)
 
-    // If the AI provider gives a hard failure (e.g. 404 model/endpoint), surface a clearer message.
-    // Your current getPublicMealPlanError is mostly optimized for billing/JSON issues.
     let extraMessage: string | null = null
 
-const message = String(details.message ?? '').toLowerCase()
+    const message = String(details.message ?? '').toLowerCase()
 
-if (details.status === 404) {
-  extraMessage =
-    'The meal planning service is temporarily unavailable. Please try again in a few minutes.'
-} else if (details.status === 401 || details.status === 403) {
-  extraMessage =
-    'The AI service is currently unavailable. Please try again later.'
-} else if (details.status === 429) {
-  extraMessage =
-    'Too many requests right now. Please wait a minute and try again.'
-} else if (message.includes('timeout')) {
-  extraMessage =
-    'The meal planner took too long to respond. Please try again.'
-} else if (message.includes('invalid json')) {
-  extraMessage =
-    'The AI returned an invalid meal plan. Please try again.'
-}
-
-
+    if (details.status === 404) {
+      extraMessage =
+        'The meal planning service is temporarily unavailable. Please try again in a few minutes.'
+    } else if (details.status === 401 || details.status === 403) {
+      extraMessage =
+        'The AI service is currently unavailable. Please try again later.'
+    } else if (details.status === 429) {
+      extraMessage =
+        'Too many requests right now. Please wait a minute and try again.'
+    } else if (message.includes('timeout')) {
+      extraMessage =
+        'The meal planner took too long to respond. Please try again.'
+    } else if (message.includes('invalid json')) {
+      extraMessage =
+        'The AI returned an invalid meal plan. Please try again.'
+    }
 
     return NextResponse.json(
       { error: extraMessage ?? publicError.message },
