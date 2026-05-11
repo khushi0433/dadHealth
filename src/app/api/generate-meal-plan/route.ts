@@ -361,7 +361,7 @@ export async function POST(req: Request) {
 
     const anthropic = new Anthropic({ apiKey: anthropicKey })
 
-    const anthropicModel = process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-20250514'
+    const anthropicModel = process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-6'
 
     // ── Variety seed: unique per request so Claude never returns a cached/similar plan ──
     const varietySeed = Math.random().toString(36).substring(2, 8)
