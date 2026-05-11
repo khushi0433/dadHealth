@@ -401,7 +401,7 @@ Return ONLY JSON in this format:
     const response = await Promise.race([
       anthropic.messages.create({
         model: anthropicModel,
-        max_tokens: 2000,
+        max_tokens: 4096,
         temperature: 1, // Higher temperature for more varied meal output each generation
         messages: [{ role: 'user', content: prompt }],
       }),
