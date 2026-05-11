@@ -294,6 +294,8 @@ const buildFallbackMealPlan = (calorieTarget: number, adults: number): MealPlanD
   }))
 }
 
+export const maxDuration = 60
+
 export async function POST(req: Request) {
   let requestBody: {
     calorieTarget?: number
@@ -404,8 +406,8 @@ Return ONLY JSON in this format:
 
     const response = await anthropic.messages.create({
   model: anthropicModel,
-  max_tokens: 4096,
-  temperature: 1,
+  max_tokens: 1200,
+  temperature: 0.4,
   messages: [{ role: 'user', content: prompt }],
 }) as Anthropic.Message
 
