@@ -359,7 +359,11 @@ export async function POST(req: Request) {
       nodeEnv: process.env.NODE_ENV,
     })
 
-    const anthropic = new Anthropic({ apiKey: anthropicKey })
+    const anthropic = new Anthropic({
+  apiKey: anthropicKey,
+  timeout: 40000,
+  maxRetries: 0,
+})
 
     const anthropicModel = process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-6'
 
