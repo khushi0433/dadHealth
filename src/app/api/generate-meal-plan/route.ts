@@ -406,8 +406,9 @@ Return ONLY JSON in this format:
 
     const response = await anthropic.messages.create({
   model: anthropicModel,
-  max_tokens: 1200,
-  temperature: 0.4,
+  max_tokens: 1400,
+  temperature: 0.2,
+  system: 'You are a meal planning API. Return ONLY valid JSON.',
   messages: [{ role: 'user', content: prompt }],
 }) as Anthropic.Message
 
