@@ -45,21 +45,32 @@ const groupIngredients = (ingredients: string[]) => {
 const getJsonFromText = (text: string) => {
   const cleaned = text
     .trim()
-    .replace(/^```(?:json)?/i, '')
+    .replace(/^```json/i, '')
+    .replace(/^```/i, '')
     .replace(/```$/i, '')
     .trim()
 
   try {
     return JSON.parse(cleaned)
   } catch {
-    const firstArray = cleaned.indexOf('[')
-    const lastArray = cleaned.lastIndexOf(']')
-    if (firstArray >= 0 && lastArray > firstArray) {
-      return JSON.parse(cleaned.slice(firstArray, lastArray + 1))
+    const firstBracket = cleaned.indexOf('[')
+    const lastBracket = cleaned.lastIndexOf(']')
+
+    if (firstBracket !== -1 && lastBracket !== -1) {
+      const sliced = cleaned.slice(firstBracket, lastBracket + 1)
+
+      try {
+        return JSON.parse(sliced)
+      } catch {
+        throw new Error('AI returned invalid JSON')
+      }
     }
+
     throw new Error('AI returned invalid JSON')
   }
+
 }
+
 
 const getMealPlanErrorDetails = (err: unknown) => {
   const error = err as {
@@ -361,7 +372,8 @@ export async function POST(req: Request) {
 
     const anthropic = new Anthropic({ apiKey: anthropicKey })
 
-    const anthropicModel = process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-20250514'
+    const anthropicModel = process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-6'
+
 
     // ── Variety seed: unique per request so Claude never returns a cached/similar plan ──
     const varietySeed = Math.random().toString(36).substring(2, 8)
@@ -400,11 +412,19 @@ Return ONLY JSON in this format:
 
     const response = await Promise.race([
       anthropic.messages.create({
-        model: anthropicModel,
-        max_tokens: 2000,
-        temperature: 1, // Higher temperature for more varied meal output each generation
-        messages: [{ role: 'user', content: prompt }],
-      }),
+  model: anthropicModel,
+  max_tokens: 100,
+  temperature: 0.4,
+
+  system:
+    'You are a meal planning API. Return ONLY valid JSON. Never include markdown, explanations, comments, or trailing commas.',
+  messages: [
+    {
+      role: 'user',
+      content: prompt,
+    },
+  ],
+}),
       new Promise((_, reject) =>
         setTimeout(() => reject(new Error('Anthropic request timeout')), 25000)
       ),
