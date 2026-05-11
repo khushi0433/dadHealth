@@ -389,6 +389,10 @@ Requirements:
 - IMPORTANT: Generate COMPLETELY DIFFERENT meals each time — never repeat the same meal twice across the 5 days.
 - Vary cuisines across the week: include at least 2 different cultural influences (e.g. Italian, Asian, Mexican, Middle Eastern, British).
 - Vary protein sources each day — do not use the same main protein on consecutive days.
+- Keep every ingredient list under 4 items.
+- Keep meal names short.
+- Keep macros compact using only protein, carbs, fat.
+- Do not include explanations or notes.
 
 Return ONLY JSON in this format:
 [
@@ -406,7 +410,7 @@ Return ONLY JSON in this format:
 
     const response = await anthropic.messages.create({
   model: anthropicModel,
-  max_tokens: 1400,
+  max_tokens: 4000,
   temperature: 0.2,
   system: 'You are a meal planning API. Return ONLY valid JSON.',
   messages: [{ role: 'user', content: prompt }],
@@ -418,6 +422,7 @@ Return ONLY JSON in this format:
     }) as { type: 'text'; text: string } | undefined
 
     const text = textBlock?.text ?? ''
+    console.log(text);
     const plan = getJsonFromText(text)
 
     if (!Array.isArray(plan)) {
