@@ -402,17 +402,12 @@ Return ONLY JSON in this format:
 ]
 `
 
-    const response = await Promise.race([
-      anthropic.messages.create({
-        model: anthropicModel,
-        max_tokens: 4096,
-        temperature: 1, // Higher temperature for more varied meal output each generation
-        messages: [{ role: 'user', content: prompt }],
-      }),
-      new Promise((_, reject) =>
-        setTimeout(() => reject(new Error('Anthropic request timeout')), 25000)
-      ),
-    ]) as Anthropic.Message
+    const response = await anthropic.messages.create({
+  model: anthropicModel,
+  max_tokens: 4096,
+  temperature: 1,
+  messages: [{ role: 'user', content: prompt }],
+}) as Anthropic.Message
 
 
     const textBlock = response.content.find((block) => {
