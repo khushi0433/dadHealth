@@ -105,7 +105,8 @@ export default function CookTogetherRecipes({ className = "" }: CookTogetherReci
           </button>
         ))}
 
-        {[3, 5, 8].map((age) => (
+        {/* Age filters removed per UX request (show only difficulty + prep minutes) */}
+        {/* {[3, 5, 8].map((age) => (
           <button
             key={age}
             type="button"
@@ -118,7 +119,7 @@ export default function CookTogetherRecipes({ className = "" }: CookTogetherReci
           >
             Age {age}+
           </button>
-        ))}
+        ))} */}
 
         {[15, 30, 45].map((mins) => (
           <button

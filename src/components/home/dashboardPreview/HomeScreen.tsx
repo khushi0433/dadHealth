@@ -15,8 +15,8 @@ type HomeScreenProps = {
   dadsCount: number;
   hasCheckedInToday: boolean;
   selectedMood: number;
-  setSelectedSleep: (value: number) => void;
-  selectedSleep: number;
+  selectedSleep: string;
+  setSelectedSleep: (value: string) => void;
   onMoodSelect: (value: number) => void;
   onDailyCheckIn: () => void;
   checkInPending: boolean;
@@ -114,15 +114,7 @@ export default function HomeScreen({
                     max={12}
                     step={0.5}
                     value={selectedSleep}
-                    onChange={(e) => {
-                      const v = e.target.value;
-                      if (v === "") {
-                        // allow clearing the field while editing; pick a sensible default
-                        setSelectedSleep(0);
-                        return;
-                      }
-                      setSelectedSleep(parseFloat(v));
-                    }}
+                    onChange={(e) => setSelectedSleep(e.target.value)}
                     className="w-[4.5rem] box-border bg-white/[0.04] border border-border px-2 py-2 text-foreground text-sm tabular-nums [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                   />
                 </div>

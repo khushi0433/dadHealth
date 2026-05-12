@@ -61,9 +61,12 @@ const DashboardPreview = ({ variant = "preview" }: DashboardPreviewProps) => {
   const { data: dashboard, dadsCount, checkIn } = useDashboard(user?.id);
   const { posts: communityPosts = [], loading: communityLoading } = useCommunity(user?.id);
   const [activeScreen, setActiveScreen] = useState<DashboardScreen>("HOME");
-  const isFullDashboard = variant === "full";
+  const isAuth = !!user;
+  const isFullDashboard = variant === "full" || isAuth;
   const [selectedMood, setSelectedMood] = useState((dashboard?.mood_value as number | undefined) ?? 3);
-  const [selectedSleep, setSelectedSleep] = useState((dashboard?.sleep_hours as number | undefined) ?? 7);
+  const [selectedSleep, setSelectedSleep] = useState(
+    String((dashboard?.sleep_hours as number | undefined) ?? 7)
+  );
   const [dailyGoals, setDailyGoals] = useState<DashboardGoal[]>([]);
 
   const {
@@ -99,13 +102,19 @@ const DashboardPreview = ({ variant = "preview" }: DashboardPreviewProps) => {
   useEffect(() => {
     if (!dashboard) return;
     if (dashboard.mood_value != null) setSelectedMood(dashboard.mood_value);
-    if (dashboard.sleep_hours != null) setSelectedSleep(dashboard.sleep_hours);
+    if (dashboard.sleep_hours != null) setSelectedSleep(String(dashboard.sleep_hours));
   }, [dashboard]);
 
   useEffect(() => {
     const nextGoals = buildGoalsFromProfile(profile?.goals ?? dashboard?.goals);
     setDailyGoals(nextGoals);
   }, [profile?.goals, dashboard?.goals]);
+
+  useEffect(() => {
+    if (user) {
+      setActiveScreen("HOME");
+    }
+  }, [user]);
 
   const isCheckinBlocked = BLOCKED_CHECKIN_MOODS.includes(selectedMood as (typeof BLOCKED_CHECKIN_MOODS)[number]);
 
@@ -117,7 +126,10 @@ const DashboardPreview = ({ variant = "preview" }: DashboardPreviewProps) => {
     if (isCheckinBlocked) {
       return;
     }
-    checkIn.mutate({ mood_value: selectedMood, sleep_hours: selectedSleep });
+    checkIn.mutate({
+  mood_value: selectedMood,
+  sleep_hours: parseFloat(selectedSleep || "0"),
+});
   };
 
   const handleGoalAction = (index: number) => {

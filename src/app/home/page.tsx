@@ -15,13 +15,7 @@ const PILLAR_IMAGES = [IMAGES.gym, IMAGES.run, IMAGES.food, IMAGES.bond];
 const HomePage = () => {
   return (
     <SitePageShell>
-      <HeroSection heroImg={IMAGES.hero} />
-      <WhoWeAre gymImg={IMAGES.gym} />
-      <DashboardPreview />
-      <StatsBar />
-      <PillarsSection pillarImages={PILLAR_IMAGES} />
-      <DadStrengthSection workoutImg={IMAGES.workout} />
-      <SiteFooter />
+      <DashboardPreview variant="full" />
     </SitePageShell>
   );
 };
