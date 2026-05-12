@@ -107,14 +107,22 @@ export default function HomeScreen({
                   <label htmlFor="checkin-sleep" className="block text-[10px] text-muted-foreground uppercase mb-1.5">
                     Sleep (h)
                   </label>
-                  <input
+                    <input
                     id="checkin-sleep"
                     type="number"
                     min={0}
                     max={12}
                     step={0.5}
                     value={selectedSleep}
-                    onChange={(e) => setSelectedSleep(parseFloat(e.target.value) || 7)}
+                    onChange={(e) => {
+                      const v = e.target.value;
+                      if (v === "") {
+                        // allow clearing the field while editing; pick a sensible default
+                        setSelectedSleep(0);
+                        return;
+                      }
+                      setSelectedSleep(parseFloat(v));
+                    }}
                     className="w-[4.5rem] box-border bg-white/[0.04] border border-border px-2 py-2 text-foreground text-sm tabular-nums [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                   />
                 </div>
