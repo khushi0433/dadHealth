@@ -123,14 +123,14 @@ const DashboardPreview = ({ variant = "preview" }: DashboardPreviewProps) => {
   };
 
   const handleDailyCheckIn = () => {
-    if (isCheckinBlocked) {
-      return;
-    }
-    checkIn.mutate({
-  mood_value: selectedMood,
-  sleep_hours: parseFloat(selectedSleep || "0"),
-});
-  };
+  const parsedSleep = Number(selectedSleep);
+  const safeSleepHours = Number.isFinite(parsedSleep) ? parsedSleep : 0;
+
+  checkIn.mutate({
+    mood_value: selectedMood,
+    sleep_hours: safeSleepHours,
+  });
+};
 
   const handleGoalAction = (index: number) => {
     setDailyGoals((prev) =>

@@ -1,11 +1,13 @@
 "use client";
 
 import { format } from "date-fns";
-import Link from "next/link";
+
 import { DashboardIcon } from "@/components/DashboardIcon";
 import MiniBarChart from "@/components/dashboard/MiniBarChart";
 import SectionHeader from "@/components/dashboard/SectionHeader";
 import type { DashboardGoal, ReminderItem, ScoreItem } from "./types";
+import { useProStatus } from "@/components/ProProvider";
+
 
 type HomeScreenProps = {
   isFullDashboard: boolean;
@@ -58,6 +60,7 @@ export default function HomeScreen({
   challenge,
   onGoProgress,
 }: HomeScreenProps) {
+  const { isPro } = useProStatus();
   return (
     <>
       <div className={`bg-card p-5 ${isFullDashboard ? "min-h-full" : ""}`}>
@@ -71,7 +74,7 @@ export default function HomeScreen({
             {format(now, "EEEE")}
           </div>
           <div className="flex items-center gap-2 mt-1">
-            <span className="tag-pill">PRO</span>
+            {isPro && <span className="tag-pill">PRO</span>}
             <span className="text-xs text-muted-foreground">{format(now, "d MMM")}</span>
           </div>
           <div className="flex items-center gap-2 mt-2">
@@ -121,18 +124,18 @@ export default function HomeScreen({
                 <button
                   type="button"
                   onClick={onDailyCheckIn}
-                  disabled={checkInPending || isCheckinBlocked}
+                  disabled={checkInPending}
                   aria-label="Save daily check-in"
                   className="bg-primary text-primary-foreground font-heading font-bold text-[10px] tracking-wider uppercase px-4 py-2 border-none cursor-pointer hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed shrink-0"
                 >
                   {checkInPending ? "..." : "SAVE"}
                 </button>
               </div>
-              {isCheckinBlocked && (
+              {/* {isCheckinBlocked && (
                 <p className="text-[10px] text-muted-foreground">
                   Mood 1, 2, and 4 are view-only in this dashboard check-in.
                 </p>
-              )}
+              )} */}
             </div>
           </div>
         )}
@@ -160,15 +163,19 @@ export default function HomeScreen({
           </div>
         </div>
 
-        <div className="border border-primary/20 p-3 mb-4">
-          <div className="font-heading text-[11px] font-bold tracking-wider uppercase text-primary mb-0.5">
-            UPGRADE TO PRO
+        {!isPro && (
+
+          <div className="border border-primary/20 p-3 mb-4">
+            <div className="font-heading text-[11px] font-bold tracking-wider uppercase text-primary mb-0.5">
+              UPGRADE TO PRO
+            </div>
+            <p className="text-[10px] text-muted-foreground mb-2">Unlock full score, graphs & more</p>
+            <button type="button" className="bg-primary text-primary-foreground font-heading font-bold text-[10px] tracking-wider uppercase px-3 py-1.5 w-full cursor-pointer border-none hover:bg-primary/90 transition-colors">
+              7-day free trial
+            </button>
           </div>
-          <p className="text-[10px] text-muted-foreground mb-2">Unlock full score, graphs & more</p>
-          <button type="button" className="bg-primary text-primary-foreground font-heading font-bold text-[10px] tracking-wider uppercase px-3 py-1.5 w-full cursor-pointer border-none hover:bg-primary/90 transition-colors">
-            7-day free trial
-          </button>
-        </div>
+        )}
+
 
         <SectionHeader title="TODAY'S PLAN" className="mb-2 block" />
         <div className="pb-4">
