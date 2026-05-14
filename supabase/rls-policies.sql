@@ -22,6 +22,7 @@ alter table earned_badges enable row level security;
 alter table recipes enable row level security;
 alter table user_saved_recipes enable row level security;
 alter table bond_logs enable row level security;
+alter table dad_day_searches enable row level security;
 
 -- Policies
 drop policy if exists "Anyone can read clients" on clients;
@@ -146,3 +147,13 @@ drop policy if exists "Anyone can read active expert events" on expert_events;
 create policy "Anyone can read active expert events"
 on expert_events for select
 using (active = true);
+
+create policy "Users can view own dad day searches"
+on dad_day_searches
+for select
+using (auth.uid() = user_id);
+
+create policy "Users can insert own dad day searches"
+on dad_day_searches
+for insert
+with check (auth.uid() = user_id);

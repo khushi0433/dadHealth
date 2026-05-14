@@ -239,6 +239,40 @@ create table if not exists dad_dates (
   time_of_day text
 );
 
+alter table dad_dates
+add column if not exists source text default 'admin';
+
+alter table dad_dates
+add column if not exists booking_url text;
+
+alter table dad_dates
+add column if not exists address text;
+
+alter table dad_dates
+add column if not exists requires_booking boolean default false;
+
+
+-- dad_day_searches 
+create table if not exists dad_day_searches (
+  id uuid primary key default gen_random_uuid(),
+
+  user_id uuid references auth.users(id) on delete cascade not null,
+
+  budget text not null check (
+    budget in ('free', 'under_20', 'over_20')
+  ),
+
+  radius int not null default 20,
+
+  child_age text not null check (
+    child_age in ('toddler', 'primary', 'teen')
+  ),
+
+  result_count int default 0,
+
+  searched_at timestamptz default now()
+);
+
 -- cook together recipes
 create table if not exists recipes (
   id uuid primary key default gen_random_uuid(),
