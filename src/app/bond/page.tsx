@@ -4,13 +4,22 @@ import { useMemo, useState } from "react";
 import { format } from "date-fns";
 import { Lock } from "lucide-react";
 import CookTogetherRecipes from "@/components/CookTogetherRecipes";
+import DadDaysSearch from "@/components/DadDaysSearch";
 import SitePageShell from "@/components/SitePageShell";
 import SiteFooter from "@/components/SiteFooter";
 import { useProStatus } from "@/components/ProProvider";
 import { IMAGES } from "@/lib/images";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBond } from "@/hooks/useBond";
+import LimeButton from "@/components/LimeButton";
 import { trackEvent } from "@/lib/analytics";
+import { useUpdateProfile, useUserProfile } from "@/hooks/useUserProfile";
+import type { DadDaysBudget, DadDaysChildAge, DadDaysSearchResult } from "@/types/dadDays";
+import { supabase } from "@/utils/supabaseClient";
+import PromptModal from "@/components/PromptModal";
+
+
+
 
 type DadDateRow = {
   icon?: string;
@@ -31,6 +40,7 @@ const BondPage = () => {
 
   const [presentMode, setPresentMode] = useState(false);
   const [dateFilter, setDateFilter] = useState("all");
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const dates: DadDateDisplay[] = (dadDates as DadDateRow[]).map((d) => ({
     ...d,
@@ -119,10 +129,13 @@ const BondPage = () => {
       </section>
 
       <div className="w-full max-w-[1400px] mx-auto px-5 lg:px-8 min-w-0">
+        {/* Find Dad Days Near You */}
+        <DadDaysSearch userId={user?.id} onResultsSaved={() => setRefreshKey((prev) => prev + 1)} />
+
         <div className="grid grid-cols-1 lg:grid-cols-12 lg:gap-x-10 xl:gap-x-14 lg:items-start">
           {/* Dad date ideas */}
           <div className="pt-8 pb-6 lg:col-span-7 lg:pb-10 min-w-0">
-            <span className="section-label !p-0 mb-4 block">DAD DATE IDEAS</span>
+            <span className="section-label !p-0 mb-4 block">SAVED IDEAS</span>
             <div className="flex gap-2 mb-4 flex-wrap">
               {filters.map((filterOption) => (
                 <button
@@ -224,4 +237,6 @@ const BondPage = () => {
   );
 };
 
+
 export default BondPage;
+

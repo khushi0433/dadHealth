@@ -110,6 +110,7 @@ export const PRICING_PLANS = [
       "Therapist and counsellor directory & booking",
       "DH badges & report card",
       "Milestone photo uploads",
+      "Unlimited Dad Days search",
     ],
     cta: "START 7-DAY FREE TRIAL →",
   },
