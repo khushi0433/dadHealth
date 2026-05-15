@@ -28,7 +28,6 @@ const DadDaysSearch = ({ userId, onResultsSaved }: DadDaysSearchProps) => {
   const [locationMethod, setLocationMethod] = useState<"gps" | "postcode" | null>(null);
   const [budget, setBudget] = useState<DadDaysBudget | null>(null);
   const [radius, setRadius] = useState<number>(20);
-  const [childAge, setChildAge] = useState<DadDaysChildAge | null>(null);
   const [childAgeOverride, setChildAgeOverride] = useState<DadDaysChildAge | null>(null);
 
   const [loading, setLoading] = useState(false);
@@ -270,7 +269,7 @@ const DadDaysSearch = ({ userId, onResultsSaved }: DadDaysSearchProps) => {
     localStorage.setItem("dadDaysRadius", String(newRadius));
   };
 
-  const hasLocation = latitude && longitude;
+  const hasLocation = latitude !== null && longitude !== null;
   const canSearch = hasLocation && budget && !searching;
   const searchesRemaining = SEARCHES_PER_MONTH - searchesUsed;
   const limitReached = !isPro && searchesUsed >= SEARCHES_PER_MONTH;
@@ -279,9 +278,9 @@ const DadDaysSearch = ({ userId, onResultsSaved }: DadDaysSearchProps) => {
     <section className="py-8 border-b border-border w-full">
       <span className="section-label !p-0 mb-6 block">FIND DAD DAYS NEAR YOU</span>
 
+      {showSearchControls && (
       <div className="space-y-6 w-full">
         {/* Location Section */}
-        {showSearchControls && (
           <div>
           <div className="flex gap-2 mb-3">
             <button
@@ -334,8 +333,7 @@ const DadDaysSearch = ({ userId, onResultsSaved }: DadDaysSearchProps) => {
               ✓ Location set {locationMethod === "gps" ? "(GPS)" : `(${postcode})`}
             </div>
           )}
-        </div>
-        )}
+          </div>
 
         {/* Budget Filter */}
         {hasLocation && (
@@ -535,7 +533,8 @@ const DadDaysSearch = ({ userId, onResultsSaved }: DadDaysSearchProps) => {
           </div>
         )}
       </div>
-    </section>
+      )}
+      </section>
   );
 };
 
