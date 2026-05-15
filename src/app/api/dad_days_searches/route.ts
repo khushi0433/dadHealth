@@ -54,7 +54,6 @@ function coerceNumber(value: unknown, fallback: number) {
   if (typeof value === 'number' && Number.isFinite(value)) {
     return value
   }
-
   return fallback
 }
 
@@ -69,6 +68,7 @@ const ageMap: Record<ChildAge, string> = {
   primary: 'primary school age child aged 5 to 11',
   teen: 'teenager aged 12 and over',
 }
+
 function buildPrompt(params: {
   latitude?: number
   longitude?: number
@@ -77,14 +77,7 @@ function buildPrompt(params: {
   radius: number
   childAge: ChildAge
 }) {
-  const {
-    latitude,
-    longitude,
-    postcode,
-    budget,
-    radius,
-    childAge,
-  } = params
+  const { latitude, longitude, postcode, budget, radius, childAge } = params
 
   return `
 Find 10 real dad and child activities within ${radius} miles of
@@ -154,33 +147,7 @@ const getJsonFromText = (text: string) => {
 }
 
 const getDadDaysErrorDetails = (err: unknown) => {
-  const error = err as {
-    name?: string
-    message?: string
-    status?: number
-    code?: string
-    type?: string
-    request_id?: string
-    response?: {
-      status?: number
-      data?: {
-        error?: {
-          message?: string
-          type?: string
-          code?: string
-          status?: number
-          request_id?: string
-        }
-      }
-    }
-    error?: {
-      message?: string
-      type?: string
-      code?: string
-      status?: number
-      request_id?: string
-    }
-  }
+  const error = err as any
 
   const providerError = error?.response?.data?.error ?? error?.error
 
@@ -233,36 +200,14 @@ const getPublicDadDaysError = (err: unknown) => {
   ) {
     return {
       status: 429,
-      message:
-        'Dad Days is busy right now. Please wait a minute and try again.',
-    }
-  }
-
-  if (
-    lowerMessage.includes('invalid json') ||
-    lowerMessage.includes('ai returned invalid json')
-  ) {
-    return {
-      status: 502,
-      message:
-        'Dad Days returned unreadable results. Please try again.',
+      message: 'Dad Days is busy right now. Please wait a minute and try again.',
     }
   }
 
   return {
     status: 500,
-    message:
-      'We could not generate Dad Days right now. Please try again shortly.',
+    message: 'We could not generate Dad Days right now. Please try again shortly.',
   }
-}
-
-const logDadDaysError = (err: unknown) => {
-  const details = getDadDaysErrorDetails(err)
-
-  console.error('[dad-days-search] failed', {
-    ...details,
-    raw: err,
-  })
 }
 
 export const maxDuration = 60
@@ -274,24 +219,13 @@ export async function POST(req: NextRequest) {
     const anthropicKey = process.env.ANTHROPIC_API_KEY
 
     if (!anthropicKey || !supabaseUrl || !serviceRoleKey) {
-      const missing = [
-        !anthropicKey && 'ANTHROPIC_API_KEY',
-        !supabaseUrl && 'NEXT_PUBLIC_SUPABASE_URL',
-        !serviceRoleKey && 'SUPABASE_SERVICE_ROLE_KEY',
-      ].filter(Boolean)
-
-      console.error('[dad-days-search] Missing env vars:', missing)
-
       return NextResponse.json(
-        {
-          error: `Server is missing required configuration: ${missing.join(', ')}`,
-        },
-        { status: 503 },
+        { error: 'Server misconfigured' },
+        { status: 503 }
       )
     }
 
     const body = (await req.json()) as Partial<Body>
-
     requestBody = body
 
     const userId = body.userId
@@ -299,26 +233,15 @@ export async function POST(req: NextRequest) {
     const childAge = body.childAge as ChildAge | undefined
 
     if (!userId || !budget || !childAge) {
-      return NextResponse.json(
-        { error: 'invalid_request' },
-        { status: 400 },
-      )
+      return NextResponse.json({ error: 'invalid_request' }, { status: 400 })
     }
 
     const radius = coerceNumber(body.radius, 20)
 
-    const FREE_SEARCH_LIMIT = 3;
+    const FREE_SEARCH_LIMIT = 3
+    let searchesUsed: number | null = null
 
-    console.info('[dad-days-search] request', {
-      userId,
-      budget,
-      childAge,
-      radius,
-      postcode: body.postcode,
-      latitude: body.latitude,
-      longitude: body.longitude,
-      nodeEnv: process.env.NODE_ENV,
-    })
+    console.info('[dad-days-search] request', { userId, budget, childAge })
 
     const { count: hourlyCount } = await supabaseAdmin
       .from('dad_day_searches')
@@ -326,84 +249,50 @@ export async function POST(req: NextRequest) {
       .eq('user_id', userId)
       .gte('searched_at', oneHourAgo())
 
-    if (
-      typeof hourlyCount === 'number' &&
-      hourlyCount >= 10
-    ) {
-      return NextResponse.json(
-        { error: 'rate_limit_exceeded' },
-        { status: 429 },
-      )
+    if (typeof hourlyCount === 'number' && hourlyCount >= 10) {
+      return NextResponse.json({ error: 'rate_limit_exceeded' }, { status: 429 })
     }
 
-    const { data: profile, error: profileErr } =
-  await supabaseAdmin
-    .from('user_profile')
-    .select('is_pro')
-    .eq('user_id', userId)
-    .maybeSingle()
+    const { data: profile } = await supabaseAdmin
+      .from('user_profile')
+      .select('is_pro')
+      .eq('user_id', userId)
+      .maybeSingle()
 
-if (profileErr) {
-  console.error(
-    '[dad-days-search] profile error',
-    profileErr,
-  )
+    const isPro =
+      profile?.is_pro === true ||
+      profile?.is_pro === 'true' ||
+      profile?.is_pro === 1 ||
+      profile?.is_pro === '1'
 
-  return NextResponse.json(
-    {
-      error: 'api_error',
-      message: profileErr.message,
-    },
-    { status: 500 },
-  )
-}
+    if (isPro) {
+      searchesUsed = null
+    } else {
+      const { count } = await supabaseAdmin
+        .from('dad_day_searches')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId)
+        .gte('searched_at', startOfMonth())
 
-    const isPro = Boolean(profile?.is_pro);
+      const used = typeof count === 'number' ? count : 0
+      searchesUsed = used
 
-    let searchesUsed: number | null = null;
-
-if (isPro) {
-  searchesUsed = null;
-} else {
-  const { count } = await supabaseAdmin
-    .from("dad_day_searches")
-    .select("*", { count: "exact", head: true })
-    .eq("user_id", userId)
-    .gte("searched_at", startOfMonth());
-
-  searchesUsed = typeof count === "number" ? count : 0;
-
-  if (searchesUsed >= 3) {
-    return NextResponse.json(
-      {
-        error: "search_limit_reached",
-        searchesUsed,
-        limit: 3,
-      },
-      { status: 403 }
-    );
-  }
-}
-
-    const latitude =
-      typeof body.latitude === 'number'
-        ? body.latitude
-        : undefined
-
-    const longitude =
-      typeof body.longitude === 'number'
-        ? body.longitude
-        : undefined
-
-    const postcode =
-      typeof body.postcode === 'string'
-        ? body.postcode
-        : undefined
+      if (used >= FREE_SEARCH_LIMIT) {
+        return NextResponse.json(
+          {
+            error: 'search_limit_reached',
+            searchesUsed: used,
+            limit: FREE_SEARCH_LIMIT,
+          },
+          { status: 403 }
+        )
+      }
+    }
 
     const prompt = buildPrompt({
-      latitude,
-      longitude,
-      postcode,
+      latitude: body.latitude,
+      longitude: body.longitude,
+      postcode: body.postcode,
       budget,
       radius,
       childAge,
@@ -415,135 +304,42 @@ if (isPro) {
       maxRetries: 0,
     })
 
-    const anthropicModel =
-      process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-6'
-
     const response = (await anthropic.messages.create({
-      model: anthropicModel,
+      model: process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-6',
       max_tokens: 4000,
       temperature: 0.2,
-      system:
-        'You are a UK family activities API. Return ONLY valid JSON.',
-      messages: [
-        {
-          role: 'user',
-          content: prompt,
-        },
-      ],
+      system: 'You are a UK family activities API. Return ONLY valid JSON.',
+      messages: [{ role: 'user', content: prompt }],
     })) as Anthropic.Message
 
-    const textBlock = response.content.find((block) => {
-      return (
-        block &&
-        typeof block === 'object' &&
-        (block as { type?: unknown }).type === 'text'
-      )
-    }) as { type: 'text'; text: string } | undefined
+    const textBlock = response.content.find(
+      (b: any) => b?.type === 'text'
+    ) as any
 
     const text = textBlock?.text ?? ''
 
-    console.log('[dad-days-search] raw ai response', text)
+    const results = getJsonFromText(text) as DadDayResult[]
 
-    const results = getJsonFromText(
-      text,
-    ) as DadDayResult[]
-
-    if (!Array.isArray(results)) {
-      throw new Error('Invalid Dad Days response from AI')
-    }
-
-    const insertPayload = {
+    await supabaseAdmin.from('dad_day_searches').insert({
       user_id: userId,
       budget,
       radius,
       child_age: childAge,
       result_count: results.length,
       searched_at: new Date().toISOString(),
-    }
-
-    const { error: insertError } = await supabaseAdmin
-      .from('dad_day_searches')
-      .insert(insertPayload)
-
-    if (insertError) {
-      console.error(
-        '[dad-days-search] insert error',
-        insertError,
-      )
-
-      throw insertError
-    }
-
-    console.info('[dad-days-search] saved', {
-      userId,
-      resultCount: results.length,
     })
 
     return NextResponse.json({
       results,
-      searchesUsed:
-        isPro || searchesUsed === null
-          ? null
-          : searchesUsed + 1,
+      searchesUsed: isPro ? null : searchesUsed + 1,
       limit: isPro ? null : FREE_SEARCH_LIMIT,
     })
   } catch (err) {
-    const details = getDadDaysErrorDetails(err)
-
-    console.error('[dad-days-search] context', {
-      anthropicModel:
-        process.env.ANTHROPIC_MODEL ||
-        'claude-sonnet-4-6',
-      hasAnthropicKey: Boolean(
-        process.env.ANTHROPIC_API_KEY,
-      ),
-      supabaseUrlConfigured: Boolean(
-        process.env.NEXT_PUBLIC_SUPABASE_URL,
-      ),
-      providerStatus: details.status,
-      providerType: details.type,
-      providerCode: details.code,
-      providerRequestId: details.requestId,
-      providerMessage: details.message,
-      requestBody,
-      raw: err,
-    })
-
-    logDadDaysError(err)
-
     const publicError = getPublicDadDaysError(err)
 
-    let extraMessage: string | null = null
-
-    const message = String(
-      details.message ?? '',
-    ).toLowerCase()
-
-    if (details.status === 404) {
-      extraMessage =
-        'The Dad Days service is temporarily unavailable. Please try again in a few minutes.'
-    } else if (
-      details.status === 401 ||
-      details.status === 403
-    ) {
-      extraMessage =
-        'The AI service is currently unavailable. Please try again later.'
-    } else if (details.status === 429) {
-      extraMessage =
-        'Too many requests right now. Please wait a minute and try again.'
-    } else if (message.includes('timeout')) {
-      extraMessage =
-        'Dad Days took too long to respond. Please try again.'
-    } else if (message.includes('invalid json')) {
-      extraMessage =
-        'The AI returned invalid Dad Days data. Please try again.'
-    }
-
     return NextResponse.json(
-      {
-        error: extraMessage ?? publicError.message,
-      },
-      { status: publicError.status },
+      { error: publicError.message },
+      { status: publicError.status }
     )
   }
 }
