@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@supabase/supabase-js'
+import { isProSubscriptionStatus } from '@/lib/stripe/subscription'
+
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
@@ -255,15 +257,22 @@ export async function POST(req: NextRequest) {
 
     const { data: profile } = await supabaseAdmin
       .from('user_profile')
-      .select('is_pro')
+      .select('is_pro, subscription_status')
       .eq('user_id', userId)
       .maybeSingle()
 
+    const p = profile as {
+      is_pro?: boolean | string | number | null
+      subscription_status?: string | null
+    } | null
+
     const isPro =
-      profile?.is_pro === true ||
-      profile?.is_pro === 'true' ||
-      profile?.is_pro === 1 ||
-      profile?.is_pro === '1'
+      p?.is_pro === true ||
+      p?.is_pro === 'true' ||
+      p?.is_pro === 1 ||
+      p?.is_pro === '1' ||
+      isProSubscriptionStatus(p?.subscription_status)
+
 
     if (isPro) {
       searchesUsed = null
