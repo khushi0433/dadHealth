@@ -373,6 +373,13 @@ if (profileErr) {
 
       searchesUsed =
         typeof count === 'number' ? count : 0
+        console.log('[dad-days-search] profile', profile)
+
+  console.log('[dad-days-search] limit check', {
+    isPro,
+    searchesUsed,
+    searchesPerMonth,
+  })
 
       if (searchesUsed >= searchesPerMonth) {
         return NextResponse.json(
