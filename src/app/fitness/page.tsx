@@ -298,8 +298,8 @@ const FitnessPage = () => {
 
   const [calorieTarget, setCalorieTarget] = useState("2200");
   const [preferences, setPreferences] = useState("High-protein, no fish");
-  const [mealsPerDay, setMealsPerDay] = useState(4);
-  const [adults, setAdults] = useState(1);
+  const [mealsPerDay, setMealsPerDay] = useState<number | "">(4);
+  const [adults, setAdults] = useState<number | "">(1);
 
   const generateMealPlan = useMutation<any, Error, {
     calorieTarget: number;
@@ -423,8 +423,8 @@ const FitnessPage = () => {
     generateMealPlan.mutate({
       calorieTarget: Number(calorieTarget),
       preferences: preferences.trim(),
-      mealsPerDay: Number(mealsPerDay),
-      adults: Number(adults),
+      mealsPerDay: Number(mealsPerDay || 1),
+      adults: Number(adults || 1),
     });
   };
 
@@ -783,7 +783,10 @@ const FitnessPage = () => {
                             min={1}
                             max={6}
                             value={mealsPerDay}
-                            onChange={(event) => setMealsPerDay(Number(event.target.value))}
+                            onChange={(event) => {
+  const value = event.target.value;
+  setMealsPerDay(value === "" ? "" : Number(value));
+}}
                             className="rounded-lg border border-border bg-background px-4 py-3 text-sm text-foreground outline-none focus:border-primary"
                           />
                         </label>
@@ -807,7 +810,10 @@ const FitnessPage = () => {
                             type="number"
                             min={1}
                             value={adults}
-                            onChange={(event) => setAdults(Number(event.target.value))}
+                            onChange={(event) => {
+  const value = event.target.value;
+  setAdults(value === "" ? "" : Number(value));
+}}
                             className="w-28 rounded-lg border border-border bg-background px-4 py-3 text-sm text-foreground outline-none focus:border-primary"
                           />
                         </label>
