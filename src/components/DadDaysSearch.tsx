@@ -37,7 +37,8 @@ const DadDaysSearch = ({ userId, onResultsSaved }: DadDaysSearchProps) => {
   const [showResults, setShowResults] = useState(false);
   const [searchesUsed, setSearchesUsed] = useState(0);
   const [savingResultId, setSavingResultId] = useState<string | null>(null);
-  const [showSearchControls, setShowSearchControls] = useState(true);
+  // Removed show/hide gating for search controls so the UI never disappears on search.
+
 
   // Load saved radius preference and fetch search count on mount
   useEffect(() => {
@@ -201,7 +202,8 @@ const DadDaysSearch = ({ userId, onResultsSaved }: DadDaysSearchProps) => {
       } else {
         setResults(data.results);
         setShowResults(true);
-        setShowSearchControls(false);
+      // keep search controls visible (removed show/hide gating)
+
       }
 
       trackEvent("dad_days_search_completed", {
@@ -278,8 +280,8 @@ const DadDaysSearch = ({ userId, onResultsSaved }: DadDaysSearchProps) => {
     <section className="py-8 border-b border-border w-full">
       <span className="section-label !p-0 mb-6 block">FIND DAD DAYS NEAR YOU</span>
 
-      {showSearchControls && (
       <div className="space-y-6 w-full">
+
         {/* Location Section */}
           <div>
           <div className="flex gap-2 mb-3">
@@ -533,8 +535,8 @@ const DadDaysSearch = ({ userId, onResultsSaved }: DadDaysSearchProps) => {
           </div>
         )}
       </div>
-      )}
       </section>
+
   );
 };
 
