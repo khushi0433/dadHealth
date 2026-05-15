@@ -124,8 +124,10 @@ Rules:
 - use British English wording only where language appears`;
 
     const ai = await anthropic.messages.create({
-      model: "claude-3-5-sonnet-latest",
-      max_tokens: 1800,
+      model: "claude-sonnet-4-6",
+      max_tokens: 4000,
+      temperature: 0.7,
+      system: "You are a helpful fitness coach that creates workout plans for busy UK dads. You understand the constraints of time, equipment, and common fitness goals for this audience.",
       messages: [{ role: "user", content: prompt }],
     });
 
