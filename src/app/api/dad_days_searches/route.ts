@@ -307,9 +307,7 @@ export async function POST(req: NextRequest) {
 
     const radius = coerceNumber(body.radius, 20)
 
-    const searchesPerMonth = Number(
-      process.env.NEXT_PUBLIC_SEARCHES_PER_MONTH || '3',
-    )
+    const FREE_SEARCH_LIMIT = 3;
 
     console.info('[dad-days-search] request', {
       userId,
@@ -360,38 +358,32 @@ if (profileErr) {
   )
 }
 
-    const isPro = !!profile?.is_pro === true;
+    const isPro = Boolean(profile?.is_pro);
 
-    let searchesUsed: number | null = null
+    let searchesUsed: number | null = null;
 
-    if (!isPro) {
-      const { count } = await supabaseAdmin
-        .from('dad_day_searches')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', userId)
-        .gte('searched_at', startOfMonth())
+if (isPro) {
+  searchesUsed = null;
+} else {
+  const { count } = await supabaseAdmin
+    .from("dad_day_searches")
+    .select("*", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .gte("searched_at", startOfMonth());
 
-      searchesUsed =
-        typeof count === 'number' ? count : 0
-        console.log('[dad-days-search] profile', profile)
+  searchesUsed = typeof count === "number" ? count : 0;
 
-  console.log('[dad-days-search] limit check', {
-    isPro,
-    searchesUsed,
-    searchesPerMonth,
-  })
-
-      if (searchesUsed >= searchesPerMonth) {
-        return NextResponse.json(
-          {
-            error: 'search_limit_reached',
-            searchesUsed: searchesPerMonth,
-            limit: searchesPerMonth,
-          },
-          { status: 403 },
-        )
-      }
-    }
+  if (searchesUsed >= 3) {
+    return NextResponse.json(
+      {
+        error: "search_limit_reached",
+        searchesUsed,
+        limit: 3,
+      },
+      { status: 403 }
+    );
+  }
+}
 
     const latitude =
       typeof body.latitude === 'number'
@@ -493,7 +485,7 @@ if (profileErr) {
         isPro || searchesUsed === null
           ? null
           : searchesUsed + 1,
-      limit: isPro ? null : searchesPerMonth,
+      limit: isPro ? null : FREE_SEARCH_LIMIT,
     })
   } catch (err) {
     const details = getDadDaysErrorDetails(err)
