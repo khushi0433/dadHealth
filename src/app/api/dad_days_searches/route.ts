@@ -360,7 +360,7 @@ if (profileErr) {
   )
 }
 
-const isPro = !!profile?.is_pro
+    const isPro = !!profile?.is_pro === true;
 
     let searchesUsed: number | null = null
 
