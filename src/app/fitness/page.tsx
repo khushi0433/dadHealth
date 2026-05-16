@@ -382,14 +382,25 @@ const FitnessPage = () => {
       ? `${Number.isInteger(bestRunMetric.value) ? bestRunMetric.value : Number(bestRunMetric.value).toFixed(1)}km`
       : "—";
 
+  const latestStepsMetric = bodyMetrics.find((m: { metric_type: string }) => m.metric_type === "steps");
+  const latestActiveMinsMetric = bodyMetrics.find((m: { metric_type: string }) => m.metric_type === "active_mins");
+  const latestStepsDisplay =
+    user && latestStepsMetric?.value != null
+      ? Number(latestStepsMetric.value).toLocaleString()
+      : "â€”";
+  const wearableActiveDisplay =
+    user && latestActiveMinsMetric?.value != null
+      ? `${Math.round(Number(latestActiveMinsMetric.value))} min`
+      : null;
+
   const progressStats = [
     { value: user ? String(monthWorkouts) : "—", label: "WORKOUTS" },
     {
       value: user && prevWeight && latestWeight ? `${prevWeight.value}→${latestWeight.value}kg` : "—",
       label: "WEIGHT",
     },
-    { value: bestRunDisplay, label: "BEST RUN" },
-    { value: timerSec > 0 ? formatTime(timerSec) : "0 min", label: "ACTIVE TODAY" },
+    { value: latestStepsDisplay, label: "STEPS" },
+    { value: wearableActiveDisplay ?? (timerSec > 0 ? formatTime(timerSec) : "0 min"), label: "ACTIVE TODAY" },
   ];
 
   const planData = (generateMealPlan.data as any)?.plan ?? activeMealPlan?.plan ?? null;
