@@ -234,8 +234,11 @@ create table if not exists milestones (
   date date not null,
   text text not null,
   tag text not null,
+  photo_url text,
   created_at timestamptz default now()
 );
+
+alter table milestones add column if not exists photo_url text;
 
 -- dad_dates
 create table if not exists dad_dates (
@@ -796,6 +799,60 @@ create index if not exists idx_recipes_cook_together on recipes(cook_together);
 create index if not exists idx_recipes_filters on recipes(difficulty, age_min, prep_mins);
 create index if not exists idx_user_saved_recipes_user on user_saved_recipes(user_id);
 create index if not exists idx_bond_logs_user_created on bond_logs(user_id, created_at desc);
+
+-- Milestone photos
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'milestone-photos',
+  'milestone-photos',
+  true,
+  10485760,
+  array['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+)
+on conflict (id) do update
+set public = excluded.public,
+    file_size_limit = excluded.file_size_limit,
+    allowed_mime_types = excluded.allowed_mime_types;
+
+drop policy if exists "Users can view own milestone photos" on storage.objects;
+create policy "Users can view own milestone photos"
+on storage.objects
+for select
+using (
+  bucket_id = 'milestone-photos'
+  and auth.uid()::text = split_part(name, '/', 1)
+);
+
+drop policy if exists "Users can insert own milestone photos" on storage.objects;
+create policy "Users can insert own milestone photos"
+on storage.objects
+for insert
+with check (
+  bucket_id = 'milestone-photos'
+  and auth.uid()::text = split_part(name, '/', 1)
+);
+
+drop policy if exists "Users can update own milestone photos" on storage.objects;
+create policy "Users can update own milestone photos"
+on storage.objects
+for update
+using (
+  bucket_id = 'milestone-photos'
+  and auth.uid()::text = split_part(name, '/', 1)
+)
+with check (
+  bucket_id = 'milestone-photos'
+  and auth.uid()::text = split_part(name, '/', 1)
+);
+
+drop policy if exists "Users can delete own milestone photos" on storage.objects;
+create policy "Users can delete own milestone photos"
+on storage.objects
+for delete
+using (
+  bucket_id = 'milestone-photos'
+  and auth.uid()::text = split_part(name, '/', 1)
+);
 
 create unique index if not exists limit_posts_per_hour
 on posts(user_id, date_trunc('hour', created_at AT TIME ZONE 'UTC'));

@@ -151,10 +151,10 @@ export interface MealPlan {
     kcal: number | null
     created_at: string
     source: 'admin' | 'ai_generated' | 'user_custom'
-    grocery_list: any
-    preferences: any
+    grocery_list: unknown
+    preferences: unknown
     adults: number
-    plan: any
+    plan: unknown
   };
 }
 
@@ -199,6 +199,7 @@ export interface Milestone {
   date: string;
   text: string;
   tag: string;
+  photo_url?: string | null;
   created_at?: string;
 }
 

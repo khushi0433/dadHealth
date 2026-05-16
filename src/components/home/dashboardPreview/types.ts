@@ -46,4 +46,5 @@ export type MilestoneItem = {
   id: string;
   date: string;
   text: string;
+  photo_url?: string | null;
 };

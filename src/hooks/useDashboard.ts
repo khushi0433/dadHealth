@@ -74,7 +74,7 @@ async function fetchDashboard(userId: string) {
       .lte("date", monthEndDate),
     supabase
       .from("milestones")
-      .select("id, date, text")
+      .select("id, date, text, photo_url")
       .eq("user_id", userId)
       .order("date", { ascending: false })
       .limit(8),

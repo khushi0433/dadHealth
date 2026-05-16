@@ -1,8 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { FormEvent } from "react";
 import { format } from "date-fns";
-import { Lock } from "lucide-react";
+import { Camera, ImagePlus, Lock, Trash2, X } from "lucide-react";
+import imageCompression from "browser-image-compression";
 import CookTogetherRecipes from "@/components/CookTogetherRecipes";
 import DadDaysSearch from "@/components/DadDaysSearch";
 import SitePageShell from "@/components/SitePageShell";
@@ -17,6 +19,13 @@ import { useUpdateProfile, useUserProfile } from "@/hooks/useUserProfile";
 import type { DadDaysBudget, DadDaysChildAge, DadDaysSearchResult } from "@/types/dadDays";
 import { supabase } from "@/utils/supabaseClient";
 import PromptModal from "@/components/PromptModal";
+import { toast } from "@/hooks/use-toast";
+import {
+  MILESTONE_PHOTO_CLIENT_MAX_EDGE,
+  MILESTONE_PHOTO_CLIENT_MAX_MB,
+  MILESTONE_STORAGE_LIMIT_BYTES,
+  MILESTONE_STORAGE_WARN_BYTES,
+} from "@/lib/milestonePhotos";
 
 
 
@@ -33,14 +42,44 @@ type DadDateRow = {
 
 type DadDateDisplay = DadDateRow & { time: string };
 
+type MilestoneRow = {
+  id: string;
+  date: string;
+  text: string;
+  tag: string;
+  photo_url?: string | null;
+};
+
+function formatStorage(bytes: number) {
+  return `${Math.round((bytes / 1024 / 1024) * 10) / 10}MB`;
+}
+
 const BondPage = () => {
   const { user } = useAuth();
   const { isPro, showPaywall } = useProStatus();
-  const { dadDates, milestones, prompts } = useBond(user?.id);
+  const {
+    dadDates,
+    milestones,
+    prompts,
+    milestoneStorageBytes,
+    saveMilestone,
+    uploadMilestonePhoto,
+    deleteMilestonePhoto,
+  } = useBond(user?.id);
 
   const [presentMode, setPresentMode] = useState(false);
   const [dateFilter, setDateFilter] = useState("all");
   const [refreshKey, setRefreshKey] = useState(0);
+  const [milestoneDate, setMilestoneDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [milestoneText, setMilestoneText] = useState("");
+  const [milestoneTag, setMilestoneTag] = useState("moment");
+  const [formPhoto, setFormPhoto] = useState<File | null>(null);
+  const [formPhotoPreview, setFormPhotoPreview] = useState<string | null>(null);
+  const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
+  const [photoUploadTarget, setPhotoUploadTarget] = useState<string | null>(null);
+  const [storageWarningShown, setStorageWarningShown] = useState(false);
+  const formPhotoInputRef = useRef<HTMLInputElement | null>(null);
+  const cardPhotoInputRef = useRef<HTMLInputElement | null>(null);
 
   const dates: DadDateDisplay[] = (dadDates as DadDateRow[]).map((d) => ({
     ...d,
@@ -76,8 +115,28 @@ const BondPage = () => {
     return true;
   });
 
-  const displayMilestones = milestones;
+  const displayMilestones = milestones as MilestoneRow[];
   const conversationStarters = prompts.map((p: { prompt: string }) => p.prompt);
+  const storageNearLimit = milestoneStorageBytes >= MILESTONE_STORAGE_WARN_BYTES;
+
+  useEffect(() => {
+    if (!formPhoto) {
+      setFormPhotoPreview(null);
+      return;
+    }
+
+    const nextUrl = URL.createObjectURL(formPhoto);
+    setFormPhotoPreview(nextUrl);
+    return () => URL.revokeObjectURL(nextUrl);
+  }, [formPhoto]);
+
+  useEffect(() => {
+    if (!isPro || storageWarningShown || !storageNearLimit) return;
+    setStorageWarningShown(true);
+    toast({
+      description: `Milestone photos are using ${formatStorage(milestoneStorageBytes)} of ${formatStorage(MILESTONE_STORAGE_LIMIT_BYTES)}.`,
+    });
+  }, [isPro, milestoneStorageBytes, storageNearLimit, storageWarningShown]);
 
   const handlePresentModeToggle = () => {
     const nextValue = !presentMode;
@@ -85,6 +144,95 @@ const BondPage = () => {
     trackEvent("present_dad_mode_toggled", {
       enabled: nextValue,
     });
+  };
+
+  const compressPhoto = async (file: File) => {
+    return imageCompression(file, {
+      maxSizeMB: MILESTONE_PHOTO_CLIENT_MAX_MB,
+      maxWidthOrHeight: MILESTONE_PHOTO_CLIENT_MAX_EDGE,
+      useWebWorker: true,
+      fileType: "image/jpeg",
+    });
+  };
+
+  const handleFormPhotoSelected = async (file: File | null) => {
+    if (!file) return;
+    if (!isPro) {
+      showPaywall("Milestone photo uploads");
+      return;
+    }
+
+    try {
+      setFormPhoto(await compressPhoto(file));
+    } catch {
+      toast({ description: "Unable to prepare that photo. Try another image.", variant: "destructive" });
+    }
+  };
+
+  const handleCardPhotoSelected = async (file: File | null) => {
+    if (!file || !photoUploadTarget) return;
+    if (!isPro) {
+      showPaywall("Milestone photo uploads");
+      return;
+    }
+
+    try {
+      const compressed = await compressPhoto(file);
+      await uploadMilestonePhoto.mutateAsync({ milestoneId: photoUploadTarget, file: compressed });
+      toast({ description: "Milestone photo saved." });
+    } catch (error) {
+      toast({
+        description: error instanceof Error ? error.message : "Unable to upload milestone photo.",
+        variant: "destructive",
+      });
+    } finally {
+      setPhotoUploadTarget(null);
+      if (cardPhotoInputRef.current) cardPhotoInputRef.current.value = "";
+    }
+  };
+
+  const handleSaveMilestone = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!user) return;
+
+    const text = milestoneText.trim();
+    const tag = milestoneTag.trim() || "moment";
+    if (!text) {
+      toast({ description: "Add a short milestone note first.", variant: "destructive" });
+      return;
+    }
+
+    try {
+      const saved = await saveMilestone.mutateAsync({
+        date: milestoneDate,
+        text,
+        tag,
+      });
+
+      if (formPhoto) {
+        await uploadMilestonePhoto.mutateAsync({ milestoneId: saved.id, file: formPhoto });
+      }
+
+      setMilestoneText("");
+      setMilestoneTag("moment");
+      setFormPhoto(null);
+      if (formPhotoInputRef.current) formPhotoInputRef.current.value = "";
+      toast({ description: "Milestone saved." });
+    } catch (error) {
+      toast({
+        description: error instanceof Error ? error.message : "Unable to save milestone.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const openCardPhotoPicker = (milestoneId: string) => {
+    if (!isPro) {
+      showPaywall("Milestone photo uploads");
+      return;
+    }
+    setPhotoUploadTarget(milestoneId);
+    cardPhotoInputRef.current?.click();
   };
 
   return (
@@ -185,12 +333,129 @@ const BondPage = () => {
             <span className="section-label !p-0 mb-12 block">MILESTONE TRACKER</span>
             {isPro ? (
               <div className="w-full">
-                {displayMilestones.length > 0 ? displayMilestones.map((m: { date: string; text: string; tag: string }) => (
-                  <div key={m.text} className="flex gap-3 items-start py-3 border-b border-border last:border-b-0">
+                <form onSubmit={handleSaveMilestone} className="rounded-lg border border-border bg-card p-4 mb-5">
+                  <div className="grid gap-3">
+                    <input
+                      type="date"
+                      value={milestoneDate}
+                      onChange={(event) => setMilestoneDate(event.target.value)}
+                      className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                    />
+                    <textarea
+                      value={milestoneText}
+                      onChange={(event) => setMilestoneText(event.target.value)}
+                      rows={3}
+                      placeholder="First bike ride, school play, big laugh..."
+                      className="min-h-[86px] rounded-md border border-input bg-background px-3 py-2 text-sm resize-none"
+                    />
+                    <input
+                      type="text"
+                      value={milestoneTag}
+                      onChange={(event) => setMilestoneTag(event.target.value)}
+                      placeholder="tag"
+                      className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                    />
+                  </div>
+
+                  {formPhotoPreview && (
+                    <div className="mt-3 relative overflow-hidden rounded-lg border border-border bg-background">
+                      <img src={formPhotoPreview} alt="Selected milestone" className="h-28 w-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFormPhoto(null);
+                          if (formPhotoInputRef.current) formPhotoInputRef.current.value = "";
+                        }}
+                        className="absolute right-2 top-2 inline-flex h-8 w-8 items-center justify-center rounded-full bg-background/90 text-foreground hover:bg-background"
+                      >
+                        <X className="h-4 w-4" aria-hidden="true" />
+                        <span className="sr-only">Remove selected photo</span>
+                      </button>
+                    </div>
+                  )}
+
+                  <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+                    <button
+                      type="button"
+                      onClick={() => formPhotoInputRef.current?.click()}
+                      className="inline-flex items-center gap-2 rounded-md border border-input bg-background px-3 py-2 text-xs font-semibold hover:bg-accent hover:text-accent-foreground"
+                    >
+                      <ImagePlus className="h-4 w-4" aria-hidden="true" />
+                      {formPhoto ? "Change photo" : "Add photo"}
+                    </button>
+                    <LimeButton type="submit" disabled={saveMilestone.isPending || uploadMilestonePhoto.isPending}>
+                      {saveMilestone.isPending || uploadMilestonePhoto.isPending ? "SAVING..." : "SAVE MILESTONE ->"}
+                    </LimeButton>
+                  </div>
+                  <input
+                    ref={formPhotoInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(event) => void handleFormPhotoSelected(event.target.files?.[0] ?? null)}
+                  />
+                </form>
+
+                {storageNearLimit && (
+                  <div className="mb-4 rounded-lg border border-primary/30 bg-primary/10 px-3 py-2 text-xs text-muted-foreground">
+                    Photo storage: {formatStorage(milestoneStorageBytes)} of {formatStorage(MILESTONE_STORAGE_LIMIT_BYTES)}.
+                  </div>
+                )}
+
+                <input
+                  ref={cardPhotoInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(event) => void handleCardPhotoSelected(event.target.files?.[0] ?? null)}
+                />
+                {displayMilestones.length > 0 ? displayMilestones.map((m) => (
+                  <div key={m.id} className="flex gap-3 items-start py-3 border-b border-border last:border-b-0">
                     <span className="tag-pill shrink-0">{m.date ? format(new Date(m.date), "d MMM") : "—"}</span>
                     <div className="flex-1 min-w-0">
+                      {m.photo_url && (
+                        <button
+                          type="button"
+                          onClick={() => setSelectedPhoto(m.photo_url ?? null)}
+                          className="mb-3 block w-full overflow-hidden rounded-lg border border-border bg-background"
+                        >
+                          <img src={m.photo_url} alt={m.text} className="h-32 w-full object-cover transition-transform hover:scale-[1.02]" />
+                        </button>
+                      )}
                       <p className="text-sm text-foreground/70 leading-relaxed">{m.text}</p>
-                      <span className="tag-pill-dark mt-2 inline-block">{m.tag}</span>
+                      <div className="mt-2 flex flex-wrap items-center gap-2">
+                        <span className="tag-pill-dark inline-block">{m.tag}</span>
+                        <button
+                          type="button"
+                          onClick={() => openCardPhotoPicker(m.id)}
+                          disabled={uploadMilestonePhoto.isPending}
+                          className="inline-flex items-center gap-1 rounded-md border border-input bg-background px-2 py-1 text-[10px] font-semibold uppercase text-muted-foreground hover:text-foreground disabled:opacity-50"
+                        >
+                          <Camera className="h-3.5 w-3.5" aria-hidden="true" />
+                          {m.photo_url ? "Replace" : "Photo"}
+                        </button>
+                        {m.photo_url && (
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              try {
+                                await deleteMilestonePhoto.mutateAsync(m.id);
+                                toast({ description: "Milestone photo removed." });
+                              } catch (error) {
+                                toast({
+                                  description: error instanceof Error ? error.message : "Unable to remove milestone photo.",
+                                  variant: "destructive",
+                                });
+                              }
+                            }}
+                            disabled={deleteMilestonePhoto.isPending}
+                            className="inline-flex items-center gap-1 rounded-md border border-input bg-background px-2 py-1 text-[10px] font-semibold uppercase text-muted-foreground hover:text-foreground disabled:opacity-50"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                            Remove
+                          </button>
+                        )}
+                      </div>
                     </div>
                   </div>
                 )) : (
@@ -199,7 +464,10 @@ const BondPage = () => {
               </div>
             ) : (
               <div className="flex flex-col items-center p-6 lg:p-8 bg-background/50 border border-border rounded-lg text-center gap-2 w-full">
-                <Lock className="h-12 w-12 text-primary" strokeWidth={1.5} aria-hidden="true" />
+                <div className="relative">
+                  <Lock className="h-12 w-12 text-primary" strokeWidth={1.5} aria-hidden="true" />
+                  <Camera className="absolute -right-2 -bottom-1 h-5 w-5 rounded-full bg-background text-primary" aria-hidden="true" />
+                </div>
                 <p className="text-xs font-bold text-foreground">Pro Feature</p>
                 <p className="text-[10px] text-muted-foreground max-w-sm">Words are good. Photos last forever.</p>
                 <button
@@ -233,6 +501,27 @@ const BondPage = () => {
       </div>
 
       <SiteFooter />
+      {selectedPhoto && (
+        <div
+          className="fixed inset-0 z-[120] flex items-center justify-center bg-background/90 p-4"
+          onClick={() => setSelectedPhoto(null)}
+        >
+          <button
+            type="button"
+            onClick={() => setSelectedPhoto(null)}
+            className="absolute right-4 top-4 inline-flex h-10 w-10 items-center justify-center rounded-full border border-border bg-card text-foreground hover:bg-accent"
+          >
+            <X className="h-5 w-5" aria-hidden="true" />
+            <span className="sr-only">Close photo</span>
+          </button>
+          <img
+            src={selectedPhoto}
+            alt="Milestone"
+            className="max-h-[88vh] max-w-[92vw] rounded-lg object-contain"
+            onClick={(event) => event.stopPropagation()}
+          />
+        </div>
+      )}
     </SitePageShell>
   );
 };

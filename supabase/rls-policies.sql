@@ -83,6 +83,46 @@ create policy "Users can CRUD own journal_entries" on journal_entries for all us
 drop policy if exists "Users can CRUD own milestones" on milestones;
 create policy "Users can CRUD own milestones" on milestones for all using (auth.uid() = user_id);
 
+drop policy if exists "Users can view own milestone photos" on storage.objects;
+create policy "Users can view own milestone photos"
+on storage.objects
+for select
+using (
+  bucket_id = 'milestone-photos'
+  and auth.uid()::text = split_part(name, '/', 1)
+);
+
+drop policy if exists "Users can insert own milestone photos" on storage.objects;
+create policy "Users can insert own milestone photos"
+on storage.objects
+for insert
+with check (
+  bucket_id = 'milestone-photos'
+  and auth.uid()::text = split_part(name, '/', 1)
+);
+
+drop policy if exists "Users can update own milestone photos" on storage.objects;
+create policy "Users can update own milestone photos"
+on storage.objects
+for update
+using (
+  bucket_id = 'milestone-photos'
+  and auth.uid()::text = split_part(name, '/', 1)
+)
+with check (
+  bucket_id = 'milestone-photos'
+  and auth.uid()::text = split_part(name, '/', 1)
+);
+
+drop policy if exists "Users can delete own milestone photos" on storage.objects;
+create policy "Users can delete own milestone photos"
+on storage.objects
+for delete
+using (
+  bucket_id = 'milestone-photos'
+  and auth.uid()::text = split_part(name, '/', 1)
+);
+
 drop policy if exists "Allow read posts" on posts;
 create policy "Allow read posts" on posts for select using (true);
 
