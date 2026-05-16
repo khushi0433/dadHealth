@@ -78,6 +78,7 @@ export interface SleepLog {
   user_id: string;
   date: string;
   hours: number;
+  source?: "manual" | "garmin" | "fitbit";
   created_at?: string;
 }
 
@@ -164,7 +165,17 @@ export interface BodyMetric {
   metric_type: string;
   value: number;
   recorded_at: string;
+  source?: "manual" | "garmin" | "fitbit";
   created_at?: string;
+}
+
+export interface UserIntegration {
+  id: string;
+  user_id: string;
+  provider: "garmin" | "fitbit";
+  device_name?: string | null;
+  connected_at?: string | null;
+  last_sync_at?: string | null;
 }
 
 export interface JournalEntry {
