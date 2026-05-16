@@ -144,7 +144,9 @@ async function fetchDashboard(userId: string) {
   const badges = earnedBadgesRes.error
     ? []
     : (earnedBadgesRes.data ?? [])
-        .map((row: { badges?: { icon?: string; name?: string } | null }) => row.badges)
+        .map((row: { badges?: { icon?: string; name?: string } | { icon?: string; name?: string }[] | null }) =>
+          Array.isArray(row.badges) ? row.badges[0] : row.badges
+        )
         .filter((badge): badge is { icon: string; name: string } => Boolean(badge?.icon && badge?.name));
 
   const mind = typeof score?.mind_score === "number" ? score.mind_score : null;
@@ -257,9 +259,23 @@ export function useDashboard(userId?: string) {
   const checkIn = useMutation({
     mutationFn: async ({ mood_value, sleep_hours }: { mood_value: number; sleep_hours: number }) => {
       if (!userId) throw new Error("Not authenticated");
+      const { data: existingSleep } = await supabase
+        .from("sleep_logs")
+        .select("source")
+        .eq("user_id", userId)
+        .eq("date", date)
+        .maybeSingle();
+
+      const sleepWrite =
+        existingSleep?.source === "garmin" || existingSleep?.source === "fitbit"
+          ? Promise.resolve()
+          : supabase
+              .from("sleep_logs")
+              .upsert({ user_id: userId, date, hours: sleep_hours, source: "manual" }, { onConflict: "user_id,date" });
+
       await Promise.all([
         supabase.from("mood_logs").upsert({ user_id: userId, date, mood_value }, { onConflict: "user_id,date" }),
-        supabase.from("sleep_logs").upsert({ user_id: userId, date, hours: sleep_hours }, { onConflict: "user_id,date" }),
+        sleepWrite,
       ]);
       const streakCount = await updateStreak(supabase, userId);
       trackEvent("check_in", {

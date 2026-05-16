@@ -7,14 +7,18 @@ function calcScore(
   moodAvg: number | null,
   sleepAvg: number | null,
   workoutCount: number,
-  journalCount: number
+  journalCount: number,
+  stepsAvg: number | null,
+  activeMinsAvg: number | null
 ): number | null {
   if (moodAvg == null || sleepAvg == null) return null;
   const moodScore = Math.min(100, (moodAvg / 4) * 30);
   const sleepScore = Math.min(30, (sleepAvg / 8) * 30);
-  const workoutScore = Math.min(25, workoutCount * 3);
+  const workoutScore = Math.min(15, workoutCount * 3);
+  const stepsScore = stepsAvg == null ? 0 : Math.min(15, (stepsAvg / 10000) * 15);
+  const activeMinsScore = activeMinsAvg == null ? 0 : Math.min(10, (activeMinsAvg / 30) * 10);
   const journalScore = Math.min(15, journalCount * 2);
-  return Math.round(Math.min(100, moodScore + sleepScore + workoutScore + journalScore));
+  return Math.round(Math.min(100, moodScore + sleepScore + workoutScore + stepsScore + activeMinsScore + journalScore));
 }
 
 export function useProgress(userId?: string) {
@@ -29,6 +33,8 @@ export function useProgress(userId?: string) {
           moodLogs: [],
           badges: [],
           earnedBadges: [],
+          integrations: [],
+          bodyMetrics: [],
         };
       }
 
@@ -53,6 +59,8 @@ export function useProgress(userId?: string) {
         moodMonthRes,
         badgesRes,
         earnedBadgesRes,
+        bodyMetricsRes,
+        integrationsRes,
       ] = await Promise.all([
         supabase.from("mood_logs").select("date, mood_value").eq("user_id", userId).gte("date", start).lte("date", end),
         supabase.from("sleep_logs").select("*").eq("user_id", userId).order("date", { ascending: false }).limit(14),
@@ -94,6 +102,18 @@ export function useProgress(userId?: string) {
           .from("earned_badges")
           .select("badge_id, badges(icon, name)")
           .eq("user_id", userId),
+        supabase
+          .from("body_metrics")
+          .select("metric_type,value,recorded_at,source")
+          .eq("user_id", userId)
+          .gte("recorded_at", start)
+          .lte("recorded_at", end + "T23:59:59")
+          .order("recorded_at", { ascending: false }),
+        supabase
+          .from("user_integrations")
+          .select("provider,device_name,last_sync_at,connected_at")
+          .eq("user_id", userId)
+          .order("last_sync_at", { ascending: false, nullsFirst: false }),
       ]);
 
       const moodAvg =
@@ -106,9 +126,31 @@ export function useProgress(userId?: string) {
           : null;
       const workoutCount = workoutRes.count ?? 0;
       const journalCount = journalRes.count ?? 0;
-      const score = calcScore(moodAvg, sleepAvg, workoutCount, journalCount);
+      const bodyMetricRows = (bodyMetricsRes.data ?? []) as Array<{
+        metric_type: string;
+        value: number;
+        recorded_at: string;
+        source?: string | null;
+      }>;
+      const stepsRows = bodyMetricRows.filter((m) => m.metric_type === "steps");
+      const activeRows = bodyMetricRows.filter((m) => m.metric_type === "active_mins");
+      const stepsAvg =
+        stepsRows.length > 0
+          ? stepsRows.reduce((sum, row) => sum + Number(row.value ?? 0), 0) / stepsRows.length
+          : null;
+      const activeMinsAvg =
+        activeRows.length > 0
+          ? activeRows.reduce((sum, row) => sum + Number(row.value ?? 0), 0) / activeRows.length
+          : null;
+      const score = calcScore(moodAvg, sleepAvg, workoutCount, journalCount, stepsAvg, activeMinsAvg);
       const mind = moodAvg == null ? null : Math.round((moodAvg / 4) * 100);
-      const body = Math.round(Math.min(100, workoutCount * 15));
+      const body = Math.round(Math.min(
+        100,
+        Math.min(30, ((sleepAvg ?? 0) / 8) * 30) +
+          Math.min(30, workoutCount * 8) +
+          (stepsAvg == null ? 0 : Math.min(25, (stepsAvg / 10000) * 25)) +
+          (activeMinsAvg == null ? 0 : Math.min(15, (activeMinsAvg / 30) * 15))
+      ));
       const bond = Math.round(Math.min(100, journalCount * 20));
 
       const workouts = workoutMonthRes.count ?? 0;
@@ -135,10 +177,13 @@ export function useProgress(userId?: string) {
               : "Low";
 
       const earnedBadges = (earnedBadgesRes.data ?? [])
-        .map((e: { badge_id: string; badges: { icon: string; name: string } }) => ({
-          icon: e.badges?.icon,
-          name: e.badges?.name,
-        }))
+        .map((e: { badge_id: string; badges: { icon: string; name: string } | { icon: string; name: string }[] | null }) => {
+          const badge = Array.isArray(e.badges) ? e.badges[0] : e.badges;
+          return {
+            icon: badge?.icon,
+            name: badge?.name,
+          };
+        })
         .filter((b): b is { icon: string; name: string } => Boolean(b.icon && b.name));
 
       return {
@@ -162,6 +207,8 @@ export function useProgress(userId?: string) {
         moodLogs: moodRes.data ?? [],
         badges: badgesRes.data ?? [],
         earnedBadges,
+        bodyMetrics: bodyMetricRows,
+        integrations: integrationsRes.data ?? [],
       };
     },
     enabled: true,
