@@ -4,6 +4,8 @@
 -- EXTENSIONS
 -- =========================
 create extension if not exists "pgcrypto";
+create extension if not exists "pg_cron";
+create extension if not exists "pg_net";
 
 -- =========================
 -- TABLES
@@ -26,9 +28,11 @@ create table if not exists sleep_logs (
   date date not null,
   hours numeric not null,
   quality int check (quality between 1 and 5),
+  source text default 'manual' check (source in ('manual', 'garmin', 'fitbit')),
   created_at timestamptz default now(),
   unique(user_id, date)
 );
+
 
 -- workout_sessions
 create table if not exists workout_sessions (
@@ -198,6 +202,11 @@ create table if not exists body_metrics (
 -- Allow non-weight activity metrics such as active_mins.
 alter table body_metrics
   alter column weight_kg drop not null;
+
+-- source of the metric (manual entry vs wearable sync)
+alter table body_metrics
+  add column if not exists source text not null default 'manual'
+  check (source in ('manual', 'garmin', 'fitbit'));
 
 -- journal_entries
 create table if not exists journal_entries (
@@ -668,12 +677,38 @@ select
     and m.date >= current_date - 7
   ), 0) as mind_score,
 
-  least((
-    select count(*) * 20
-    from workout_sessions w
-    where w.user_id = p.user_id
-    and w.performed_at >= now() - interval '7 days'
-  ), 100) as body_score,
+  least(
+    coalesce((
+      select count(*) * 8
+      from workout_sessions w
+      where w.user_id = p.user_id
+      and w.performed_at >= now() - interval '7 days'
+    ), 0)
+    +
+    coalesce((
+      select least(avg(s.hours) / 8 * 30, 30)
+      from sleep_logs s
+      where s.user_id = p.user_id
+      and s.date >= current_date - 7
+    ), 0)
+    +
+    coalesce((
+      select least(avg(bm.value) / 10000 * 20, 20)
+      from body_metrics bm
+      where bm.user_id = p.user_id
+      and bm.metric_type = 'steps'
+      and bm.recorded_at >= now() - interval '7 days'
+    ), 0)
+    +
+    coalesce((
+      select least(avg(bm.value) / 30 * 10, 10)
+      from body_metrics bm
+      where bm.user_id = p.user_id
+      and bm.metric_type = 'active_mins'
+      and bm.recorded_at >= now() - interval '7 days'
+    ), 0),
+    100
+  ) as body_score,
 
   least((
     coalesce((
@@ -855,3 +890,106 @@ create table if not exists expert_events (
 );
 
 alter table expert_events enable row level security;
+
+-- =========================
+-- WEARABLE INTEGRATIONS
+-- =========================
+
+create table if not exists user_integrations (
+  id uuid primary key default gen_random_uuid(),
+
+  user_id uuid references auth.users(id) on delete cascade not null,
+
+  provider text not null check (
+    provider in ('garmin', 'fitbit')
+  ),
+
+  access_token text not null,
+  refresh_token text not null,
+
+  connected_at timestamptz default now(),
+  last_sync_at timestamptz,
+
+  device_name text,
+
+  unique(user_id, provider)
+);
+
+alter table user_integrations enable row level security;
+
+drop policy if exists "Users can view own integrations" on user_integrations;
+create policy "Users can view own integrations"
+on user_integrations
+for select
+using (auth.uid() = user_id);
+
+drop policy if exists "Users can insert own integrations" on user_integrations;
+create policy "Users can insert own integrations"
+on user_integrations
+for insert
+with check (auth.uid() = user_id);
+
+drop policy if exists "Users can delete own integrations" on user_integrations;
+create policy "Users can delete own integrations"
+on user_integrations
+for delete
+using (auth.uid() = user_id);
+
+-- body_metrics wearable source
+alter table body_metrics
+add column if not exists source text
+default 'manual'
+check (source in ('manual', 'garmin', 'fitbit'));
+
+-- sleep logs wearable source
+alter table sleep_logs
+add column if not exists source text
+default 'manual'
+check (source in ('manual', 'garmin', 'fitbit'));
+
+-- resting heart rate metric index
+create index if not exists idx_body_metrics_user_metric_date
+on body_metrics(user_id, metric_type, recorded_at desc);
+
+create unique index if not exists idx_body_metrics_user_metric_recorded_at_unique
+on body_metrics(user_id, metric_type, recorded_at);
+
+create index if not exists idx_user_integrations_user
+on user_integrations(user_id);
+
+-- Supabase Edge Function cron. Set these DB settings before enabling in production:
+-- alter database postgres set app.settings.supabase_url = 'https://YOUR_PROJECT.supabase.co';
+-- alter database postgres set app.settings.wearable_sync_secret = 'same value as WEARABLE_SYNC_SECRET';
+create or replace function public.invoke_wearable_sync()
+returns void
+language plpgsql
+security definer
+as $$
+declare
+  function_url text := nullif(current_setting('app.settings.supabase_url', true), '') || '/functions/v1/wearable-sync';
+  sync_secret text := nullif(current_setting('app.settings.wearable_sync_secret', true), '');
+begin
+  if function_url is null then
+    raise notice 'Skipping wearable sync: app.settings.supabase_url is not set';
+    return;
+  end if;
+
+  perform net.http_post(
+    url := function_url,
+    headers := case
+      when sync_secret is null then '{"content-type":"application/json"}'::jsonb
+      else jsonb_build_object('content-type', 'application/json', 'authorization', 'Bearer ' || sync_secret)
+    end,
+    body := '{}'::jsonb
+  );
+end;
+$$;
+
+select cron.unschedule('wearable-sync-daily-3am')
+where exists (select 1 from cron.job where jobname = 'wearable-sync-daily-3am');
+
+select cron.schedule(
+  'wearable-sync-daily-3am',
+  '0 3 * * *',
+  $$select public.invoke_wearable_sync();$$
+);
