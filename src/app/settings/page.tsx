@@ -8,6 +8,15 @@ import type { NotificationType } from "@/types/database";
 import { Switch } from "@/components/ui/switch";
 import { requestOneSignalPermission } from "@/components/OneSignalManager";
 import { toast } from "@/hooks/use-toast";
+import { supabase } from "@/utils/supabaseClient";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+
+type WearableIntegration = {
+  provider: "garmin" | "fitbit";
+  device_name: string | null;
+  connected_at: string | null;
+  last_sync_at: string | null;
+};
 
 const TYPES: Array<{
   type: NotificationType;
@@ -86,13 +95,62 @@ function toPgTime(hhmm: string): string | null {
   return `${m[1]}:${m[2]}:00`;
 }
 
+function formatProvider(provider: string) {
+  return provider === "fitbit" ? "Fitbit" : "Garmin";
+}
+
+function formatSyncTime(value: string | null | undefined) {
+  if (!value) return "Not synced yet";
+
+  const date = new Date(value);
+  const today = new Date();
+  const yesterday = new Date();
+  yesterday.setDate(today.getDate() - 1);
+  const sameDay = date.toDateString() === today.toDateString();
+  const yesterdayDay = date.toDateString() === yesterday.toDateString();
+  const dayLabel = sameDay ? "today" : yesterdayDay ? "yesterday" : date.toLocaleDateString();
+
+  return `${dayLabel} ${date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`;
+}
+
 export default function SettingsPage() {
   const { user, openAuthModal } = useAuth();
   const { data: profile } = useUserProfile(user?.id);
   const updateProfile = useUpdateProfile(user?.id);
+  const queryClient = useQueryClient();
 
   const { data: prefs = [], error: prefsError } = useNotificationPreferences(user?.id);
   const upsertPref = useUpsertNotificationPreference(user?.id);
+  const { data: integrations = [], error: integrationsError } = useQuery({
+    queryKey: ["wearable-integrations", user?.id],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      const { data, error } = await supabase
+        .from("user_integrations")
+        .select("provider,device_name,connected_at,last_sync_at")
+        .eq("user_id", user.id)
+        .order("connected_at", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as WearableIntegration[];
+    },
+    enabled: Boolean(user?.id),
+  });
+  const disconnectWearable = useMutation({
+    mutationFn: async (provider: WearableIntegration["provider"]) => {
+      const res = await fetch(`/api/integrations/${provider}`, { method: "DELETE" });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body?.error || "Unable to disconnect wearable");
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["wearable-integrations", user?.id] });
+      await queryClient.invalidateQueries({ queryKey: ["progress", user?.id] });
+      toast({ description: "Wearable disconnected." });
+    },
+    onError: (error) => {
+      logError("[settings] disconnect wearable failed", error);
+      toast({ description: "Unable to disconnect wearable right now.", variant: "destructive" });
+    },
+  });
 
   const pushEnabled = Boolean(profile?.push_notifications_enabled);
   const timezone = profile?.timezone?.trim() || "";
@@ -279,6 +337,72 @@ export default function SettingsPage() {
           {!user && (
             <div className="mt-6 text-sm text-muted-foreground">
               Sign in to edit settings.
+            </div>
+          )}
+        </div>
+      </section>
+
+      <section className="bg-background border-b border-border">
+        <div className="w-full px-5 lg:px-8 py-10">
+          <span className="section-label !p-0 mb-4 block">WEARABLES</span>
+          <h2 className="font-heading text-2xl font-extrabold tracking-tight">Connected devices</h2>
+          <p className="text-sm text-muted-foreground mt-2">
+            Garmin and Fitbit data can fill in steps, active minutes, sleep and resting heart rate.
+          </p>
+
+          <div className="mt-6 grid gap-4 md:grid-cols-2">
+            {(["garmin", "fitbit"] as const).map((provider) => {
+              const integration = integrations.find((item) => item.provider === provider);
+              const connected = Boolean(integration);
+              return (
+                <div key={provider} className="rounded-lg border border-border bg-card px-4 py-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="min-w-0">
+                      <div className="font-heading font-bold">{formatProvider(provider)}</div>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        {connected
+                          ? `${integration?.device_name || formatProvider(provider)} connected`
+                          : "No device connected"}
+                      </div>
+                      {connected && (
+                        <div className="text-xs text-muted-foreground mt-1">
+                          Last sync: {formatSyncTime(integration?.last_sync_at)} via {formatProvider(provider)}
+                        </div>
+                      )}
+                    </div>
+
+                    {connected ? (
+                      <button
+                        type="button"
+                        onClick={() => disconnectWearable.mutate(provider)}
+                        disabled={disconnectWearable.isPending}
+                        className="shrink-0 inline-flex items-center justify-center rounded-md border border-input bg-background px-3 py-2 text-xs font-semibold hover:bg-accent hover:text-accent-foreground disabled:opacity-50"
+                      >
+                        Disconnect
+                      </button>
+                    ) : (
+                      <a
+                        href={user ? `/api/integrations/${provider}/connect` : "#"}
+                        onClick={(event) => {
+                          if (!user) {
+                            event.preventDefault();
+                            openAuthModal();
+                          }
+                        }}
+                        className="shrink-0 inline-flex items-center justify-center rounded-md border border-input bg-background px-3 py-2 text-xs font-semibold hover:bg-accent hover:text-accent-foreground"
+                      >
+                        Connect
+                      </a>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {integrationsError && (
+            <div className="mt-4 rounded-lg border border-border bg-card px-4 py-3 text-sm text-muted-foreground">
+              Wearable connections are temporarily unavailable. Please refresh and try again.
             </div>
           )}
         </div>

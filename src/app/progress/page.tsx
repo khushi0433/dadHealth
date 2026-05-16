@@ -19,6 +19,8 @@ const ProgressPage = () => {
   const moodLogs = data?.moodLogs ?? [];
   const badges = data?.badges ?? [];
   const earnedBadges = data?.earnedBadges ?? [];
+  const integrations = data?.integrations ?? [];
+  const bodyMetrics = data?.bodyMetrics ?? [];
 
   const dadScore = user && typeof scoreData?.score === "number" ? scoreData.score : null;
   const breakdown = user
@@ -48,6 +50,34 @@ const ProgressPage = () => {
         [reportStats.avgMood ?? "—", "Avg mood"],
       ]
     : [];
+  const latestIntegration = integrations
+    .filter((item: { last_sync_at?: string | null }) => Boolean(item.last_sync_at))
+    .sort((a: { last_sync_at?: string | null }, b: { last_sync_at?: string | null }) =>
+      new Date(b.last_sync_at || 0).getTime() - new Date(a.last_sync_at || 0).getTime()
+    )[0];
+  const latestSteps = bodyMetrics.find((metric: { metric_type: string }) => metric.metric_type === "steps");
+  const latestActiveMins = bodyMetrics.find((metric: { metric_type: string }) => metric.metric_type === "active_mins");
+  const formatProvider = (provider?: string | null) =>
+    provider === "fitbit" ? "Fitbit" : provider === "garmin" ? "Garmin" : "wearable";
+  const formatSyncTime = (value?: string | null) => {
+    if (!value) return "Not synced yet";
+    const date = new Date(value);
+    const today = new Date();
+    const yesterday = new Date();
+    yesterday.setDate(today.getDate() - 1);
+    const dayLabel =
+      date.toDateString() === today.toDateString()
+        ? "today"
+        : date.toDateString() === yesterday.toDateString()
+          ? "yesterday"
+          : date.toLocaleDateString();
+    return `${dayLabel} ${date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`;
+  };
+  const syncStatus = latestIntegration
+    ? `Last synced: ${formatSyncTime(latestIntegration.last_sync_at)} via ${formatProvider(latestIntegration.provider)}`
+    : integrations.length > 0
+      ? "Wearable connected. First sync pending."
+      : "No wearable connected.";
 
   const handleShareReport = useCallback(async () => {
     const text = `My Dad Health Score: ${dadScore ?? "Not available yet"}${dadScore != null ? "/100" : ""}. Track your dad health at Dad Health.`;
@@ -125,6 +155,24 @@ const ProgressPage = () => {
                   })}
                 </div>
               </ProGate>
+            </div>
+            <div className="mt-6 grid gap-3 sm:grid-cols-3">
+              <div className="rounded-lg border border-border bg-card px-4 py-3">
+                <div className="text-[10px] font-heading font-bold uppercase tracking-wide text-muted-foreground">Sync status</div>
+                <div className="mt-1 text-sm font-semibold text-foreground">{user ? syncStatus : "Sign in to sync wearables."}</div>
+              </div>
+              <div className="rounded-lg border border-border bg-card px-4 py-3">
+                <div className="text-[10px] font-heading font-bold uppercase tracking-wide text-muted-foreground">Steps</div>
+                <div className="mt-1 text-sm font-semibold text-foreground">
+                  {latestSteps?.value == null ? "No wearable data" : Number(latestSteps.value).toLocaleString()}
+                </div>
+              </div>
+              <div className="rounded-lg border border-border bg-card px-4 py-3">
+                <div className="text-[10px] font-heading font-bold uppercase tracking-wide text-muted-foreground">Active minutes</div>
+                <div className="mt-1 text-sm font-semibold text-foreground">
+                  {latestActiveMins?.value == null ? "No wearable data" : `${Math.round(Number(latestActiveMins.value))} min`}
+                </div>
+              </div>
             </div>
         </div>
       </section>
