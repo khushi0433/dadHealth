@@ -123,6 +123,41 @@ alter table user_profile add column if not exists stripe_customer_id text;
 alter table user_profile add column if not exists stripe_subscription_id text;
 alter table user_profile add column if not exists subscription_status text;
 
+-- =========================
+-- ONBOARDING QUESTIONNAIRE FIELDS (Phase 1-3)
+-- =========================
+
+-- Phase 1
+alter table user_profile add column if not exists parent_type text;
+alter table user_profile add column if not exists pronouns text;
+alter table user_profile add column if not exists custody_arrangement text;
+
+-- arrays kept as jsonb (repo currently uses jsonb for goals/pillar_order)
+alter table user_profile add column if not exists kids_ages jsonb default '[]'::jsonb;
+alter table user_profile add column if not exists goals jsonb default '[]'::jsonb;
+
+-- Phase 2
+alter table user_profile add column if not exists challenge text;
+alter table user_profile add column if not exists current_support text;
+alter table user_profile add column if not exists dad_years text;
+
+-- Pillars order already exists as jsonb in this repo
+alter table user_profile add column if not exists pillar_order jsonb default '[]'::jsonb;
+
+-- Phase 3
+alter table user_profile add column if not exists notification_times jsonb default '[]'::jsonb;
+alter table user_profile add column if not exists commitment text;
+
+alter table user_profile add column if not exists phase2_complete boolean default false;
+alter table user_profile add column if not exists phase3_complete boolean default false;
+
+-- already exists but keep idempotent
+alter table user_profile add column if not exists onboarding_complete boolean default false;
+
+-- Day 30 callback
+alter table user_profile add column if not exists day30_prompt_sent boolean default false;
+
+
 -- user_streaks
 create table if not exists user_streaks (
   id uuid primary key default gen_random_uuid(),

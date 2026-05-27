@@ -3,6 +3,28 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/utils/supabaseClient";
 
+// Loose shape of a row in public.user_profile. Only the fields we read in the
+// client are listed; `select("*")` returns the full row so unlisted fields are
+// still available via casts where needed.
+export type UserProfileRow = {
+  user_id: string;
+  client_id?: string | null;
+  timezone?: string | null;
+  push_notifications_enabled?: boolean | null;
+  goals?: string[] | null;
+  pillar_order?: string[] | null;
+  onboarding_complete?: boolean | null;
+  // Phase 1 fields
+  display_name?: string | null;
+  parent_type?: string | null;
+  pronouns?: string | null;
+  custody_arrangement?: string | null;
+  kids_ages?: string[] | null;
+  // Phase gating flags (already migrated in supabase/schema.sql)
+  phase2_complete?: boolean | null;
+  phase3_complete?: boolean | null;
+};
+
 export function useUserProfile(userId: string | undefined) {
   return useQuery({
     queryKey: ["user_profile", userId],
@@ -29,6 +51,11 @@ export function useUpdateProfile(userId: string | undefined) {
       onboarding_complete?: boolean;
       timezone?: string;
       push_notifications_enabled?: boolean;
+      display_name?: string;
+      parent_type?: string;
+      pronouns?: string | null;
+      custody_arrangement?: string;
+      kids_ages?: string[];
     }) => {
       if (!userId) throw new Error("Not authenticated");
       const { data, error } = await supabase
