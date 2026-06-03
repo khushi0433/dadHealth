@@ -1,18 +1,64 @@
 "use client";
 
 import Link from "next/link";
+import { useQuery } from "@tanstack/react-query";
 import LimeButton from "@/components/LimeButton";
 import { useAuth } from "@/contexts/AuthContext";
 import { useFitness } from "@/hooks/useFitness";
+import { useProStatus } from "@/components/ProProvider";
+import { supabase } from "@/utils/supabaseClient";
 import { DAD_STRENGTH_MOVES } from "@/lib/dadStrengthProgram";
+import type { Workout, WorkoutExercise } from "@/types/database";
 
 interface DadStrengthSectionProps {
   workoutImg: string;
 }
 
+const mapExerciseToMove = (exercise: WorkoutExercise) => ({
+  title: exercise.name,
+  detail: `${exercise.sets} sets · ${exercise.reps_or_duration} · Rest ${exercise.rest_period}`,
+  tag: exercise.muscle_group,
+});
+
 const DadStrengthSection = ({ workoutImg }: DadStrengthSectionProps) => {
   const { user } = useAuth();
+  const { isPro } = useProStatus();
   const { workouts, bodyMetrics } = useFitness(user?.id);
+
+  // Mirror the fitness page library query so the moves shown here are the
+  // same real workout the user sees on /fitness, not the hardcoded mockup.
+  const workoutsQuery = useQuery({
+    queryKey: ["workouts-library", user?.id, isPro],
+    queryFn: async () => {
+      const base = supabase
+        .from("workouts")
+        .select("*")
+        .eq("source", "admin")
+        .order("created_at", { ascending: false })
+        .limit(8);
+      const userGenerated = user?.id
+        ? supabase
+            .from("workouts")
+            .select("*")
+            .eq("user_id", user.id)
+            .eq("source", "ai_generated")
+            .order("created_at", { ascending: false })
+        : Promise.resolve({ data: [], error: null } as { data: any[]; error: null });
+      const [adminRes, userRes] = await Promise.all([base, userGenerated]);
+      if (adminRes.error) throw adminRes.error;
+      if ((userRes as any).error) throw (userRes as any).error;
+      const adminRows = (adminRes.data ?? []) as Workout[];
+      const userRows = ((userRes as any).data ?? []) as Workout[];
+      return isPro ? [...userRows, ...adminRows] : adminRows;
+    },
+    refetchOnWindowFocus: false,
+  });
+
+  const libraryWorkouts = (workoutsQuery.data ?? []) as Workout[];
+  const todaysWorkout = libraryWorkouts[0] ?? null;
+  const todaysMoves = todaysWorkout?.exercises?.length
+    ? todaysWorkout.exercises.map(mapExerciseToMove)
+    : DAD_STRENGTH_MOVES;
 
   const monthWorkouts = workouts.filter((w: { performed_at: string }) => {
     const d = new Date(w.performed_at);
@@ -29,6 +75,15 @@ const DadStrengthSection = ({ workoutImg }: DadStrengthSectionProps) => {
       ? `${latestWeight.value}kg`
       : "—";
 
+  // Wearable-synced metrics — same source the fitness page reads from.
+  const latestStepsMetric = bodyMetrics.find((m: { metric_type: string }) => m.metric_type === "steps");
+  const latestActiveMinsMetric = bodyMetrics.find((m: { metric_type: string }) => m.metric_type === "active_mins");
+  const latestStepsDisplay =
+    user && latestStepsMetric?.value != null
+      ? Number(latestStepsMetric.value).toLocaleString()
+      : "—";
+
+  // Fall back to today's logged workout durations if no wearable active_mins yet.
   const todayStart = new Date();
   todayStart.setHours(0, 0, 0, 0);
   const todayEnd = new Date();
@@ -37,42 +92,37 @@ const DadStrengthSection = ({ workoutImg }: DadStrengthSectionProps) => {
     const d = new Date(w.performed_at);
     return d >= todayStart && d <= todayEnd;
   });
-  const activeTodayMin = todayWorkouts.reduce((sum: number, w: { duration_minutes?: number }) => sum + (w.duration_minutes ?? 0), 0);
-  const activeDisplay = user && activeTodayMin > 0
-    ? `${activeTodayMin} min`
-    : "—";
-  const bestRunMetric = bodyMetrics.find(
-    (m: { metric_type: string }) => m.metric_type === "best_run_km" || m.metric_type === "best_run",
+  const activeTodayMin = todayWorkouts.reduce(
+    (sum: number, w: { duration_minutes?: number }) => sum + (w.duration_minutes ?? 0),
+    0,
   );
-  const bestRunDisplay =
-    user &&
-    bestRunMetric != null &&
-    typeof bestRunMetric.value === "number" &&
-    Number.isFinite(bestRunMetric.value)
-      ? `${Number.isInteger(bestRunMetric.value) ? bestRunMetric.value : Number(bestRunMetric.value).toFixed(1)}km`
-      : "—";
+  const wearableActiveDisplay =
+    user && latestActiveMinsMetric?.value != null
+      ? `${Math.round(Number(latestActiveMinsMetric.value))} min`
+      : null;
+  const activeDisplay = wearableActiveDisplay
+    ?? (user && activeTodayMin > 0 ? `${activeTodayMin} min` : "—");
 
-  const todaysMoves = DAD_STRENGTH_MOVES;
   const latestLogged = workouts[0];
 
   const progressStats = [
     { value: user ? String(monthWorkouts) : "—", label: "WORKOUTS" },
     { value: weightDisplay, label: "WEIGHT" },
-    { value: bestRunDisplay, label: "BEST RUN" },
+    { value: latestStepsDisplay, label: "STEPS" },
     { value: activeDisplay, label: "ACTIVE TODAY" },
   ];
 
   return (
   <section className="bg-background pt-8 pb-16 lg:pb-20">
     {/* Hero banner */}
-   <div className="relative w-full min-w-0 h-[400px] lg:h-[480px]"> 
-    <img src={workoutImg} alt="Dad Strength Workout" 
+   <div className="relative w-full min-w-0 h-[400px] lg:h-[480px]">
+    <img src={workoutImg} alt="Dad Strength Workout"
     className="absolute inset-0 w-full h-full object-cover object-center" />
       <div className="absolute inset-0 bg-background/60" />
       <div className="relative z-10 flex flex-col justify-end h-full max-w-[1400px] mx-auto px-5 lg:px-8 pb-8">
         <span className="section-label text-primary mb-1">TODAY'S WORKOUT</span>
         <h2 className="font-heading text-[42px] lg:text-[56px] font-extrabold text-foreground uppercase leading-none tracking-wide">
-          DAD STRENGTH
+          {todaysWorkout?.title ?? "DAD STRENGTH"}
         </h2>
         <p className="text-sm text-foreground/50 mt-2">
           {todaysMoves.length} moves · full-body session
