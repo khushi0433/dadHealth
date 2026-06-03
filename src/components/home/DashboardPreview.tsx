@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Menu, X } from "lucide-react";
 import { BLOCKED_CHECKIN_MOODS, DAYS } from "@/lib/constants";
 import { useDashboard } from "@/hooks/useDashboard";
 import { useCommunity } from "@/hooks/useCommunity";
@@ -61,6 +62,7 @@ const DashboardPreview = ({ variant = "preview" }: DashboardPreviewProps) => {
   const { data: dashboard, dadsCount, checkIn } = useDashboard(user?.id);
   const { posts: communityPosts = [], loading: communityLoading } = useCommunity(user?.id);
   const [activeScreen, setActiveScreen] = useState<DashboardScreen>("HOME");
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const isAuth = !!user;
   const isFullDashboard = variant === "full" || isAuth;
   const [selectedMood, setSelectedMood] = useState((dashboard?.mood_value as number | undefined) ?? 3);
@@ -182,16 +184,65 @@ const DashboardPreview = ({ variant = "preview" }: DashboardPreviewProps) => {
       )}
 
       <div className={`bg-card border border-border overflow-visible ${isFullDashboard ? "rounded-none flex-1" : "rounded-xl"}`}>
-        <div className={`grid grid-cols-1 lg:grid-cols-3 gap-px bg-border ${isFullDashboard ? "min-h-full" : ""}`}>
-          <Sidebar
-            user={user}
-            greetingName={greetingName}
-            streak={streak}
-            activeScreen={activeScreen}
-            setActiveScreen={setActiveScreen}
-            items={SIDEBAR_ITEMS}
-            isFullDashboard={isFullDashboard}
-          />
+        {/* Mobile hamburger bar — only visible below lg, lets the user open the drawer.
+            Shows the currently active screen name so they know where they are. */}
+        <div className="lg:hidden flex items-center justify-between px-4 py-3 border-b border-border bg-card">
+          <button
+            type="button"
+            onClick={() => setMobileSidebarOpen(true)}
+            aria-label="Open dashboard menu"
+            className="inline-flex items-center gap-2 font-heading text-[11px] font-bold tracking-wider uppercase text-foreground"
+          >
+            <Menu className="h-5 w-5" strokeWidth={1.75} />
+            Menu
+          </button>
+          <span className="font-heading text-[11px] font-bold tracking-wider uppercase text-muted-foreground">
+            {activeScreen}
+          </span>
+        </div>
+
+        <div className={`relative grid grid-cols-1 lg:grid-cols-3 gap-px bg-border ${isFullDashboard ? "min-h-full" : ""}`}>
+          {/* Backdrop — only on mobile while the drawer is open */}
+          {mobileSidebarOpen && (
+            <button
+              type="button"
+              aria-label="Close menu"
+              onClick={() => setMobileSidebarOpen(false)}
+              className="lg:hidden fixed inset-0 z-40 bg-black/60 backdrop-blur-sm"
+            />
+          )}
+
+          {/* Sidebar: hidden by default on mobile, slides in from left when open.
+              On lg+ it returns to its normal first-column position. */}
+          <div
+            className={`${
+              mobileSidebarOpen
+                ? "fixed inset-y-0 left-0 z-50 w-[280px] max-w-[85vw] translate-x-0 shadow-2xl"
+                : "fixed inset-y-0 left-0 z-50 w-[280px] max-w-[85vw] -translate-x-full"
+            } transition-transform duration-300 ease-out overflow-y-auto lg:static lg:translate-x-0 lg:w-auto lg:max-w-none lg:shadow-none lg:transition-none lg:overflow-visible`}
+          >
+            {/* Close button — only inside the open mobile drawer */}
+            <button
+              type="button"
+              onClick={() => setMobileSidebarOpen(false)}
+              aria-label="Close menu"
+              className="lg:hidden absolute top-3 right-3 z-10 p-1 text-muted-foreground hover:text-foreground"
+            >
+              <X className="h-5 w-5" strokeWidth={1.75} />
+            </button>
+            <Sidebar
+              user={user}
+              greetingName={greetingName}
+              streak={streak}
+              activeScreen={activeScreen}
+              setActiveScreen={(screen) => {
+                setActiveScreen(screen);
+                setMobileSidebarOpen(false);
+              }}
+              items={SIDEBAR_ITEMS}
+              isFullDashboard={isFullDashboard}
+            />
+          </div>
 
         {activeScreen === "HOME" ? (
           <HomeScreen

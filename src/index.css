@@ -23,7 +23,8 @@
     --secondary-foreground: 0 0% 100%;
 
     --muted: 0 0% 12%;
-    --muted-foreground: 0 0% 45%;
+    /* Brightened from 45% so `text-muted-foreground` reads clearly on dark UI */
+    --muted-foreground: 0 0% 78%;
 
     --accent: 78 89% 65%;
     --accent-foreground: 0 0% 4%;
@@ -42,8 +43,8 @@
     --lime-hover: 78 89% 72%;
     --dark: 0 0% 4%;
     --dark-card: 0 0% 7%;
-    --text-secondary: 0 0% 65%;
-    --text-tertiary: 0 0% 35%;
+    --text-secondary: 0 0% 85%;
+    --text-tertiary: 0 0% 65%;
     --border-subtle: 0 0% 100% / 0.07;
     --lime-subtle: 78 89% 65% / 0.08;
     --lime-border: 78 89% 65% / 0.2;
@@ -68,10 +69,25 @@
     @apply bg-background;
     height: 100%;
     overscroll-behavior: none;
+    /* Scale the root font-size at desktop breakpoints. Because Tailwind's text-xs / text-sm /
+       text-base / text-lg are all rem-based, this scales ALL text utilities in every component
+       at once — no per-component edits needed. Mobile stays at 16px so layouts aren't disturbed. */
+    font-size: 16px;
+  }
+  @media (min-width: 1024px) {
+    html { font-size: 18px; }  /* laptops */
+  }
+  @media (min-width: 1280px) {
+    html { font-size: 19px; }  /* standard desktop */
+  }
+  @media (min-width: 1536px) {
+    html { font-size: 20px; }  /* large desktop / external monitor */
   }
 
   body {
-    @apply bg-background text-foreground font-body antialiased text-base sm:text-[17px];
+    /* Comfortable leading so paragraphs/labels stop feeling "sticky". Font-size is driven by
+       the html root above so every Tailwind text-* utility scales with it. */
+    @apply bg-background text-foreground font-body antialiased text-base leading-[1.6];
     margin: 0;
     min-height: 100%;
     min-height: 100dvh;
@@ -81,6 +97,16 @@
 
   h1, h2, h3, h4, h5, h6 {
     @apply font-heading;
+  }
+}
+
+@layer utilities {
+  /* All page containers are written as `max-w-[1400px] mx-auto` (header, footer, every
+     page section — ~30 occurrences). On 1920px+ monitors that leaves big empty gutters
+     and makes the UI feel cramped/centered. Re-define the arbitrary-value utility once
+     here so every container widens at the same time, no per-component edits. */
+  .max-w-\[1400px\] {
+    max-width: 1800px;
   }
 }
 

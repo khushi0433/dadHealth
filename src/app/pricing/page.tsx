@@ -166,7 +166,7 @@ const PricingPage = () => {
       {!isActivePro && (
         <section className="bg-background">
           <div className="max-w-[1400px] mx-auto px-5 lg:px-8 py-12">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 w-full">
               {PRICING_PLANS.map((p) => {
                 const isPopular = "popular" in p && (p as any).popular;
                 const hasExcluded = "excluded" in p && (p as any).excluded;
@@ -244,7 +244,7 @@ const PricingPage = () => {
       {/* Locked feature example */}
       <section className="bg-card border-y border-border">
         <div className="max-w-[1400px] mx-auto px-5 lg:px-8 py-12">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 max-w-4xl mx-auto">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
             <div>
               <span className="section-label !p-0 mb-2 block">Mood trend insights</span>
               <h2 className="font-heading text-[22px] font-extrabold text-foreground uppercase tracking-wide mb-4">
@@ -342,7 +342,7 @@ const PricingPage = () => {
 
       {/* FAQ */}
       <section className="bg-background">
-        <div className="max-w-2xl mx-auto px-5 py-16">
+        <div className="max-w-5xl mx-auto px-5 py-16">
           <span className="section-label !p-0 mb-8 block text-center">COMMON QUESTIONS</span>
           <Accordion type="single" collapsible className="w-full">
             {FAQ_ITEMS.map((item) => (
