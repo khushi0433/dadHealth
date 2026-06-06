@@ -2,8 +2,8 @@
 
 import { useAuth } from "@/contexts/AuthContext";
 import { useUserProfile } from "@/hooks/useUserProfile";
-import { useClient } from "@/hooks/useClient";
-import { useEffect } from "react";
+import { useClient, useClientBySlug } from "@/hooks/useClient";
+import { useEffect, useState } from "react";
 import type { BrandConfig } from "@/types/database";
 
 const DEFAULT_BRAND: BrandConfig = {
@@ -47,15 +47,39 @@ function injectBrandStyles(config: BrandConfig) {
   el.textContent = css;
 }
 
+function getClientSlugFromBrowser(): string | undefined {
+  if (typeof window === "undefined" || typeof document === "undefined") return undefined;
+  const cookieMatch = document.cookie.match(/(?:^|; )client_slug=([^;]+)/);
+  if (cookieMatch?.[1]) return decodeURIComponent(cookieMatch[1]);
+
+  const hostname = window.location.hostname || "";
+  const parts = hostname.split(".");
+  if (parts.length > 2) return parts[0];
+  if (parts.length === 2 && parts[0] !== "www") return parts[0];
+  return undefined;
+}
+
 export default function ClientBrandProvider({ children }: { children: React.ReactNode }) {
   const { user } = useAuth();
   const { data: profile } = useUserProfile(user?.id);
-  const { data: client } = useClient(profile?.client_id ?? undefined);
+  const { data: clientById } = useClient(profile?.client_id ?? undefined);
+  const [clientSlug] = useState<string | undefined>(() => getClientSlugFromBrowser());
+
+  const { data: clientBySlug } = useClientBySlug(clientSlug);
+  const client = clientBySlug ?? clientById;
 
   useEffect(() => {
+    console.log("ClientBrandProvider:", {
+      clientSlug,
+      cookie: typeof document !== "undefined" ? document.cookie : undefined,
+      clientById,
+      clientBySlug,
+      selectedClient: client,
+    });
+
     const config = client?.brand_config ?? DEFAULT_BRAND;
     injectBrandStyles(config);
-  }, [client?.brand_config]);
+  }, [clientSlug, clientById, clientBySlug, client?.brand_config]);
 
   return <>{children}</>;
 }
