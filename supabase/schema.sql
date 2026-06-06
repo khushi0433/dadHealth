@@ -93,6 +93,14 @@ insert into clients (id, slug, name, brand_config) values (
   '{"primary":"78 89% 65%","primaryForeground":"0 0% 4%","accent":"78 89% 65%","lime":"78 89% 65%","ring":"78 89% 65%","sidebarPrimary":"78 89% 65%","sidebarRing":"78 89% 65%"}'
 ) on conflict (id) do nothing;
 
+-- Add optional branding fields for white-label clients
+alter table clients add column if not exists logo_url text;
+alter table clients add column if not exists primary_colour text;
+alter table clients add column if not exists welcome_message text;
+alter table clients add column if not exists active boolean default true;
+alter table clients add column if not exists subdomain text;
+create unique index if not exists idx_clients_subdomain on clients(subdomain) where subdomain is not null;
+
 -- user_profile
 create table if not exists user_profile (
   id uuid primary key default gen_random_uuid(),
