@@ -18,7 +18,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { ChevronDown, LogOut, User, Settings, HelpCircle, Shield, CreditCard, Package, Users } from "lucide-react";
+import { ChevronDown, LogOut, User, Settings, HelpCircle, Shield, CreditCard, Package } from "lucide-react";
 
 const SiteHeader = () => {
   const pathname = usePathname();
@@ -125,13 +125,6 @@ const SiteHeader = () => {
                   <Link href="/pricing" className="cursor-pointer">
                     <Package className="mr-2 h-4 w-4" />
                     My Plan
-                  </Link>
-                </DropdownMenuItem>
-
-                <DropdownMenuItem asChild>
-                  <Link href="/co-parent" className="cursor-pointer">
-                    <Users className="mr-2 h-4 w-4" />
-                    Co-Parenting
                   </Link>
                 </DropdownMenuItem>
 

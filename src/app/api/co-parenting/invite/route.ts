@@ -70,7 +70,7 @@ export async function POST(req: NextRequest) {
   }
 
   const token = signInviteToken({ dadUserId: user.id, email });
-  const inviteUrl = `${getSiteUrl()}/co-parent/accept?token=${encodeURIComponent(token)}`;
+  const inviteUrl = `${getSiteUrl()}/bond?coParentInvite=${encodeURIComponent(token)}`;
 
   try {
     await sendEmail({

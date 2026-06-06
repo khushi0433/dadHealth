@@ -6,6 +6,7 @@ import { format } from "date-fns";
 import { Camera, ImagePlus, Lock, Trash2, X } from "lucide-react";
 import imageCompression from "browser-image-compression";
 import CookTogetherRecipes from "@/components/CookTogetherRecipes";
+import CoParenting from "@/components/CoParenting";
 import DadDaysSearch from "@/components/DadDaysSearch";
 import SitePageShell from "@/components/SitePageShell";
 import SiteFooter from "@/components/SiteFooter";
@@ -496,6 +497,8 @@ const BondPage = () => {
             <p className="text-sm text-muted-foreground">No conversation starters yet.</p>
           )}
         </div>
+
+        <CoParenting />
 
         <CookTogetherRecipes />
       </div>
