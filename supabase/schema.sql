@@ -697,6 +697,44 @@ $$;
 grant execute on function public.complete_cook_together_recipe(uuid) to authenticated;
 
 -- =========================
+-- CO-PARENTING (shared custody calendar)
+-- Defined before VIEWS because dad_score_view references co_parenting_schedules.
+-- =========================
+
+-- A dad's custody schedule, optionally linked to an invited co-parent account.
+-- user_id            = the Dad Health user (owner) who controls the schedule
+-- co_parent_user_id  = the invited co-parent's auth user (null until they accept)
+-- custody_dates      = the set of dates the dad has custody
+create table if not exists co_parenting_schedules (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid references auth.users(id) on delete cascade not null,
+  co_parent_user_id uuid references auth.users(id) on delete set null,
+  custody_dates date[] not null default '{}',
+  created_at timestamptz default now()
+);
+
+-- Calendar events attached to a schedule (custody / handover / school).
+-- notes is the short handover/event note visible to both parties.
+create table if not exists co_parenting_events (
+  id uuid primary key default gen_random_uuid(),
+  schedule_id uuid references co_parenting_schedules(id) on delete cascade not null,
+  event_date date not null,
+  event_type text not null check (event_type in ('custody', 'handover', 'school')),
+  notes text,
+  created_at timestamptz default now()
+);
+
+-- user_profile: link to an invited co-parent account (nullable FK to users.id).
+alter table user_profile add column if not exists co_parent_id uuid references auth.users(id) on delete set null;
+
+create index if not exists idx_co_parenting_schedules_user on co_parenting_schedules(user_id);
+create index if not exists idx_co_parenting_schedules_co_parent on co_parenting_schedules(co_parent_user_id);
+create index if not exists idx_co_parenting_events_schedule on co_parenting_events(schedule_id, event_date);
+
+alter table co_parenting_schedules enable row level security;
+alter table co_parenting_events enable row level security;
+
+-- =========================
 -- VIEWS
 -- =========================
 
@@ -756,8 +794,28 @@ select
       and j.created_at >= now() - interval '7 days'
     ), 0)
     +
+    -- Bond activity scoring.
+    -- Co-parenting is opt-in: dads with no co_parenting_schedules row keep the
+    -- original full scoring (quality * 5) for every activity. For dads who have
+    -- opted in, activities logged on a custody day get full activity scoring
+    -- (quality * 5); activities on non-custody days get quality-only scoring
+    -- (quality * 2).
     coalesce((
-      select sum(bl.quality * 5)
+      select sum(
+        case
+          when not exists (
+            select 1 from co_parenting_schedules s where s.user_id = p.user_id
+          )
+            then bl.quality * 5
+          when bl.created_at::date = any (
+            select unnest(s.custody_dates)
+            from co_parenting_schedules s
+            where s.user_id = p.user_id
+          )
+            then bl.quality * 5
+          else bl.quality * 2
+        end
+      )
       from bond_logs bl
       where bl.user_id = p.user_id
       and bl.created_at >= now() - interval '7 days'

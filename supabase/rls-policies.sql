@@ -24,6 +24,8 @@ alter table user_saved_recipes enable row level security;
 alter table bond_logs enable row level security;
 alter table dad_day_searches enable row level security;
 alter table user_integrations enable row level security;
+alter table co_parenting_schedules enable row level security;
+alter table co_parenting_events enable row level security;
 
 -- Policies
 drop policy if exists "Anyone can read clients" on clients;
@@ -82,6 +84,21 @@ create policy "Users can CRUD own journal_entries" on journal_entries for all us
 
 drop policy if exists "Users can CRUD own milestones" on milestones;
 create policy "Users can CRUD own milestones" on milestones for all using (auth.uid() = user_id);
+
+-- Linked co-parent gets READ-ONLY access to the dad's milestones (for the shared
+-- calendar's "upcoming milestones"). No other personal tables (mood, sleep,
+-- journal, score, community) grant any co-parent access — they stay owner-only.
+drop policy if exists "Co-parent can read linked owner milestones" on milestones;
+create policy "Co-parent can read linked owner milestones"
+on milestones
+for select
+using (
+  exists (
+    select 1 from co_parenting_schedules s
+    where s.user_id = milestones.user_id
+      and s.co_parent_user_id = auth.uid()
+  )
+);
 
 drop policy if exists "Users can view own milestone photos" on storage.objects;
 create policy "Users can view own milestone photos"
@@ -210,3 +227,59 @@ create policy "Users can delete own integrations"
 on user_integrations
 for delete
 using (auth.uid() = user_id);
+
+-- =========================
+-- CO-PARENTING
+-- The dad (owner) has full control of their schedule and its events.
+-- The linked co-parent has READ-ONLY access and nothing else. They never get
+-- access to mood, sleep, journal, score or community data — those tables keep
+-- their existing "own data only" (auth.uid() = user_id) policies untouched.
+-- =========================
+
+-- Schedules: owner full CRUD.
+drop policy if exists "Owner can CRUD own co_parenting_schedules" on co_parenting_schedules;
+create policy "Owner can CRUD own co_parenting_schedules"
+on co_parenting_schedules
+for all
+using (auth.uid() = user_id)
+with check (auth.uid() = user_id);
+
+-- Schedules: co-parent read-only on the schedule they are linked to.
+drop policy if exists "Co-parent can read linked co_parenting_schedules" on co_parenting_schedules;
+create policy "Co-parent can read linked co_parenting_schedules"
+on co_parenting_schedules
+for select
+using (auth.uid() = co_parent_user_id);
+
+-- Events: owner full CRUD via the parent schedule they own.
+drop policy if exists "Owner can CRUD own co_parenting_events" on co_parenting_events;
+create policy "Owner can CRUD own co_parenting_events"
+on co_parenting_events
+for all
+using (
+  exists (
+    select 1 from co_parenting_schedules s
+    where s.id = co_parenting_events.schedule_id
+      and s.user_id = auth.uid()
+  )
+)
+with check (
+  exists (
+    select 1 from co_parenting_schedules s
+    where s.id = co_parenting_events.schedule_id
+      and s.user_id = auth.uid()
+  )
+);
+
+-- Events: co-parent read-only via the schedule they are linked to.
+drop policy if exists "Co-parent can read linked co_parenting_events" on co_parenting_events;
+create policy "Co-parent can read linked co_parenting_events"
+on co_parenting_events
+for select
+using (
+  exists (
+    select 1 from co_parenting_schedules s
+    where s.id = co_parenting_events.schedule_id
+      and s.co_parent_user_id = auth.uid()
+  )
+);

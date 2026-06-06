@@ -34,8 +34,33 @@ export interface UserProfile {
   stripe_subscription_id?: string | null;
   /** Stripe subscription.status (active, trialing, canceled, …) */
   subscription_status?: string | null;
+  /** Invited co-parent's auth user id (read-only shared-calendar access). */
+  co_parent_id?: string | null;
   created_at?: string;
   updated_at?: string;
+}
+
+export type CoParentingEventType = "custody" | "handover" | "school";
+
+export interface CoParentingSchedule {
+  id: string;
+  /** Owner (the dad) auth user id. */
+  user_id: string;
+  /** Invited co-parent auth user id (null until they accept). */
+  co_parent_user_id?: string | null;
+  /** Dates (YYYY-MM-DD) the dad has custody. */
+  custody_dates: string[];
+  created_at?: string;
+}
+
+export interface CoParentingEvent {
+  id: string;
+  schedule_id: string;
+  event_date: string;
+  event_type: CoParentingEventType;
+  /** Short handover/event note, visible to both parties. */
+  notes?: string | null;
+  created_at?: string;
 }
 
 export type NotificationType =
