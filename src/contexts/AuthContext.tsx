@@ -67,6 +67,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       if (event === "SIGNED_IN") {
         trackEvent("login", { method: session?.user?.app_metadata?.provider ?? "password" });
+
+        // On sign-in, if a client slug cookie is present (visitor on client subdomain),
+        // associate the user's profile with that client.
+        (async () => {
+          try {
+            if (!session?.user?.id) return;
+            if (typeof document === "undefined") return;
+            const m = document.cookie.match(/(?:^|; )client_slug=([^;]+)/);
+            const slug = m ? decodeURIComponent(m[1]) : null;
+            if (!slug) return;
+            const { data: clientRow, error: clientErr } = await supabase
+              .from("clients")
+              .select("id")
+              .or(`slug.eq.${slug},subdomain.eq.${slug}`)
+              .maybeSingle();
+            if (clientErr || !clientRow) return;
+            await supabase.from("user_profile").upsert({ user_id: session.user.id, client_id: clientRow.id }, { onConflict: "user_id" });
+          } catch (e) {
+            // ignore failures — non-critical
+            console.error("AuthContext: failed to set user_profile.client_id", e);
+          }
+        })();
       }
     });
 
