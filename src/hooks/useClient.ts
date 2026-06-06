@@ -20,3 +20,20 @@ export function useClient(clientId: string | undefined): ReturnType<typeof useQu
     enabled: !!clientId,
   });
 }
+
+export function useClientBySlug(slug: string | undefined): ReturnType<typeof useQuery<Client | null>> {
+  return useQuery({
+    queryKey: ["client", "slug", slug],
+    queryFn: async () => {
+      if (!slug) return null;
+      const { data, error } = await supabase
+        .from("clients")
+        .select("*")
+        .or(`slug.eq.${slug},subdomain.eq.${slug}`)
+        .maybeSingle();
+      if (error) throw error;
+      return data as Client | null;
+    },
+    enabled: !!slug,
+  });
+}
