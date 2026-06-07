@@ -243,8 +243,6 @@ export async function POST(req: NextRequest) {
     const FREE_SEARCH_LIMIT = 3
     let searchesUsed: number | null = null
 
-    console.info('[dad-days-search] request', { userId, budget, childAge })
-
     const { count: hourlyCount } = await supabaseAdmin
       .from('dad_day_searches')
       .select('*', { count: 'exact', head: true })

@@ -54,7 +54,6 @@ export default function AuthModal({ open, onClose, onSuccess }: AuthModalProps) 
     try {
       // Prefer the current origin so OAuth redirects back to a client subdomain.
       const redirectTo = typeof window !== "undefined" ? `${window.location.origin}/auth/callback` : `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`;
-      console.log("redirectTo:", redirectTo);
 
       const { data, error: oauthError } = await supabase.auth.signInWithOAuth({
         provider,

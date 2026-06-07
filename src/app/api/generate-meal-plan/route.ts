@@ -340,26 +340,12 @@ export async function POST(req: Request) {
       .eq('user_id', user.id)
       .maybeSingle()
 
-    console.log('PROFILE DEBUG', {
-      userId: user.id,
-      subscription_status: (profile as { subscription_status?: string | null } | null)?.subscription_status,
-    })
-
     if (!isProSubscriptionStatus((profile as { subscription_status?: string | null } | null)?.subscription_status)) {
       return NextResponse.json({ error: 'Meal planner is a Pro feature' }, { status: 403 })
     }
 
     const { calorieTarget, preferences, mealsPerDay, adults } = await req.json()
     requestBody = { calorieTarget, preferences, mealsPerDay, adults }
-
-    console.info('[generate-meal-plan] request', {
-      userId: user.id,
-      calorieTarget,
-      mealsPerDay,
-      adults,
-      hasPreferences: Boolean(preferences),
-      nodeEnv: process.env.NODE_ENV,
-    })
 
     const anthropic = new Anthropic({
   apiKey: anthropicKey,
@@ -422,7 +408,6 @@ Return ONLY JSON in this format:
     }) as { type: 'text'; text: string } | undefined
 
     const text = textBlock?.text ?? ''
-    console.log(text);
     const plan = getJsonFromText(text)
 
     if (!Array.isArray(plan)) {
@@ -460,12 +445,6 @@ Return ONLY JSON in this format:
       .single()
 
     if (error) throw error
-
-    console.info('[generate-meal-plan] saved', {
-      userId: user.id,
-      mealPlanId: data?.id,
-      grocerySections: Array.isArray(groceryList) ? groceryList.length : 0,
-    })
 
     return NextResponse.json(data)
   } catch (err) {

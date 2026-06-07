@@ -52,9 +52,6 @@ export async function updateSession(request: NextRequest) {
       slug = "dadhealth";
     }
 
-    console.log("HOSTNAME:", request.nextUrl.hostname);
-console.log("SETTING CLIENT SLUG:", slug);
-
     // Set a non-httpOnly cookie so client JS can read it.
     try {
       supabaseResponse.cookies.set("client_slug", slug, { path: "/", sameSite: "lax" });

@@ -69,14 +69,6 @@ export default function ClientBrandProvider({ children }: { children: React.Reac
   const client = clientBySlug ?? clientById;
 
   useEffect(() => {
-    console.log("ClientBrandProvider:", {
-      clientSlug,
-      cookie: typeof document !== "undefined" ? document.cookie : undefined,
-      clientById,
-      clientBySlug,
-      selectedClient: client,
-    });
-
     const config = client?.brand_config ?? DEFAULT_BRAND;
     injectBrandStyles(config);
   }, [clientSlug, clientById, clientBySlug, client?.brand_config]);
