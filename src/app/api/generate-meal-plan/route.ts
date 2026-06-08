@@ -227,17 +227,227 @@ type MealEntry = {
   prep_time: string
 }
 
+type DietaryPreference = 'none' | 'vegetarian' | 'vegan' | 'glutenFree' | 'dairyFree'
+
 type MealPlanDay = {
   day: string
-  meals: {
-    breakfast: MealEntry
-    lunch: MealEntry
-    dinner: MealEntry
-    snack: MealEntry
-  }
+  meals: Record<string, MealEntry>
 }
 
-const buildFallbackMealPlan = (calorieTarget: number, adults: number): MealPlanDay[] => {
+const DIETARY_RULES: Record<DietaryPreference, string> = {
+  vegetarian:
+    'STRICT RULE: Every single meal must be 100% vegetarian. Do NOT include any meat, poultry, fish, seafood or meat-based stocks. If a dish traditionally contains meat, use a vegetarian alternative or choose a different dish entirely.',
+  vegan:
+    'STRICT RULE: Every single meal must be 100% vegan. No meat, fish, dairy, eggs or honey.',
+  glutenFree:
+    'STRICT RULE: Every single meal must be completely gluten-free. No wheat, barley, rye or regular oats.',
+  dairyFree:
+    'STRICT RULE: Every single meal must be dairy-free. No milk, cheese, butter, cream or yoghurt.',
+  none: '',
+}
+
+const DIETARY_EXCLUSIONS: Record<DietaryPreference, string[]> = {
+  vegetarian: [
+    'bacon', 'beef', 'beef stock', 'chicken', 'chicken stock', 'cod', 'fish', 'ham',
+    'lamb', 'lamb stock', 'meat', 'pork', 'prawn', 'prawns', 'salmon', 'seafood',
+    'shrimp', 'tuna', 'turkey', 'turkey stock',
+  ],
+  vegan: [
+    'bacon', 'beef', 'beef stock', 'butter', 'cheese', 'chicken', 'chicken stock',
+    'cod', 'cream', 'dairy', 'egg', 'eggs', 'fish', 'ham', 'honey', 'lamb',
+    'lamb stock', 'meat', 'milk', 'pork', 'prawn', 'prawns', 'salmon', 'seafood',
+    'shrimp', 'tuna', 'turkey', 'turkey stock', 'yoghurt', 'yogurt',
+  ],
+  glutenFree: [
+    'barley', 'bread', 'breadcrumbs', 'bulgur', 'couscous', 'flour', 'granola',
+    'noodle', 'noodles', 'oat', 'oats', 'pasta', 'rye', 'seitan', 'toast', 'tortilla',
+    'wrap', 'wheat', 'wholemeal', 'wholewheat',
+  ],
+  dairyFree: [
+    'butter', 'cheese', 'cream', 'creme fraiche', 'dairy', 'ghee', 'milk', 'paneer',
+    'parmesan', 'yoghurt', 'yogurt',
+  ],
+  none: [],
+}
+
+const normalizeDietaryPreference = (value: unknown): DietaryPreference => {
+  if (typeof value !== 'string') return 'none'
+  const normalized = value.trim().toLowerCase().replace(/[\s_-]/g, '')
+
+  if (normalized === 'vegetarian') return 'vegetarian'
+  if (normalized === 'vegan') return 'vegan'
+  if (normalized === 'glutenfree') return 'glutenFree'
+  if (normalized === 'dairyfree') return 'dairyFree'
+  return 'none'
+}
+
+const getDietaryExclusionList = (dietaryPreference: DietaryPreference) => {
+  return DIETARY_EXCLUSIONS[dietaryPreference].join(', ')
+}
+
+const hasFlaggedDietaryTerm = (text: string, dietaryPreference: DietaryPreference) => {
+  const exclusions = DIETARY_EXCLUSIONS[dietaryPreference]
+  if (!exclusions.length) return false
+
+  const normalized = ` ${text.toLowerCase().replace(/[^a-z0-9]+/g, ' ')} `
+
+  return exclusions.some((term) => {
+    const escaped = term.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()
+    return escaped && normalized.includes(` ${escaped} `)
+  })
+}
+
+const filterMealPlanForDietaryPreference = (plan: unknown[], dietaryPreference: DietaryPreference): MealPlanDay[] => {
+  if (dietaryPreference === 'none') return plan as MealPlanDay[]
+
+  return plan
+    .map((day, dayIndex) => {
+      const aiDay = day as { day?: unknown; meals?: Record<string, unknown> }
+      const meals = Object.entries(aiDay.meals ?? {}).reduce<Record<string, MealEntry>>((safeMeals, [mealType, meal]) => {
+        const candidate = meal as Partial<MealEntry>
+        const ingredients = Array.isArray(candidate.ingredients)
+          ? candidate.ingredients.filter((ingredient): ingredient is string => typeof ingredient === 'string')
+          : []
+        const searchable = [candidate.name, ...ingredients].filter(Boolean).join(' ')
+
+        if (!hasFlaggedDietaryTerm(searchable, dietaryPreference)) {
+          safeMeals[mealType] = {
+            name: typeof candidate.name === 'string' ? candidate.name : '',
+            ingredients,
+            macros: candidate.macros && typeof candidate.macros === 'object' ? candidate.macros : {},
+            prep_time: typeof candidate.prep_time === 'string' ? candidate.prep_time : '',
+          }
+        }
+
+        return safeMeals
+      }, {})
+
+      return {
+        day: typeof aiDay.day === 'string' ? aiDay.day : `Day ${dayIndex + 1}`,
+        meals,
+      }
+    })
+    .filter((day) => Object.keys(day.meals).length > 0)
+}
+
+const getFallbackMeals = (dietaryPreference: DietaryPreference) => {
+  const mealsByPreference: Record<DietaryPreference, ReadonlyArray<readonly [string, readonly string[]]>> = {
+    none: [
+      ['Greek yoghurt bowl', ['Greek yoghurt', 'Mixed berries', 'Oats', 'Honey']],
+      ['Chicken rice bowl', ['Chicken breast', 'Brown rice', 'Spinach', 'Olive oil']],
+      ['Turkey chilli', ['Turkey mince', 'Kidney beans', 'Tomatoes', 'Onion']],
+      ['Apple and nut butter', ['Apple', 'Almond butter']],
+      ['Protein oats', ['Rolled oats', 'Milk', 'Protein powder', 'Banana']],
+      ['Tuna wrap', ['Tuna', 'Wholemeal wrap', 'Lettuce', 'Greek yoghurt']],
+      ['Salmon tray bake', ['Salmon', 'Potatoes', 'Broccoli', 'Olive oil']],
+      ['Cottage cheese snack', ['Cottage cheese', 'Pineapple']],
+      ['Egg scramble toast', ['Eggs', 'Wholemeal toast', 'Spinach', 'Tomato']],
+      ['Turkey pasta', ['Turkey mince', 'Wholewheat pasta', 'Tomato sauce', 'Parmesan']],
+      ['Beef stir fry', ['Lean beef', 'Rice', 'Peppers', 'Soy sauce']],
+      ['Yoghurt and nuts', ['Greek yoghurt', 'Mixed nuts']],
+      ['Smoothie bowl', ['Protein powder', 'Banana', 'Berries', 'Chia seeds']],
+      ['Chicken quinoa salad', ['Chicken breast', 'Quinoa', 'Cucumber', 'Avocado']],
+      ['Prawn noodle stir fry', ['Prawns', 'Noodles', 'Broccoli', 'Garlic']],
+      ['Hummus and carrots', ['Hummus', 'Carrots']],
+      ['Overnight oats', ['Rolled oats', 'Greek yoghurt', 'Blueberries', 'Honey']],
+      ['Chicken fajita bowl', ['Chicken breast', 'Rice', 'Peppers', 'Onion']],
+      ['Beef and veg skillet', ['Lean beef', 'Courgette', 'Tomatoes', 'Garlic']],
+      ['Protein shake', ['Protein powder', 'Milk', 'Banana']],
+    ],
+    vegetarian: [
+      ['Greek yoghurt bowl', ['Greek yoghurt', 'Mixed berries', 'Seeds', 'Honey']],
+      ['Paneer rice bowl', ['Paneer', 'Brown rice', 'Spinach', 'Tomatoes']],
+      ['Bean chilli', ['Kidney beans', 'Tomatoes', 'Onion', 'Rice']],
+      ['Apple and nut butter', ['Apple', 'Almond butter']],
+      ['Protein oats', ['Gluten-free oats', 'Milk', 'Protein powder', 'Banana']],
+      ['Falafel salad', ['Falafel', 'Lettuce', 'Cucumber', 'Hummus']],
+      ['Tofu tray bake', ['Tofu', 'Potatoes', 'Broccoli', 'Olive oil']],
+      ['Cottage cheese snack', ['Cottage cheese', 'Pineapple']],
+      ['Egg scramble', ['Eggs', 'Spinach', 'Tomato', 'Potatoes']],
+      ['Lentil pasta', ['Lentils', 'Pasta', 'Tomato sauce', 'Parmesan']],
+      ['Tofu stir fry', ['Tofu', 'Rice', 'Peppers', 'Soy sauce']],
+      ['Yoghurt and nuts', ['Greek yoghurt', 'Mixed nuts']],
+      ['Smoothie bowl', ['Protein powder', 'Banana', 'Berries', 'Chia seeds']],
+      ['Chickpea quinoa salad', ['Chickpeas', 'Quinoa', 'Cucumber', 'Avocado']],
+      ['Halloumi veg bowl', ['Halloumi', 'Rice', 'Courgette', 'Garlic']],
+      ['Hummus and carrots', ['Hummus', 'Carrots']],
+      ['Berry seed bowl', ['Greek yoghurt', 'Blueberries', 'Seeds', 'Honey']],
+      ['Black bean fajita bowl', ['Black beans', 'Rice', 'Peppers', 'Onion']],
+      ['Lentil veg skillet', ['Lentils', 'Courgette', 'Tomatoes', 'Garlic']],
+      ['Protein shake', ['Protein powder', 'Milk', 'Banana']],
+    ],
+    vegan: [
+      ['Chia berry bowl', ['Chia seeds', 'Berries', 'Coconut pot', 'Maple syrup']],
+      ['Tofu rice bowl', ['Tofu', 'Brown rice', 'Spinach', 'Olive oil']],
+      ['Bean chilli', ['Kidney beans', 'Tomatoes', 'Onion', 'Rice']],
+      ['Apple and nut butter', ['Apple', 'Almond butter']],
+      ['Protein quinoa bowl', ['Quinoa flakes', 'Soya drink', 'Vegan protein', 'Banana']],
+      ['Falafel salad', ['Falafel', 'Lettuce', 'Cucumber', 'Hummus']],
+      ['Tofu tray bake', ['Tofu', 'Potatoes', 'Broccoli', 'Olive oil']],
+      ['Pineapple seed pot', ['Pineapple', 'Pumpkin seeds']],
+      ['Tofu scramble', ['Tofu', 'Spinach', 'Tomato', 'Potatoes']],
+      ['Lentil pasta', ['Lentils', 'Rice pasta', 'Tomato sauce', 'Basil']],
+      ['Tempeh stir fry', ['Tempeh', 'Rice', 'Peppers', 'Tamari']],
+      ['Nut fruit pot', ['Mixed nuts', 'Apple']],
+      ['Smoothie bowl', ['Vegan protein', 'Banana', 'Berries', 'Chia seeds']],
+      ['Chickpea quinoa salad', ['Chickpeas', 'Quinoa', 'Cucumber', 'Avocado']],
+      ['Miso tofu bowl', ['Tofu', 'Rice', 'Broccoli', 'Miso']],
+      ['Hummus and carrots', ['Hummus', 'Carrots']],
+      ['Berry seed bowl', ['Coconut pot', 'Blueberries', 'Seeds', 'Maple syrup']],
+      ['Black bean fajita bowl', ['Black beans', 'Rice', 'Peppers', 'Onion']],
+      ['Lentil veg skillet', ['Lentils', 'Courgette', 'Tomatoes', 'Garlic']],
+      ['Vegan protein shake', ['Vegan protein', 'Soya drink', 'Banana']],
+    ],
+    glutenFree: [
+      ['Greek yoghurt bowl', ['Greek yoghurt', 'Mixed berries', 'Seeds', 'Honey']],
+      ['Chicken rice bowl', ['Chicken breast', 'Brown rice', 'Spinach', 'Olive oil']],
+      ['Turkey chilli', ['Turkey mince', 'Kidney beans', 'Tomatoes', 'Onion']],
+      ['Apple and nut butter', ['Apple', 'Almond butter']],
+      ['Quinoa breakfast bowl', ['Quinoa', 'Milk', 'Protein powder', 'Banana']],
+      ['Tuna salad bowl', ['Tuna', 'Lettuce', 'Cucumber', 'Greek yoghurt']],
+      ['Salmon tray bake', ['Salmon', 'Potatoes', 'Broccoli', 'Olive oil']],
+      ['Cottage cheese snack', ['Cottage cheese', 'Pineapple']],
+      ['Egg potato scramble', ['Eggs', 'Potatoes', 'Spinach', 'Tomato']],
+      ['Turkey potato bake', ['Turkey mince', 'Potatoes', 'Tomato sauce', 'Parmesan']],
+      ['Beef stir fry', ['Lean beef', 'Rice', 'Peppers', 'Tamari']],
+      ['Yoghurt and nuts', ['Greek yoghurt', 'Mixed nuts']],
+      ['Smoothie bowl', ['Protein powder', 'Banana', 'Berries', 'Chia seeds']],
+      ['Chicken quinoa salad', ['Chicken breast', 'Quinoa', 'Cucumber', 'Avocado']],
+      ['Prawn rice stir fry', ['Prawns', 'Rice', 'Broccoli', 'Garlic']],
+      ['Hummus and carrots', ['Hummus', 'Carrots']],
+      ['Berry yoghurt pot', ['Greek yoghurt', 'Blueberries', 'Seeds', 'Honey']],
+      ['Chicken fajita bowl', ['Chicken breast', 'Rice', 'Peppers', 'Onion']],
+      ['Beef and veg skillet', ['Lean beef', 'Courgette', 'Tomatoes', 'Garlic']],
+      ['Protein shake', ['Protein powder', 'Milk', 'Banana']],
+    ],
+    dairyFree: [
+      ['Chia berry bowl', ['Chia seeds', 'Berries', 'Coconut pot', 'Maple syrup']],
+      ['Chicken rice bowl', ['Chicken breast', 'Brown rice', 'Spinach', 'Olive oil']],
+      ['Turkey chilli', ['Turkey mince', 'Kidney beans', 'Tomatoes', 'Onion']],
+      ['Apple and nut butter', ['Apple', 'Almond butter']],
+      ['Protein oats', ['Rolled oats', 'Soya drink', 'Protein powder', 'Banana']],
+      ['Tuna salad wrap', ['Tuna', 'Wholemeal wrap', 'Lettuce', 'Hummus']],
+      ['Salmon tray bake', ['Salmon', 'Potatoes', 'Broccoli', 'Olive oil']],
+      ['Pineapple seed pot', ['Pineapple', 'Pumpkin seeds']],
+      ['Egg scramble toast', ['Eggs', 'Wholemeal toast', 'Spinach', 'Tomato']],
+      ['Turkey pasta', ['Turkey mince', 'Wholewheat pasta', 'Tomato sauce', 'Basil']],
+      ['Beef stir fry', ['Lean beef', 'Rice', 'Peppers', 'Soy sauce']],
+      ['Fruit and nuts', ['Apple', 'Mixed nuts']],
+      ['Smoothie bowl', ['Protein powder', 'Banana', 'Berries', 'Chia seeds']],
+      ['Chicken quinoa salad', ['Chicken breast', 'Quinoa', 'Cucumber', 'Avocado']],
+      ['Prawn noodle stir fry', ['Prawns', 'Noodles', 'Broccoli', 'Garlic']],
+      ['Hummus and carrots', ['Hummus', 'Carrots']],
+      ['Berry seed bowl', ['Coconut pot', 'Blueberries', 'Seeds', 'Maple syrup']],
+      ['Chicken fajita bowl', ['Chicken breast', 'Rice', 'Peppers', 'Onion']],
+      ['Beef and veg skillet', ['Lean beef', 'Courgette', 'Tomatoes', 'Garlic']],
+      ['Protein shake', ['Protein powder', 'Soya drink', 'Banana']],
+    ],
+  }
+
+  return mealsByPreference[dietaryPreference]
+}
+
+const buildFallbackMealPlan = (calorieTarget: number, adults: number, dietaryPreference: DietaryPreference = 'none'): MealPlanDay[] => {
   const safeAdults = Math.max(1, Number.isFinite(adults) ? adults : 1)
   const calories = Math.max(1600, Number.isFinite(calorieTarget) ? calorieTarget : 2200)
   const perMeal = Math.round(calories / 4)
@@ -246,28 +456,7 @@ const buildFallbackMealPlan = (calorieTarget: number, adults: number): MealPlanD
   const fatPerMeal = Math.max(8, Math.round((calories * 0.3) / 4 / 9))
   const portions = safeAdults > 1 ? ` (x${safeAdults})` : ''
 
-  const dayMeals = [
-    ['Greek yoghurt bowl', ['Greek yoghurt', 'Mixed berries', 'Oats', 'Honey']],
-    ['Chicken rice bowl', ['Chicken breast', 'Brown rice', 'Spinach', 'Olive oil']],
-    ['Turkey chilli', ['Turkey mince', 'Kidney beans', 'Tomatoes', 'Onion']],
-    ['Apple and nut butter', ['Apple', 'Almond butter']],
-    ['Protein oats', ['Rolled oats', 'Milk', 'Protein powder', 'Banana']],
-    ['Tuna wrap', ['Tuna', 'Wholemeal wrap', 'Lettuce', 'Greek yoghurt']],
-    ['Salmon tray bake', ['Salmon', 'Potatoes', 'Broccoli', 'Olive oil']],
-    ['Cottage cheese snack', ['Cottage cheese', 'Pineapple']],
-    ['Egg scramble toast', ['Eggs', 'Wholemeal toast', 'Spinach', 'Tomato']],
-    ['Turkey pasta', ['Turkey mince', 'Wholewheat pasta', 'Tomato sauce', 'Parmesan']],
-    ['Beef stir fry', ['Lean beef', 'Rice', 'Peppers', 'Soy sauce']],
-    ['Yoghurt and nuts', ['Greek yoghurt', 'Mixed nuts']],
-    ['Smoothie bowl', ['Protein powder', 'Banana', 'Berries', 'Chia seeds']],
-    ['Chicken quinoa salad', ['Chicken breast', 'Quinoa', 'Cucumber', 'Avocado']],
-    ['Prawn noodle stir fry', ['Prawns', 'Noodles', 'Broccoli', 'Garlic']],
-    ['Hummus and carrots', ['Hummus', 'Carrots']],
-    ['Overnight oats', ['Rolled oats', 'Greek yoghurt', 'Blueberries', 'Honey']],
-    ['Chicken fajita bowl', ['Chicken breast', 'Rice', 'Peppers', 'Onion']],
-    ['Beef and veg skillet', ['Lean beef', 'Courgette', 'Tomatoes', 'Garlic']],
-    ['Protein shake', ['Protein powder', 'Milk', 'Banana']],
-  ] as const
+  const dayMeals = getFallbackMeals(dietaryPreference)
 
   const makeMeal = (idx: number): MealEntry => {
     const [name, ingredients] = dayMeals[idx]
@@ -300,6 +489,7 @@ export async function POST(req: Request) {
   let requestBody: {
     calorieTarget?: number
     preferences?: string
+    dietaryPreference?: DietaryPreference
     mealsPerDay?: number
     adults?: number
   } | null = null
@@ -344,8 +534,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Meal planner is a Pro feature' }, { status: 403 })
     }
 
-    const { calorieTarget, preferences, mealsPerDay, adults } = await req.json()
-    requestBody = { calorieTarget, preferences, mealsPerDay, adults }
+    const { calorieTarget, preferences, dietaryPreference: rawDietaryPreference, mealsPerDay, adults } = await req.json()
+    const dietaryPreference = normalizeDietaryPreference(rawDietaryPreference)
+    requestBody = { calorieTarget, preferences, dietaryPreference, mealsPerDay, adults }
 
     const anthropic = new Anthropic({
   apiKey: anthropicKey,
@@ -359,14 +550,25 @@ export async function POST(req: Request) {
     const varietySeed = Math.random().toString(36).substring(2, 8)
     const weekOffset = Math.floor(Date.now() / (1000 * 60 * 60 * 24 * 7))
 
+    const dietaryRule = DIETARY_RULES[dietaryPreference]
+    const dietaryExclusions = getDietaryExclusionList(dietaryPreference)
+
     const prompt = `
+You are a meal planner for dads.
+
+${dietaryRule}
+
 Create a 5-day meal plan. Session: ${varietySeed}-${weekOffset}
 
 Requirements:
 - Calories per day: ${calorieTarget}
-- Preferences: ${preferences}
+- Dietary preference: ${dietaryPreference}
+- Preferences: ${preferences || 'none'}
 - Meals per day: ${mealsPerDay}
 - Adults: ${adults}
+- Each meal must satisfy ALL dietary requirements above without exception.
+- Do not include any meal that violates the dietary rules, even partially.
+${dietaryExclusions ? `- Explicitly exclude these ingredients and related dishes: ${dietaryExclusions}.` : ''}
 - Use British English spelling and wording only (for example: favourite, yoghurt, courgette, aubergine, mince, wholemeal).
 - Use UK context where examples are needed, with a natural Manchester/United Kingdom tone.
 - Use metric measurements for ingredients and prep directions (g, kg, ml, l, tsp, tbsp).
@@ -414,11 +616,15 @@ Return ONLY JSON in this format:
       throw new Error('Invalid meal plan response from AI')
     }
 
-    const ingredients: string[] = []
-    type AiMeal = { ingredients?: unknown }
-    type AiDay = { meals?: Record<string, AiMeal> }
+    const validatedPlan = filterMealPlanForDietaryPreference(plan, dietaryPreference)
 
-    plan.forEach((day: AiDay) => {
+    if (validatedPlan.length === 0) {
+      throw new Error('AI returned a meal plan that violated dietary requirements')
+    }
+
+    const ingredients: string[] = []
+
+    validatedPlan.forEach((day) => {
       Object.values(day.meals ?? {}).forEach((meal) => {
         if (Array.isArray(meal.ingredients)) {
           meal.ingredients.forEach((ingredient) => {
@@ -436,9 +642,9 @@ Return ONLY JSON in this format:
       .insert({
         user_id: user.id,
         source: 'ai_generated',
-        plan,
+        plan: validatedPlan,
         grocery_list: groceryList,
-        preferences: preferences ? { text: preferences } : null,
+        preferences: preferences || dietaryPreference !== 'none' ? { text: preferences, dietaryPreference } : null,
         adults: Number(adults) || 1,
       })
       .select()
@@ -475,11 +681,13 @@ Return ONLY JSON in this format:
           typeof requestBody?.preferences === 'string'
             ? requestBody.preferences.trim()
             : ''
+        const dietaryPreference = requestBody?.dietaryPreference ?? 'none'
 
-        const plan = buildFallbackMealPlan(calorieTarget, adults)
+        const plan = buildFallbackMealPlan(calorieTarget, adults, dietaryPreference)
+        const validatedPlan = filterMealPlanForDietaryPreference(plan, dietaryPreference)
         const ingredients: string[] = []
 
-        plan.forEach((day) => {
+        validatedPlan.forEach((day) => {
           Object.values(day.meals).forEach((meal) => {
             meal.ingredients.forEach((ingredient) => ingredients.push(ingredient))
           })
@@ -490,9 +698,9 @@ Return ONLY JSON in this format:
         return NextResponse.json(
           {
             source: 'fallback',
-            plan,
+            plan: validatedPlan,
             grocery_list: groceryList,
-            preferences: preferences ? { text: preferences } : null,
+            preferences: preferences || dietaryPreference !== 'none' ? { text: preferences, dietaryPreference } : null,
             adults,
             warning: 'Fallback meal plan used because AI credits are unavailable.',
           },

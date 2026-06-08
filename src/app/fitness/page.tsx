@@ -229,6 +229,21 @@ const FOCUS_LABEL: Record<WorkoutFocus, string> = {
   core: "Core",
 };
 
+type DietaryPreference = "none" | "vegetarian" | "vegan" | "glutenFree" | "dairyFree";
+
+type GeneratedMealPlanResponse = {
+  plan?: unknown;
+  grocery_list?: unknown;
+};
+
+const DIETARY_PREFERENCE_LABEL: Record<DietaryPreference, string> = {
+  none: "No strict diet",
+  vegetarian: "Vegetarian",
+  vegan: "Vegan",
+  glutenFree: "Gluten-free",
+  dairyFree: "Dairy-free",
+};
+
 const mapExerciseToMove = (exercise: WorkoutExercise) => ({
   title: exercise.name,
   detail: `${exercise.sets} sets · ${exercise.reps_or_duration} · Rest ${exercise.rest_period}`,
@@ -297,12 +312,14 @@ const FitnessPage = () => {
   });
 
   const [calorieTarget, setCalorieTarget] = useState("2200");
+  const [dietaryPreference, setDietaryPreference] = useState<DietaryPreference>("none");
   const [preferences, setPreferences] = useState("High-protein, no fish");
   const [mealsPerDay, setMealsPerDay] = useState<number | "">(4);
   const [adults, setAdults] = useState<number | "">(1);
 
-  const generateMealPlan = useMutation<any, Error, {
+  const generateMealPlan = useMutation<GeneratedMealPlanResponse, Error, {
     calorieTarget: number;
+    dietaryPreference: DietaryPreference;
     preferences: string;
     mealsPerDay: number;
     adults: number;
@@ -313,7 +330,7 @@ const FitnessPage = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      const data = await res.json();
+      const data = (await res.json()) as GeneratedMealPlanResponse & { error?: string };
       if (!res.ok) {
         throw new Error(data?.error ?? "Unable to generate meal plan.");
       }
@@ -403,10 +420,10 @@ const FitnessPage = () => {
     { value: wearableActiveDisplay ?? (timerSec > 0 ? formatTime(timerSec) : "0 min"), label: "ACTIVE TODAY" },
   ];
 
-  const planData = (generateMealPlan.data as any)?.plan ?? activeMealPlan?.plan ?? null;
-  const groceryListData = (generateMealPlan.data as any)?.grocery_list ?? activeMealPlan?.grocery_list ?? [];
+  const planData = generateMealPlan.data?.plan ?? activeMealPlan?.plan ?? null;
+  const groceryListData = generateMealPlan.data?.grocery_list ?? activeMealPlan?.grocery_list ?? [];
   const grocerySections = formatGroceryList(groceryListData);
-  const hasSavedPlan = Boolean((generateMealPlan.data as any)?.plan ?? activeMealPlan?.plan);
+  const hasSavedPlan = Boolean(generateMealPlan.data?.plan ?? activeMealPlan?.plan);
   const planError = generateMealPlan.error?.message;
   const planLoading = generateMealPlan.status === "pending" || (mealsLoading && !planData);
 
@@ -433,6 +450,7 @@ const FitnessPage = () => {
     }
     generateMealPlan.mutate({
       calorieTarget: Number(calorieTarget),
+      dietaryPreference,
       preferences: preferences.trim(),
       mealsPerDay: Number(mealsPerDay || 1),
       adults: Number(adults || 1),
@@ -803,7 +821,23 @@ const FitnessPage = () => {
                         </label>
                         <label className="flex flex-col gap-2 text-sm text-muted-foreground sm:col-span-2">
                           <span className="text-[11px] font-heading font-bold uppercase tracking-wide text-muted-foreground">
-                            Dietary preferences
+                            Strict dietary requirement
+                          </span>
+                          <select
+                            value={dietaryPreference}
+                            onChange={(event) => setDietaryPreference(event.target.value as DietaryPreference)}
+                            className="rounded-lg border border-border bg-background px-4 py-3 text-sm text-foreground outline-none focus:border-primary"
+                          >
+                            {(Object.keys(DIETARY_PREFERENCE_LABEL) as DietaryPreference[]).map((option) => (
+                              <option key={option} value={option}>
+                                {DIETARY_PREFERENCE_LABEL[option]}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                        <label className="flex flex-col gap-2 text-sm text-muted-foreground sm:col-span-2">
+                          <span className="text-[11px] font-heading font-bold uppercase tracking-wide text-muted-foreground">
+                            Other preferences
                           </span>
                           <input
                             type="text"
