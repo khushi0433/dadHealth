@@ -285,8 +285,71 @@ const getDietaryExclusionList = (dietaryPreference: DietaryPreference) => {
   return DIETARY_EXCLUSIONS[dietaryPreference].join(', ')
 }
 
-const hasFlaggedDietaryTerm = (text: string, dietaryPreference: DietaryPreference) => {
-  const exclusions = DIETARY_EXCLUSIONS[dietaryPreference]
+const getPreferenceExclusions = (preferences: unknown) => {
+  if (typeof preferences !== 'string') return []
+
+  const normalized = ` ${preferences.toLowerCase().replace(/[^a-z0-9]+/g, ' ')} `
+  const exclusions = new Set<string>()
+
+  const addTerms = (terms: string[]) => {
+    terms.forEach((term) => exclusions.add(term))
+  }
+
+  if (
+    normalized.includes(' no fish ') ||
+    normalized.includes(' fish free ') ||
+    normalized.includes(' without fish ') ||
+    normalized.includes(' avoid fish ')
+  ) {
+    addTerms(['fish', 'seafood', 'cod', 'salmon', 'tuna', 'prawn', 'prawns', 'shrimp'])
+  }
+
+  if (
+    normalized.includes(' no seafood ') ||
+    normalized.includes(' seafood free ') ||
+    normalized.includes(' without seafood ') ||
+    normalized.includes(' avoid seafood ')
+  ) {
+    addTerms(['seafood', 'fish', 'cod', 'salmon', 'tuna', 'prawn', 'prawns', 'shrimp'])
+  }
+
+  if (normalized.includes(' no shellfish ') || normalized.includes(' shellfish free ')) {
+    addTerms(['shellfish', 'prawn', 'prawns', 'shrimp'])
+  }
+
+  const directNoTerms: Record<string, string[]> = {
+    beef: ['beef'],
+    chicken: ['chicken'],
+    pork: ['pork', 'bacon', 'ham'],
+    turkey: ['turkey'],
+    lamb: ['lamb'],
+    egg: ['egg', 'eggs'],
+    eggs: ['egg', 'eggs'],
+    dairy: ['milk', 'cheese', 'butter', 'cream', 'yoghurt', 'yogurt', 'paneer', 'halloumi', 'parmesan', 'skyr'],
+    milk: ['milk'],
+    cheese: ['cheese', 'paneer', 'halloumi', 'parmesan'],
+    nuts: ['nuts', 'almond butter', 'peanut butter'],
+  }
+
+  Object.entries(directNoTerms).forEach(([term, terms]) => {
+    if (
+      normalized.includes(` no ${term} `) ||
+      normalized.includes(` without ${term} `) ||
+      normalized.includes(` avoid ${term} `) ||
+      normalized.includes(` ${term} free `)
+    ) {
+      addTerms(terms)
+    }
+  })
+
+  return Array.from(exclusions)
+}
+
+const getCombinedExclusions = (dietaryPreference: DietaryPreference, preferenceExclusions: string[] = []) => {
+  return Array.from(new Set([...DIETARY_EXCLUSIONS[dietaryPreference], ...preferenceExclusions]))
+}
+
+const hasFlaggedDietaryTerm = (text: string, exclusions: string[]) => {
   if (!exclusions.length) return false
 
   const normalized = ` ${text.toLowerCase().replace(/[^a-z0-9]+/g, ' ')} `
@@ -297,8 +360,8 @@ const hasFlaggedDietaryTerm = (text: string, dietaryPreference: DietaryPreferenc
   })
 }
 
-const filterMealPlanForDietaryPreference = (plan: unknown[], dietaryPreference: DietaryPreference): MealPlanDay[] => {
-  if (dietaryPreference === 'none') return plan as MealPlanDay[]
+const filterMealPlanForExclusions = (plan: unknown[], exclusions: string[]): MealPlanDay[] => {
+  if (exclusions.length === 0) return plan as MealPlanDay[]
 
   return plan
     .map((day, dayIndex) => {
@@ -310,7 +373,7 @@ const filterMealPlanForDietaryPreference = (plan: unknown[], dietaryPreference: 
           : []
         const searchable = [candidate.name, ...ingredients].filter(Boolean).join(' ')
 
-        if (!hasFlaggedDietaryTerm(searchable, dietaryPreference)) {
+        if (!hasFlaggedDietaryTerm(searchable, exclusions)) {
           safeMeals[mealType] = {
             name: typeof candidate.name === 'string' ? candidate.name : '',
             ingredients,
@@ -551,7 +614,10 @@ export async function POST(req: Request) {
     const weekOffset = Math.floor(Date.now() / (1000 * 60 * 60 * 24 * 7))
 
     const dietaryRule = DIETARY_RULES[dietaryPreference]
+    const preferenceExclusions = getPreferenceExclusions(preferences)
+    const combinedExclusions = getCombinedExclusions(dietaryPreference, preferenceExclusions)
     const dietaryExclusions = getDietaryExclusionList(dietaryPreference)
+    const preferenceExclusionList = preferenceExclusions.join(', ')
 
     const prompt = `
 You are a meal planner for dads.
@@ -569,6 +635,7 @@ Requirements:
 - Each meal must satisfy ALL dietary requirements above without exception.
 - Do not include any meal that violates the dietary rules, even partially.
 ${dietaryExclusions ? `- Explicitly exclude these ingredients and related dishes: ${dietaryExclusions}.` : ''}
+${preferenceExclusionList ? `- STRICT PREFERENCE RULE: The user's preferences explicitly exclude these ingredients and related dishes: ${preferenceExclusionList}. Treat this as mandatory, not optional.` : ''}
 - Use British English spelling and wording only (for example: favourite, yoghurt, courgette, aubergine, mince, wholemeal).
 - Use UK context where examples are needed, with a natural Manchester/United Kingdom tone.
 - Use metric measurements for ingredients and prep directions (g, kg, ml, l, tsp, tbsp).
@@ -616,7 +683,7 @@ Return ONLY JSON in this format:
       throw new Error('Invalid meal plan response from AI')
     }
 
-    const validatedPlan = filterMealPlanForDietaryPreference(plan, dietaryPreference)
+    const validatedPlan = filterMealPlanForExclusions(plan, combinedExclusions)
 
     if (validatedPlan.length === 0) {
       throw new Error('AI returned a meal plan that violated dietary requirements')
@@ -682,9 +749,11 @@ Return ONLY JSON in this format:
             ? requestBody.preferences.trim()
             : ''
         const dietaryPreference = requestBody?.dietaryPreference ?? 'none'
+        const preferenceExclusions = getPreferenceExclusions(preferences)
+        const combinedExclusions = getCombinedExclusions(dietaryPreference, preferenceExclusions)
 
         const plan = buildFallbackMealPlan(calorieTarget, adults, dietaryPreference)
-        const validatedPlan = filterMealPlanForDietaryPreference(plan, dietaryPreference)
+        const validatedPlan = filterMealPlanForExclusions(plan, combinedExclusions)
         const ingredients: string[] = []
 
         validatedPlan.forEach((day) => {
