@@ -6,10 +6,10 @@ import { createServerSupabaseClient } from '@/utils/supabase/server'
 
 const CATEGORY_RULES: Array<{ category: string; keywords: string[] }> = [
   { category: 'Produce', keywords: ['spinach', 'broccoli', 'tomato', 'lettuce', 'avocado', 'banana', 'apple', 'berry', 'berries', 'blueberry', 'blueberries', 'strawberry', 'strawberries', 'raspberry', 'raspberries', 'carrot', 'onion', 'zucchini', 'courgette', 'pepper', 'lemon', 'asparagus', 'cucumber', 'kale', 'aubergine', 'potato', 'potatoes', 'pineapple'] },
-  { category: 'Protein', keywords: ['chicken', 'turkey', 'beef', 'pork', 'salmon', 'tuna', 'shrimp', 'prawn', 'egg', 'eggs', 'protein powder', 'tofu', 'tempeh', 'falafel', 'lentil', 'lentils', 'chickpea', 'chickpeas', 'bean', 'beans', 'kidney beans', 'black beans'] },
-  { category: 'Grains', keywords: ['rice', 'quinoa', 'pasta', 'oat', 'oats', 'bread', 'wrap', 'tortilla', 'granola', 'noodle', 'noodles'] },
+  { category: 'Protein', keywords: ['chicken', 'turkey', 'beef', 'pork', 'salmon', 'tuna', 'shrimp', 'prawn', 'egg', 'eggs', 'protein powder', 'vegan protein', 'tofu', 'tempeh', 'falafel', 'lentil', 'lentils', 'chickpea', 'chickpeas', 'bean', 'beans', 'kidney beans', 'black beans'] },
+  { category: 'Grains', keywords: ['rice', 'quinoa', 'pasta', 'oat', 'oats', 'bread', 'toast', 'wrap', 'tortilla', 'granola', 'noodle', 'noodles'] },
+  { category: 'Pantry', keywords: ['oil', 'salt', 'soy sauce', 'tamari', 'broth', 'stock', 'honey', 'almond butter', 'peanut butter', 'maple syrup', 'nuts', 'seeds', 'chia', 'hummus', 'houmous', 'miso', 'coconut pot', 'soya drink'] },
   { category: 'Dairy', keywords: ['milk', 'cheese', 'butter', 'cream', 'yoghurt', 'yogurt', 'cottage cheese', 'paneer', 'halloumi', 'parmesan', 'skyr'] },
-  { category: 'Pantry', keywords: ['oil', 'salt', 'soy sauce', 'tamari', 'broth', 'stock', 'honey', 'almond butter', 'peanut butter', 'maple syrup', 'nuts', 'seeds', 'chia', 'hummus', 'houmous', 'miso'] },
   { category: 'Herbs & Spices', keywords: ['garlic', 'basil', 'cumin', 'paprika', 'oregano', 'turmeric', 'ginger'] },
 ]
 
