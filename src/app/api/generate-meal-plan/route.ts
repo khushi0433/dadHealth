@@ -5,11 +5,11 @@ import { isProSubscriptionStatus } from '@/lib/stripe/subscription'
 import { createServerSupabaseClient } from '@/utils/supabase/server'
 
 const CATEGORY_RULES: Array<{ category: string; keywords: string[] }> = [
-  { category: 'Produce', keywords: ['spinach', 'broccoli', 'tomato', 'lettuce', 'avocado', 'banana', 'apple', 'berry', 'carrot', 'onion', 'zucchini', 'courgette', 'pepper', 'lemon', 'asparagus', 'cucumber', 'kale', 'aubergine'] },
-  { category: 'Protein', keywords: ['chicken', 'turkey', 'beef', 'pork', 'salmon', 'tuna', 'shrimp', 'egg', 'yogurt', 'cottage cheese', 'protein powder', 'tofu'] },
-  { category: 'Grains', keywords: ['rice', 'quinoa', 'pasta', 'oat', 'bread', 'wrap', 'tortilla', 'granola'] },
-  { category: 'Dairy', keywords: ['milk', 'cheese', 'butter', 'cream', 'yogurt', 'cottage cheese'] },
-  { category: 'Pantry', keywords: ['oil', 'salt', 'pepper', 'soy sauce', 'broth', 'honey', 'almond butter', 'maple syrup', 'nuts', 'seeds', 'hummus'] },
+  { category: 'Produce', keywords: ['spinach', 'broccoli', 'tomato', 'lettuce', 'avocado', 'banana', 'apple', 'berry', 'berries', 'blueberry', 'blueberries', 'strawberry', 'strawberries', 'raspberry', 'raspberries', 'carrot', 'onion', 'zucchini', 'courgette', 'pepper', 'lemon', 'asparagus', 'cucumber', 'kale', 'aubergine', 'potato', 'potatoes', 'pineapple'] },
+  { category: 'Protein', keywords: ['chicken', 'turkey', 'beef', 'pork', 'salmon', 'tuna', 'shrimp', 'prawn', 'egg', 'eggs', 'protein powder', 'tofu', 'tempeh', 'falafel', 'lentil', 'lentils', 'chickpea', 'chickpeas', 'bean', 'beans', 'kidney beans', 'black beans'] },
+  { category: 'Grains', keywords: ['rice', 'quinoa', 'pasta', 'oat', 'oats', 'bread', 'wrap', 'tortilla', 'granola', 'noodle', 'noodles'] },
+  { category: 'Dairy', keywords: ['milk', 'cheese', 'butter', 'cream', 'yoghurt', 'yogurt', 'cottage cheese', 'paneer', 'halloumi', 'parmesan', 'skyr'] },
+  { category: 'Pantry', keywords: ['oil', 'salt', 'soy sauce', 'tamari', 'broth', 'stock', 'honey', 'almond butter', 'peanut butter', 'maple syrup', 'nuts', 'seeds', 'chia', 'hummus', 'houmous', 'miso'] },
   { category: 'Herbs & Spices', keywords: ['garlic', 'basil', 'cumin', 'paprika', 'oregano', 'turmeric', 'ginger'] },
 ]
 
