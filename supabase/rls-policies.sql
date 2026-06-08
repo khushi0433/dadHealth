@@ -249,7 +249,15 @@ drop policy if exists "Co-parent can read linked co_parenting_schedules" on co_p
 create policy "Co-parent can read linked co_parenting_schedules"
 on co_parenting_schedules
 for select
-using (auth.uid() = co_parent_user_id);
+using (
+  auth.uid() = co_parent_user_id
+  or exists (
+    select 1 from user_profile p
+    where p.user_id = auth.uid()
+      and p.co_parent_id = co_parenting_schedules.co_parent_user_id
+  )
+);
+
 
 -- Events: owner full CRUD via the parent schedule they own.
 drop policy if exists "Owner can CRUD own co_parenting_events" on co_parenting_events;
@@ -280,6 +288,14 @@ using (
   exists (
     select 1 from co_parenting_schedules s
     where s.id = co_parenting_events.schedule_id
-      and s.co_parent_user_id = auth.uid()
+      and (
+        s.co_parent_user_id = auth.uid()
+        or exists (
+          select 1 from user_profile p
+          where p.user_id = auth.uid()
+            and p.co_parent_id = s.co_parent_user_id
+        )
+      )
   )
 );
+
