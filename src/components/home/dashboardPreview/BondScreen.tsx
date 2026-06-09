@@ -16,11 +16,11 @@ export default function BondScreen({ isFullDashboard, dates, milestones }: BondS
   return (
     <>
       {isFullDashboard && (
-        <div className="relative h-[320px] overflow-hidden bg-gray-200 flex items-center justify-center">
+        <div className="relative h-[360px] overflow-hidden">
           <img
             src={IMAGES.bond}
             alt="Parenting"
-            className="h-full object-contain"
+            className="w-full h-full object-cover object-center"
           />
         </div>
       )}

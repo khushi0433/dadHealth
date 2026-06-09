@@ -32,11 +32,11 @@ export default function FitnessScreen({
   return (
     <>
       {isFullDashboard && (
-        <div className="relative h-[320px] overflow-hidden bg-gray-200 flex items-center justify-center">
+        <div className="relative h-[360px] overflow-hidden">
           <img
             src={IMAGES.fitness}
             alt="Fitness"
-            className="h-full object-contain"
+            className="w-full h-full object-cover object-center"
           />
         </div>
       )}
