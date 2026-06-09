@@ -550,8 +550,8 @@ const FitnessPage = () => {
   return (
     <SitePageShell>
       {/* Hero */}
-      <section className="relative w-full min-w-0 h-[380px] lg:h-[480px] bg-gray-200 flex items-center justify-center">
-        <img src={IMAGES.workout} alt="Workout" className="w-full h-full object-cover brightness-100" />
+      <section className="relative w-full min-w-0 h-[380px] lg:h-[480px] bg-gray-200 flex items-center justify-center overflow-hidden">
+        <img src={IMAGES.workout} alt="Workout" className="max-h-full max-w-full object-contain" />
         <div className="absolute inset-0 bg-background/40" />
         <div className="relative z-10 flex flex-col justify-end h-full max-w-[1400px] mx-auto px-5 lg:px-8 pb-8">
           <span className="section-label text-primary mb-1">TODAY'S WORKOUT</span>

@@ -239,11 +239,11 @@ const BondPage = () => {
   return (
     <SitePageShell>
       {/* Hero */}
-      <section className="relative w-full min-w-0 h-[380px] lg:h-[480px]">
+      <section className="relative w-full min-w-0 h-[380px] lg:h-[480px] bg-gray-200 flex items-center justify-center overflow-hidden">
       <img
   src={IMAGES.bond}
   alt="Parenting"
-  className="absolute inset-0 w-full h-full object-cover object-[50%_35%] brightness-100"
+  className="max-h-full max-w-full object-contain"
 />
         <div className="absolute inset-0 bg-background/40" />
         <div className="relative z-10 flex flex-col justify-center items-start h-full w-full max-w-[1400px] mx-auto px-5 lg:px-8 min-w-0">

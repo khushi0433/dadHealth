@@ -4,18 +4,18 @@
  */
 export const IMAGES = {
   // Home page hero
-  hero: "/Hero.png",
+  hero: "/Hero.jpeg",
 
   // Dad Strength section
-  workout: "/Fitness.png",
+  workout: "/Fitness.jpeg",
 
   // Pillars / landing thumbnails
-  mind: "/MentalHealth.png",
-  run: "/Fitness.png",
-  food: "/nuttrion.png",
+  mind: "/MentalHealth.jpeg",
+  run: "/Fitness.jpeg",
+  food: "/nuttrion.jpeg",
   bond: "/parents.jpeg",
-  fitness: "/Fitness.png",
-  gym: "/Fitness.png",
+  fitness: "/Fitness.jpeg",
+  gym: "/Fitness.jpeg",
 
   // Keep other keys for compatibility (not currently used on the landing page)
   journal: "/placeholder.svg",
@@ -28,5 +28,5 @@ export const IMAGES = {
 } as const;
 
 /** Same hero image, wider for Open Graph / Twitter cards */
-export const OG_HERO_IMAGE = "/Hero.png";
+export const OG_HERO_IMAGE = "/Hero.jpeg";
 
