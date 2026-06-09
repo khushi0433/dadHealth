@@ -10,7 +10,7 @@ import PillarsSection from "@/components/home/PillarsSection";
 import DashboardPreview from "@/components/home/DashboardPreview";
 import DadStrengthSection from "@/components/home/DadStrengthSection";
 
-const PILLAR_IMAGES = [IMAGES.gym, IMAGES.run, IMAGES.food, IMAGES.bond];
+const PILLAR_IMAGES = [IMAGES.mind, IMAGES.fitness, IMAGES.food, IMAGES.bond];
 
 const HomePage = () => {
   return (

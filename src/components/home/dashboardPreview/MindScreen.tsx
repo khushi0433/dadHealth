@@ -4,6 +4,7 @@ import Link from "next/link";
 import { LifeBuoy } from "lucide-react";
 import MiniBarChart from "@/components/dashboard/MiniBarChart";
 import SectionHeader from "@/components/dashboard/SectionHeader";
+import { IMAGES } from "@/lib/images";
 
 type MindScreenProps = {
   isFullDashboard: boolean;
@@ -14,6 +15,15 @@ type MindScreenProps = {
 export default function MindScreen({ isFullDashboard, moodWeek, moodLabels }: MindScreenProps) {
   return (
     <>
+      {isFullDashboard && (
+        <div className="relative h-[360px] overflow-hidden">
+          <img
+            src={IMAGES.mind}
+            alt="Mental Health"
+            className="w-full h-full object-cover object-center"
+          />
+        </div>
+      )}
       <div className={`bg-card p-5 ${isFullDashboard ? "min-h-full" : ""}`}>
         <span className="section-label !p-0">MIND</span>
         <div className="font-heading text-[24px] font-extrabold text-foreground uppercase leading-tight mt-1 mb-4">
