@@ -25,7 +25,7 @@ const PillarsSection = ({ pillarImages }: PillarsSectionProps) => (
               <img
                 src={pillarImages[i]}
                 alt={pillar.tag}
-                className="w-full h-full object-cover brightness-[0.6] group-hover:brightness-75 transition-all duration-300"
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
               />
             </div>
             <div className="p-3 lg:p-4">
