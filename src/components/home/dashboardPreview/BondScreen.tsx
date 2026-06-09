@@ -3,6 +3,7 @@
 import { format } from "date-fns";
 import Link from "next/link";
 import { DashboardIcon } from "@/components/DashboardIcon";
+import { IMAGES } from "@/lib/images";
 import type { DadDateItem, MilestoneItem } from "./types";
 
 type BondScreenProps = {
@@ -14,6 +15,15 @@ type BondScreenProps = {
 export default function BondScreen({ isFullDashboard, dates, milestones }: BondScreenProps) {
   return (
     <>
+      {isFullDashboard && (
+        <div className="relative h-[200px] overflow-hidden">
+          <img
+            src={IMAGES.bond}
+            alt="Parenting"
+            className="w-full h-full object-cover brightness-[0.6]"
+          />
+        </div>
+      )}
       <div className={`bg-card p-5 ${isFullDashboard ? "min-h-full" : ""}`}>
         <span className="section-label !p-0">BOND</span>
         <div className="font-heading text-[24px] font-extrabold text-foreground uppercase leading-tight mt-1 mb-4">

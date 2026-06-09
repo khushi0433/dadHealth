@@ -11,7 +11,7 @@ import PillarsSection from "@/components/home/PillarsSection";
 import DadStrengthSection from "@/components/home/DadStrengthSection";
 import { useAuth } from "@/contexts/AuthContext";
 
-const PILLAR_IMAGES = [IMAGES.gym, IMAGES.run, IMAGES.food, IMAGES.bond];
+const PILLAR_IMAGES = [IMAGES.mind, IMAGES.fitness, IMAGES.food, IMAGES.bond];
 
 const Index = () => {
   const { loading } = useAuth();

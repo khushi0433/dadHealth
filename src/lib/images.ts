@@ -7,14 +7,15 @@ export const IMAGES = {
   hero: "/Hero.jpeg",
 
   // Dad Strength section
-  workout: "/workout (1).jpg",
+  workout: "/Fitness.jpeg",
 
   // Pillars / landing thumbnails
   mind: "/MentalHealth.jpeg",
-  run: "/runners.jpg",
+  run: "/Fitness.jpeg",
   food: "/nuttrion.jpeg",
   bond: "/parents.jpeg",
   fitness: "/Fitness.jpeg",
+  gym: "/Fitness.jpeg",
 
   // Keep other keys for compatibility (not currently used on the landing page)
   journal: "/placeholder.svg",

@@ -4,6 +4,7 @@ import Link from "next/link";
 import MiniBarChart from "@/components/dashboard/MiniBarChart";
 import SectionHeader from "@/components/dashboard/SectionHeader";
 import StatCard from "@/components/dashboard/StatCard";
+import { IMAGES } from "@/lib/images";
 
 type FitnessScreenProps = {
   isFullDashboard: boolean;
@@ -30,6 +31,15 @@ export default function FitnessScreen({
 }: FitnessScreenProps) {
   return (
     <>
+      {isFullDashboard && (
+        <div className="relative h-[200px] overflow-hidden">
+          <img
+            src={IMAGES.fitness}
+            alt="Fitness"
+            className="w-full h-full object-cover brightness-[0.6]"
+          />
+        </div>
+      )}
       <div className={`bg-card p-5 ${isFullDashboard ? "min-h-full" : ""}`}>
         <span className="section-label !p-0">FITNESS</span>
         <div className="font-heading text-[24px] font-extrabold text-foreground uppercase leading-tight mt-1 mb-4">
