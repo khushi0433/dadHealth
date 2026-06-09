@@ -21,11 +21,11 @@ const PillarsSection = ({ pillarImages }: PillarsSectionProps) => (
             href={pillar.href}
             className="block border-r border-b border-border last:border-r-0 [&:nth-child(2)]:border-r-0 lg:[&:nth-child(2)]:border-r hover-lime group"
           >
-            <div className="h-[140px] lg:h-[200px] overflow-hidden">
+            <div className="h-[140px] lg:h-[200px] overflow-hidden bg-gray-200">
               <img
                 src={pillarImages[i]}
                 alt={pillar.tag}
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                className="w-full h-full object-contain object-center group-hover:scale-105 transition-transform duration-300"
               />
             </div>
             <div className="p-3 lg:p-4">

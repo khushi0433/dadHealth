@@ -16,11 +16,11 @@ export default function MindScreen({ isFullDashboard, moodWeek, moodLabels }: Mi
   return (
     <>
       {isFullDashboard && (
-        <div className="relative h-[320px] overflow-hidden">
+        <div className="relative h-[320px] overflow-hidden bg-gray-200 flex items-center justify-center">
           <img
             src={IMAGES.mind}
             alt="Mental Health"
-            className="w-full h-full object-cover"
+            className="h-full object-contain"
           />
         </div>
       )}
