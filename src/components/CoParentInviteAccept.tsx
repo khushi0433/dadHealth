@@ -1,61 +1,32 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
+
 import { useRouter } from "next/navigation";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/utils/supabaseClient";
 
 export default function CoParentInviteAccept({
   token,
   invitedByUserId,
+  invitedByName,
 }: {
   token: string;
   invitedByUserId?: string;
+  invitedByName?: string | null;
 }) {
 
   const router = useRouter();
   const { user } = useAuth();
 
-  const [invitedByName, setInvitedByName] = useState<string>("Someone");
+  const [invitedByNameState] = useState<string>(invitedByName ?? "Someone");
   const [invalidInvite, setInvalidInvite] = useState(false);
+
 
   const [submitting, setSubmitting] = useState(false);
 
-  useEffect(() => {
-    let cancelled = false;
-
-    async function loadInviter() {
-      if (!invitedByUserId) {
-        setInvitedByName("Someone");
-        return;
-      }
-
-      try {
-        const { data, error } = await supabase
-          .from("user_profile")
-          .select("display_name")
-          .eq("user_id", invitedByUserId)
-          .maybeSingle();
-
-        if (cancelled) return;
-        if (error) throw error;
-
-        const name = data?.display_name || "Someone";
-        if (!cancelled) setInvitedByName(name);
-      } catch {
-        if (!cancelled) setInvitedByName("Someone");
-      }
-    }
-
-    loadInviter();
-    return () => {
-      cancelled = true;
-    };
-  }, [invitedByUserId]);
-
-
   async function handleAccept() {
+
     if (submitting) return;
     setSubmitting(true);
     try {
@@ -93,8 +64,10 @@ export default function CoParentInviteAccept({
       </h1>
 
       <p className="text-sm text-muted-foreground mb-7">
-        {invitedByName} has invited you to connect on Dad Health.
+        {invitedByNameState} has invited you to connect on Dad Health.
+
       </p>
+
 
       <div className="rounded-lg border border-border bg-card p-5 mb-7">
         <h2 className="font-heading text-[14px] font-extrabold uppercase tracking-wide text-foreground mb-2">

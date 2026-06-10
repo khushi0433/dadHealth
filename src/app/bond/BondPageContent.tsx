@@ -67,6 +67,7 @@ const BondPage = () => {
   const showInvite = section === "coparenting" && !!token;
   const isCoparentingLanding = section === "coparenting";
   const [invitedByUserId, setInvitedByUserId] = useState<string | undefined>(undefined);
+  const [inviterDisplayName, setInviterDisplayName] = useState<string | undefined>(undefined);
 
 
 
@@ -84,11 +85,14 @@ const BondPage = () => {
           body: JSON.stringify({ token }),
         });
         const data = (await res.json().catch(() => ({}))) as {
-          invitedByUserId?: string;
-          error?: string;
-        };
+  invitedByUserId?: string;
+  inviterDisplayName?: string;
+  error?: string;
+};
         if (cancelled) return;
-        if (data.invitedByUserId) setInvitedByUserId(data.invitedByUserId);
+        if (data.inviterDisplayName) {
+  setInviterDisplayName(data.inviterDisplayName);
+}
       } catch {
         if (cancelled) return;
         setInvitedByUserId(undefined);
@@ -300,26 +304,38 @@ const BondPage = () => {
     return (
       <SitePageShell>
         <CoParentInviteAccept
-          token={token ?? ""}
-          invitedByUserId={invitedByUserId}
-        />
+  token={token ?? ""}
+  invitedByUserId={invitedByUserId}
+  invitedByName={inviterDisplayName}
+/>
       </SitePageShell>
     );
   }
 
-  // Focus mode: invite landing / shared-calendar deep link should show ONLY the co-parenting calendar.
   if (isCoparentingLanding) {
     return (
       <SitePageShell>
-        <div id="coparenting">
-          <CoParenting />
+        <div className="w-full max-w-[1400px] mx-auto px-5 lg:px-8 py-10">
+          <div className="max-w-4xl mb-8">
+            <h1 className="font-heading text-4xl font-extrabold uppercase">
+              Shared Parenting Calendar
+            </h1>
+
+            <p className="text-muted-foreground mt-3">
+              View shared parenting dates, handovers and upcoming events.
+
+            </p>
+          </div>
+
+          <div id="coparenting">
+            <CoParenting />
+          </div>
         </div>
       </SitePageShell>
     );
   }
 
   return (
-
     <SitePageShell>
       {/* Hero */}
       <section className="relative w-full min-w-0 h-[320px] lg:h-[400px]">
