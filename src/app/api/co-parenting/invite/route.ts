@@ -11,10 +11,10 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 function inviteEmailHtml(inviteUrl: string): string {
   return `
     <div style="font-family: -apple-system, Segoe UI, Roboto, sans-serif; max-width: 480px; margin: 0 auto;">
-      <h2 style="font-weight: 800;">You've been invited to a shared custody calendar</h2>
+      <h2 style="font-weight: 800;">You've been invited to share a parenting calendar</h2>
       <p style="color: #444; line-height: 1.5;">
-        A co-parent has invited you to view their shared calendar on Dad Health —
-        custody dates, handover times and upcoming events. This is a read-only view.
+        A parenting partner has invited you to view their shared calendar on Dad Health —
+        including custody dates, handover times and upcoming events. This is a read-only view.
       </p>
       <p style="margin: 28px 0;">
         <a href="${inviteUrl}"
@@ -70,12 +70,12 @@ export async function POST(req: NextRequest) {
   }
 
   const token = signInviteToken({ dadUserId: user.id, email });
-  const inviteUrl = `${getSiteUrl()}/bond?coParentInvite=${encodeURIComponent(token)}`;
+  const inviteUrl = `${getSiteUrl()}/bond?section=coparenting&token=${encodeURIComponent(token)}`;
 
   try {
     await sendEmail({
       to: email,
-      subject: "You've been invited to a shared custody calendar",
+      subject: "You've been invited to share a parenting calendar",
       html: inviteEmailHtml(inviteUrl),
     });
   } catch (error) {
@@ -84,4 +84,5 @@ export async function POST(req: NextRequest) {
   }
 
   return NextResponse.json({ ok: true });
+
 }

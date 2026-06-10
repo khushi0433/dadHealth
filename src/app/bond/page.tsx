@@ -8,7 +8,12 @@ import imageCompression from "browser-image-compression";
 import CookTogetherRecipes from "@/components/CookTogetherRecipes";
 import CoParenting from "@/components/CoParenting";
 import DadDaysSearch from "@/components/DadDaysSearch";
+import CoParentInviteAccept from "@/components/CoParentInviteAccept";
+import { useSearchParams } from "next/navigation";
+
+
 import SitePageShell from "@/components/SitePageShell";
+
 import SiteFooter from "@/components/SiteFooter";
 import { useProStatus } from "@/components/ProProvider";
 import { IMAGES } from "@/lib/images";
@@ -56,8 +61,64 @@ function formatStorage(bytes: number) {
 }
 
 const BondPage = () => {
+  const searchParams = useSearchParams();
+  const section = searchParams.get("section");
+  const token = searchParams.get("token");
+  const showInvite = section === "coparenting" && !!token;
+  const isCoparentingLanding = section === "coparenting";
+  const [invitedByUserId, setInvitedByUserId] = useState<string | undefined>(undefined);
+
+
+
+
   const { user } = useAuth();
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadPreview() {
+      if (!showInvite || !token) return;
+      try {
+        const res = await fetch("/api/co-parenting/invite/preview", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token }),
+        });
+        const data = (await res.json().catch(() => ({}))) as {
+          invitedByUserId?: string;
+          error?: string;
+        };
+        if (cancelled) return;
+        if (data.invitedByUserId) setInvitedByUserId(data.invitedByUserId);
+      } catch {
+        if (cancelled) return;
+        setInvitedByUserId(undefined);
+      }
+    }
+
+    loadPreview();
+    return () => {
+      cancelled = true;
+    };
+  }, [showInvite, token]);
+
   const { isPro, showPaywall } = useProStatus();
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  useEffect(() => {
+    // If the invite link was accepted (token removed) we still want a focused experience.
+    if (section !== "coparenting") return;
+
+    // Wait until CoParenting renders.
+    const t = window.setTimeout(() => {
+      const el = document.getElementById("coparenting");
+      if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 50);
+
+    return () => {
+      window.clearTimeout(t);
+    };
+  }, [section, refreshKey]);
+
   const {
     dadDates,
     milestones,
@@ -70,7 +131,6 @@ const BondPage = () => {
 
   const [presentMode, setPresentMode] = useState(false);
   const [dateFilter, setDateFilter] = useState("all");
-  const [refreshKey, setRefreshKey] = useState(0);
   const [milestoneDate, setMilestoneDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [milestoneText, setMilestoneText] = useState("");
   const [milestoneTag, setMilestoneTag] = useState("moment");
@@ -236,10 +296,34 @@ const BondPage = () => {
     cardPhotoInputRef.current?.click();
   };
 
+  if (showInvite) {
+    return (
+      <SitePageShell>
+        <CoParentInviteAccept
+          token={token ?? ""}
+          invitedByUserId={invitedByUserId}
+        />
+      </SitePageShell>
+    );
+  }
+
+  // Focus mode: invite landing / shared-calendar deep link should show ONLY the co-parenting calendar.
+  if (isCoparentingLanding) {
+    return (
+      <SitePageShell>
+        <div id="coparenting">
+          <CoParenting />
+        </div>
+      </SitePageShell>
+    );
+  }
+
   return (
+
     <SitePageShell>
       {/* Hero */}
       <section className="relative w-full min-w-0 h-[320px] lg:h-[400px]">
+
       <img
   src={IMAGES.bond}
   alt="Parenting"
@@ -279,7 +363,14 @@ const BondPage = () => {
 
       <div className="w-full max-w-[1400px] mx-auto px-5 lg:px-8 min-w-0">
         {/* Find Dad Days Near You */}
-        <DadDaysSearch userId={user?.id} onResultsSaved={() => setRefreshKey((prev) => prev + 1)} />
+        {section !== "coparenting" && (
+          <DadDaysSearch
+            userId={user?.id}
+            onResultsSaved={() => setRefreshKey((prev) => prev + 1)}
+          />
+        )}
+
+
 
         <div className="grid grid-cols-1 lg:grid-cols-12 lg:gap-x-10 xl:gap-x-14 lg:items-start">
           {/* Dad date ideas */}
@@ -486,6 +577,7 @@ const BondPage = () => {
         {/* Conversation starters */}
         <div className="py-8 border-t border-border w-full">
           <span className="section-label !p-0 mb-4 block">CONVERSATION STARTERS</span>
+
           {conversationStarters.length > 0 ? conversationStarters.map((q: string) => (
             <div
               key={q}
@@ -498,7 +590,10 @@ const BondPage = () => {
           )}
         </div>
 
-        <CoParenting />
+        <div id="coparenting">
+          <CoParenting />
+        </div>
+
 
         <CookTogetherRecipes />
       </div>
