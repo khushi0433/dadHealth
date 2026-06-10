@@ -42,7 +42,9 @@ export default function CoParentInviteAccept({
       }
 
       toast({ description: "Invite accepted." });
-      router.push("/bond?section=coparenting#coparenting");
+
+// IMPORTANT: remove token + force full reload of Bond page
+window.location.replace("/bond?section=coparenting");
     } catch (e) {
       toast({
         description: e instanceof Error ? e.message : "Unable to accept invite",
