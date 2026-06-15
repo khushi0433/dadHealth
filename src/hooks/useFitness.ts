@@ -89,26 +89,13 @@ export function useFitness(userId?: string) {
     },
   });
 
-  const saveMealPlans = useMutation({
-    mutationFn: async (meals: { day: string; name: string; kcal: number }[]) => {
-      if (!userId) throw new Error("Not authenticated");
-      const rows = meals.map((m) => ({ user_id: userId, ...m }));
-      const { error } = await supabase.from("meal_plans").upsert(rows, { onConflict: "user_id,day" });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["fitness", userId] });
-    },
-  });
-
- return {
-  workouts: data?.workouts ?? [],
-  bodyMetrics: data?.bodyMetrics ?? [],
-  mealPlans: data?.mealPlans ?? [],
-  activeMealPlan: data?.activeMealPlan ?? null,
-  loading: isLoading,
-  saveWorkout,
-  saveBodyMetric,
-  saveMealPlans,
-}
+  return {
+    workouts: data?.workouts ?? [],
+    bodyMetrics: data?.bodyMetrics ?? [],
+    mealPlans: data?.mealPlans ?? [],
+    activeMealPlan: data?.activeMealPlan ?? null,
+    loading: isLoading,
+    saveWorkout,
+    saveBodyMetric,
+  };
 }

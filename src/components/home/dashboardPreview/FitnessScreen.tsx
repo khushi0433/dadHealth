@@ -14,7 +14,6 @@ type FitnessScreenProps = {
   bodyWeekSeries: number[];
   featuredWorkoutTitle: string;
   featuredWorkoutMeta: string;
-  meals: Array<{ day: string; name: string; kcal: number }>;
 };
 
 export default function FitnessScreen({
@@ -26,7 +25,6 @@ export default function FitnessScreen({
   bodyWeekSeries,
   featuredWorkoutTitle,
   featuredWorkoutMeta,
-  meals,
 }: FitnessScreenProps) {
   return (
     <>
@@ -57,17 +55,6 @@ export default function FitnessScreen({
           <div className="border border-primary/20 p-3 mb-4 text-xs text-muted-foreground">
             Log your first workout to populate this card.
           </div>
-        )}
-        <span className="section-label !p-0 mb-2 block">MEAL PLAN</span>
-        {meals.length === 0 ? (
-          <p className="text-[11px] text-muted-foreground py-2">No meal plan saved yet.</p>
-        ) : (
-          meals.slice(0, 3).map((meal) => (
-            <div key={`${meal.day}-${meal.name}`} className="flex justify-between py-2 border-b border-primary/20 last:border-b-0 text-[11px]">
-              <span className="text-foreground">{meal.day} {meal.name}</span>
-              <span className="text-muted-foreground">{meal.kcal} kcal</span>
-            </div>
-          ))
         )}
       </div>
 

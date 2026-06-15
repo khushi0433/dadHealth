@@ -282,7 +282,6 @@ const DashboardPreview = ({ variant = "preview" }: DashboardPreviewProps) => {
                 bodyWeekSeries={bodyWeekSeries}
                 featuredWorkoutTitle={featuredWorkoutTitle}
                 featuredWorkoutMeta={featuredWorkoutMeta}
-                meals={(dashboard?.meal_plans as Array<{ day: string; name: string; kcal: number }> | undefined) ?? []}
               />
             )}
             {activeScreen === "MIND" && (
@@ -297,6 +296,7 @@ const DashboardPreview = ({ variant = "preview" }: DashboardPreviewProps) => {
                 isFullDashboard={isFullDashboard}
                 dates={dates}
                 milestones={milestones}
+                mealPlan={(dashboard?.meal_plans as Array<Record<string, unknown>> | undefined)?.[0] ?? null}
               />
             )}
             {activeScreen === "COMMUNITY" && (

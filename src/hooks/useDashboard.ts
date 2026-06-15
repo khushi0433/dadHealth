@@ -118,9 +118,10 @@ async function fetchDashboard(userId: string) {
       .maybeSingle(),
     supabase
       .from("meal_plans")
-      .select("day, name, kcal")
+      .select("id, plan, grocery_list, created_at")
       .eq("user_id", userId)
-      .order("day", { ascending: true }),
+      .order("created_at", { ascending: false })
+      .limit(1),
     supabase
       .from("earned_badges")
       .select("badges(icon, name)")
