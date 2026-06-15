@@ -100,9 +100,15 @@ export default function Phase1OnboardingModal({ open, userId, profile }: Props) 
     try {
       await updateProfile.mutateAsync(payload);
       setStep(next);
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : "Could not save. Please try again.";
-      setError(msg);
+    } catch (e: any) {
+      console.error("SAVE FAILED");
+      console.error("Payload:", JSON.stringify(payload, null, 2));
+      console.error("Error object:", e);
+      console.error("Message:", e?.message);
+      console.error("Details:", e?.details);
+      console.error("Hint:", e?.hint);
+      console.error("Code:", e?.code);
+      setError("Could not save. Please try again.");
     }
   };
 

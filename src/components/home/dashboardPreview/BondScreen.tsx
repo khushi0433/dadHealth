@@ -44,6 +44,34 @@ export default function BondScreen({ isFullDashboard, dates, milestones, mealPla
             </div>
           ))
         )}
+
+        {mealPlan && mealPlan.plan ? (
+          <div className="mt-6 border-t border-border pt-4">
+            <span className="section-label !p-0 mb-2 block">COOK TOGETHER</span>
+            {(() => {
+              const planData = mealPlan.plan as { meals?: Record<string, { name?: string; prep_time?: string }> };
+              const meals = planData.meals ? Object.entries(planData.meals).slice(0, 2) : [];
+              const firstMeal = meals[0]?.[1];
+              const mealTitle = firstMeal?.name || "Recipe";
+              const mealTime = firstMeal?.prep_time || "Recipe available";
+              const createdDate = mealPlan.created_at ? new Date(mealPlan.created_at) : null;
+
+              return (
+                <>
+                  <div className="py-2 border-b border-primary/20 last:border-b-0">
+                    <div className="font-heading text-[12px] font-bold text-foreground mb-1">Cook Together: {mealTitle}</div>
+                    <div className="text-[10px] text-muted-foreground">{mealTime}</div>
+                    {createdDate && <div className="text-[9px] text-muted-foreground mt-1">Logged {createdDate.toISOString().slice(0, 10)}</div>}
+                  </div>
+                  <Link href="/bond" className="font-heading font-bold text-[10px] tracking-wider uppercase text-primary hover:underline inline-block mt-3">
+                    View Recipes →
+                  </Link>
+                </>
+              );
+            })()}
+          </div>
+        ) : null}
+
         <div className="mt-4 border-l-[3px] border-l-primary pl-3 py-2">
           <p className="text-xs text-muted-foreground italic">&quot;What made you laugh the hardest today?&quot;</p>
           <div className="text-[10px] text-muted-foreground mt-0.5">Conversation starter</div>
@@ -66,33 +94,6 @@ export default function BondScreen({ isFullDashboard, dates, milestones, mealPla
           View full Bond →
         </Link>
       </div>
-
-      {mealPlan && mealPlan.plan ? (
-        <div className={`bg-card p-5 ${isFullDashboard ? "min-h-full" : ""}`}>
-          <span className="section-label !p-0 mb-2 block">COOK TOGETHER</span>
-          {(() => {
-            const planData = mealPlan.plan as { meals?: Record<string, { name?: string; prep_time?: string }> };
-            const meals = planData.meals ? Object.entries(planData.meals).slice(0, 2) : [];
-            const firstMeal = meals[0]?.[1];
-            const mealTitle = firstMeal?.name || "Recipe";
-            const mealTime = firstMeal?.prep_time || "Recipe available";
-            const createdDate = mealPlan.created_at ? new Date(mealPlan.created_at) : null;
-
-            return (
-              <>
-                <div className="py-2 border-b border-primary/20 last:border-b-0">
-                  <div className="font-heading text-[12px] font-bold text-foreground mb-1">Cook Together: {mealTitle}</div>
-                  <div className="text-[10px] text-muted-foreground">{mealTime}</div>
-                  {createdDate && <div className="text-[9px] text-muted-foreground mt-1">Logged {createdDate.toISOString().slice(0, 10)}</div>}
-                </div>
-                <Link href="/bond" className="font-heading font-bold text-[10px] tracking-wider uppercase text-primary hover:underline inline-block mt-3">
-                  View Recipes →
-                </Link>
-              </>
-            );
-          })()}
-        </div>
-      ) : null}
     </>
   );
 }

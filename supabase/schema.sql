@@ -668,6 +668,9 @@ begin
     v_recipe.prep_mins
   );
 
+  -- Cook Together should not be stored as a workout session.
+  -- The activity is tracked in bond_logs and active minutes.
+  /*
   insert into workout_sessions (
     user_id,
     exercise_name,
@@ -684,6 +687,7 @@ begin
     1,
     now()
   );
+  */
 
   insert into body_metrics (
     user_id,

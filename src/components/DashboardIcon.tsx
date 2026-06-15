@@ -17,9 +17,18 @@ import {
   CircleDot,
   Flame,
   Sun,
+  CheckCircle,
 } from "lucide-react";
 
-const ICON_MAP: Record<string, React.ComponentType<{ className?: string; strokeWidth?: number; "aria-hidden"?: string | boolean }>> = {
+// Lucide icons are typed with `strokeWidth` as `string | number`.
+// Keep the icon map type flexible to avoid TS assignment errors.
+type IconComponentType = React.ComponentType<{
+  className?: string;
+  strokeWidth?: string | number;
+  "aria-hidden"?: string | boolean;
+}>;
+
+const ICON_MAP: Record<string, IconComponentType> = {
   home: Home,
   fitness: Dumbbell,
   mind: Brain,
@@ -38,6 +47,7 @@ const ICON_MAP: Record<string, React.ComponentType<{ className?: string; strokeW
   sunrise: Sun,
   baby: Users,
   grad: BookOpen,
+  "check-circle": CheckCircle,
 };
 
 interface DashboardIconProps {
@@ -54,5 +64,14 @@ export function DashboardIcon({ icon, className = "", size = "md", active = fals
   if (IconComponent) {
     return <IconComponent className={`${sizeClass} ${colorClass} shrink-0 ${className}`} strokeWidth={1.5} aria-hidden="true" />;
   }
-  return <span className={`${size === "sm" ? "text-base" : "text-lg"} ${className}`}>{icon}</span>;
+  // Unknown icon key: never render raw iconKey as visible text.
+  // Use a safe default icon so UI doesn't go blank.
+  const SafeIconComponent = ICON_MAP["check-circle"];
+  return SafeIconComponent ? (
+    <SafeIconComponent
+      className={`${sizeClass} ${colorClass} shrink-0 ${className}`}
+      strokeWidth={1.5}
+      aria-hidden="true"
+    />
+  ) : null;
 }

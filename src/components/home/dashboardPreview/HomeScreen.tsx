@@ -63,7 +63,7 @@ export default function HomeScreen({
   const { isPro } = useProStatus();
   return (
     <>
-      <div className={`bg-card p-5 ${isFullDashboard ? "min-h-full" : ""}`}>
+      <div className={`bg-background p-5 ${isFullDashboard ? "min-h-full" : ""}`}>
         <div className="mb-4">
           <span className="block text-[10px] font-heading font-bold tracking-[2px] text-muted-foreground uppercase !p-0">
             good morning dads
@@ -211,7 +211,7 @@ export default function HomeScreen({
         </div>
       </div>
 
-      <div className={`bg-card p-5 ${isFullDashboard ? "min-h-full" : ""}`}>
+      <div className={`bg-background p-5 ${isFullDashboard ? "min-h-full" : ""}`}>
         <SectionHeader title="MOOD THIS WEEK" className="mb-3 block" />
         <MiniBarChart values={moodWeek} labels={["M", "T", "W", "T", "F", "S", "S"]} maxValue={4} />
         <p className="text-xs text-muted-foreground">

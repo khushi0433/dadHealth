@@ -44,8 +44,8 @@ function buildGoalsFromProfile(rawGoals: unknown): DashboardGoal[] {
     .map((name) => {
       const matched = GOAL_ICON_BY_KEYWORD.find((rule) => rule.match.test(name));
       return {
-        iconKey: matched?.icon ?? "check",
-        name,
+        iconKey: matched?.icon ?? "check-circle",
+        name: name.replace(/\s*\(check\)\s*/gi, ""),
         time: `TODAY · ${matched?.pillar ?? "WELLBEING"}`,
         status: "start" as const,
       };
@@ -125,14 +125,14 @@ const DashboardPreview = ({ variant = "preview" }: DashboardPreviewProps) => {
   };
 
   const handleDailyCheckIn = () => {
-  const parsedSleep = Number(selectedSleep);
-  const safeSleepHours = Number.isFinite(parsedSleep) ? parsedSleep : 0;
+    const parsedSleep = Number(selectedSleep);
+    const safeSleepHours = Number.isFinite(parsedSleep) ? parsedSleep : 0;
 
-  checkIn.mutate({
-    mood_value: selectedMood,
-    sleep_hours: safeSleepHours,
-  });
-};
+    checkIn.mutate({
+      mood_value: selectedMood,
+      sleep_hours: safeSleepHours,
+    });
+  };
 
   const handleGoalAction = (index: number) => {
     setDailyGoals((prev) =>

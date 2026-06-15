@@ -67,8 +67,15 @@ on workout_completions for all
 using (auth.uid() = user_id)
 with check (auth.uid() = user_id);
 
+drop policy if exists "Users can read own user_profile" on user_profile;
+drop policy if exists "Users can insert own user_profile" on user_profile;
+drop policy if exists "Users can update own user_profile" on user_profile;
+drop policy if exists "Users can delete own user_profile" on user_profile;
 drop policy if exists "Users can CRUD own user_profile" on user_profile;
-create policy "Users can CRUD own user_profile" on user_profile for all using (auth.uid() = user_id);
+
+create policy "Users can CRUD own user_profile" on user_profile for all
+using (auth.uid()::text = user_id::text)
+with check (auth.uid()::text = user_id::text);
 
 drop policy if exists "Users can CRUD own user_streaks" on user_streaks;
 create policy "Users can CRUD own user_streaks" on user_streaks for all using (auth.uid() = user_id);
@@ -206,11 +213,13 @@ create policy "Anyone can read active expert events"
 on expert_events for select
 using (active = true);
 
+drop policy if exists "Users can view own dad day searches" on dad_day_searches;
 create policy "Users can view own dad day searches"
 on dad_day_searches
 for select
 using (auth.uid() = user_id);
 
+drop policy if exists "Users can insert own dad day searches" on dad_day_searches;
 create policy "Users can insert own dad day searches"
 on dad_day_searches
 for insert
