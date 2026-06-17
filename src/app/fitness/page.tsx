@@ -12,6 +12,7 @@ import { useFitness } from "@/hooks/useFitness";
 import { DAD_STRENGTH_MOVES } from "@/lib/dadStrengthProgram";
 import { trackEvent } from "@/lib/analytics";
 import { supabase } from "@/utils/supabaseClient";
+import TDEECalculator from "@/components/fitness/TDEECalculator";
 import type { Workout, WorkoutEquipment, WorkoutExercise, WorkoutFocus } from "@/types/database";
 
 const timerGhostBtn =

@@ -4,6 +4,7 @@ import Link from "next/link";
 import MiniBarChart from "@/components/dashboard/MiniBarChart";
 import SectionHeader from "@/components/dashboard/SectionHeader";
 import StatCard from "@/components/dashboard/StatCard";
+import TDEETAeserCard from "@/components/fitness/TDEETeaserCard";
 
 type FitnessScreenProps = {
   isFullDashboard: boolean;
@@ -56,6 +57,7 @@ export default function FitnessScreen({
             Log your first workout to populate this card.
           </div>
         )}
+        <TDEETAeserCard />
       </div>
 
       <div className={`bg-card p-5 ${isFullDashboard ? "min-h-full" : ""}`}>
