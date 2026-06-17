@@ -12,8 +12,8 @@ import { useFitness } from "@/hooks/useFitness";
 import { DAD_STRENGTH_MOVES } from "@/lib/dadStrengthProgram";
 import { trackEvent } from "@/lib/analytics";
 import { supabase } from "@/utils/supabaseClient";
-import TDEECalculator from "@/components/fitness/TDEECalculator";
 import type { Workout, WorkoutEquipment, WorkoutExercise, WorkoutFocus } from "@/types/database";
+import TDEECalculator from "@/components/fitness/TDEECalculator";
 
 const timerGhostBtn =
   "bg-transparent border py-2.5 px-4 font-heading font-bold text-xs tracking-wider uppercase transition-colors";
@@ -990,6 +990,16 @@ const FitnessPage = () => {
                 )}
               </div>
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── TDEE Calculator ────────────────────────────────────────────── */}
+      <div id="tdee" className="w-full px-0 mt-8">
+        <div className="bg-card overflow-hidden w-full">
+          <div className="p-5 lg:p-8 min-w-0">
+            <span className="section-label !p-0 mb-4 block">TDEE CALCULATOR</span>
+            <TDEECalculator />
           </div>
         </div>
       </div>
