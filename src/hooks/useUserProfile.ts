@@ -20,7 +20,7 @@ export type UserProfileRow = {
   pronouns?: string | null;
   custody_arrangement?: string | null;
   kids_ages?: string[] | null;
-  // Phase gating flags (already migrated in supabase/schema.sql)
+  // Phase gating flags
   phase2_complete?: boolean | null;
   phase3_complete?: boolean | null;
 };
@@ -57,24 +57,13 @@ export function useUpdateProfile(userId: string | undefined) {
       custody_arrangement?: string;
       kids_ages?: string[];
     }) => {
-      console.log("Current userId:", userId);
       if (!userId) throw new Error("Not authenticated");
-      
-      console.log("Updating profile", {
-        userId,
-        updates
-      });
-      
+
       const { data, error } = await supabase
         .from("user_profile")
         .upsert({ user_id: userId, ...updates }, { onConflict: "user_id" })
         .select()
         .single();
-
-      console.log("Supabase response", {
-        data,
-        error,
-      });
 
       if (error) throw error;
       return data;

@@ -21,23 +21,33 @@ export function useBond(userId?: string) {
   const { data, isLoading } = useQuery({
     queryKey: ["bond", userId],
     queryFn: async () => {
-      const [dadDatesRes, milestonesRes, promptsRes, storageRes] = await Promise.all([
-        supabase.from("dad_dates").select("*"),
-        userId
-          ? supabase
-              .from("milestones")
-              .select("*")
-              .eq("user_id", userId)
-              .order("date", { ascending: false })
-          : { data: [] },
-        supabase.from("age_prompts").select("*"),
-        userId
-          ? supabase.storage.from(MILESTONE_PHOTO_BUCKET).list(userId, { limit: 1000 })
-          : { data: [] },
-      ]);
-      const storageBytes = (storageRes.data ?? []).reduce((sum: number, item: { metadata?: { size?: number } | null }) => {
-        return sum + (Number(item.metadata?.size) || 0);
-      }, 0);
+      const [dadDatesRes, milestonesRes, promptsRes, storageRes] =
+        await Promise.all([
+          supabase.from("dad_dates").select("*"),
+          userId
+            ? supabase
+                .from("milestones")
+                .select("*")
+                .eq("user_id", userId)
+                .order("date", { ascending: false })
+            : { data: [] },
+          supabase.from("age_prompts").select("*"),
+          userId
+            ? supabase.storage
+                .from(MILESTONE_PHOTO_BUCKET)
+                .list(userId, { limit: 1000 })
+            : { data: [] },
+        ]);
+
+      const storageBytes = (storageRes.data ?? []).reduce(
+        (
+          sum: number,
+          item: { metadata?: { size?: number } | null }
+        ) => {
+          return sum + (Number(item.metadata?.size) || 0);
+        },
+        0
+      );
 
       return {
         dadDates: dadDatesRes.data ?? [],
@@ -46,7 +56,10 @@ export function useBond(userId?: string) {
         milestoneStorageBytes: storageBytes,
       };
     },
-    enabled: true,
+    // Guard: the Bond screen is behind auth. Fetching dad_dates and age_prompts
+    // for unauthenticated visitors is wasteful and contributes to rate limits.
+    // enabled: true was running these queries on every page load for all visitors.
+    enabled: !!userId,
   });
 
   const saveMilestone = useMutation({
@@ -72,7 +85,13 @@ export function useBond(userId?: string) {
   });
 
   const uploadMilestonePhoto = useMutation({
-    mutationFn: async ({ milestoneId, file }: { milestoneId: string; file: File }) => {
+    mutationFn: async ({
+      milestoneId,
+      file,
+    }: {
+      milestoneId: string;
+      file: File;
+    }) => {
       if (!userId) throw new Error("Not authenticated");
 
       const form = new FormData();
@@ -82,7 +101,9 @@ export function useBond(userId?: string) {
         method: "POST",
         body: form,
       });
-      const body = (await res.json()) as Partial<PhotoUploadResult> & { error?: string };
+      const body = (await res.json()) as Partial<PhotoUploadResult> & {
+        error?: string;
+      };
       if (!res.ok || !body.photo_url) {
         throw new Error(body.error || "Unable to upload milestone photo");
       }
@@ -104,7 +125,8 @@ export function useBond(userId?: string) {
         method: "DELETE",
       });
       const body = (await res.json().catch(() => ({}))) as { error?: string };
-      if (!res.ok) throw new Error(body.error || "Unable to delete milestone photo");
+      if (!res.ok)
+        throw new Error(body.error || "Unable to delete milestone photo");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["bond", userId] });

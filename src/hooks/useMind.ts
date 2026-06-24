@@ -28,18 +28,28 @@ export function useMind(userId?: string) {
           : { data: [] },
         supabase.from("therapists").select("*"),
       ]);
-      const therapists = (therapistsRes.data ?? []).map((t: { name: string; spec?: string; availability?: string; price_per_hour?: number }) => ({
-        ...t,
-        slots: t.availability ?? "—",
-        price: t.price_per_hour != null ? `£${t.price_per_hour}/hr` : "—",
-      }));
+      const therapists = (therapistsRes.data ?? []).map(
+        (t: {
+          name: string;
+          spec?: string;
+          availability?: string;
+          price_per_hour?: number;
+        }) => ({
+          ...t,
+          slots: t.availability ?? "—",
+          price: t.price_per_hour != null ? `£${t.price_per_hour}/hr` : "—",
+        })
+      );
       return {
         moodLogs: moodRes.data ?? [],
         therapists,
         journalPrompts: DEFAULT_JOURNAL_PROMPTS,
       };
     },
-    enabled: true,
+    // Guard: only run when the user is authenticated.
+    // enabled: true was firing DB queries for every visitor including
+    // unauthenticated ones, contributing to Supabase rate-limit errors.
+    enabled: !!userId,
   });
 
   const saveJournal = useMutation({

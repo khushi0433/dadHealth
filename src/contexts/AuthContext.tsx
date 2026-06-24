@@ -39,6 +39,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [authModalOpen, setAuthModalOpen] = useState(false);
 
+  // refreshSession is kept for components that explicitly need to force a
+  // refresh (e.g. after Stripe checkout returns). It is no longer called on
+  // mount — onAuthStateChange handles initial session hydration below.
   const refreshSession = useCallback(async () => {
     try {
       const {
@@ -48,7 +51,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(session?.user ?? null);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      // Supabase lock races can happen under concurrent auth reads in development/hot reload.
       if (message.includes("was released because another request stole it")) {
         return;
       }
@@ -57,35 +59,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    refreshSession().finally(() => setLoading(false));
-
+    // onAuthStateChange fires synchronously with INITIAL_SESSION on first
+    // subscribe, so it both initialises state AND listens for future changes.
+    // A separate getSession() call on mount would cause two auth round-trips —
+    // that was the source of duplicate auth requests and random session loss.
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
+      setLoading(false);
 
       if (event === "SIGNED_IN") {
-        trackEvent("login", { method: session?.user?.app_metadata?.provider ?? "password" });
+        trackEvent("login", {
+          method: session?.user?.app_metadata?.provider ?? "password",
+        });
 
-        // On sign-in, if a client slug cookie is present (visitor on client subdomain),
-        // associate the user's profile with that client.
+        // Associate user profile with white-label client slug if present.
         (async () => {
           try {
             if (!session?.user?.id) return;
             if (typeof document === "undefined") return;
             const m = document.cookie.match(/(?:^|; )client_slug=([^;]+)/);
             const slug = m ? decodeURIComponent(m[1]) : null;
-            if (!slug) return;
+            if (!slug || slug === "dadhealth") return;
             const { data: clientRow, error: clientErr } = await supabase
               .from("clients")
               .select("id")
               .or(`slug.eq.${slug},subdomain.eq.${slug}`)
               .maybeSingle();
             if (clientErr || !clientRow) return;
-            await supabase.from("user_profile").upsert({ user_id: session.user.id, client_id: clientRow.id }, { onConflict: "user_id" });
+            await supabase
+              .from("user_profile")
+              .upsert(
+                { user_id: session.user.id, client_id: clientRow.id },
+                { onConflict: "user_id" }
+              );
           } catch (e) {
-            // ignore failures — non-critical
             console.error("AuthContext: failed to set user_profile.client_id", e);
           }
         })();
@@ -93,13 +103,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     return () => subscription.unsubscribe();
-  }, [refreshSession]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (user) {
-      identifyAnalyticsUser(user.id, {
-        email: user.email,
-      });
+      identifyAnalyticsUser(user.id, { email: user.email });
       return;
     }
     resetAnalyticsUser();
@@ -112,10 +121,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const openAuthModal = useCallback(() => setAuthModalOpen(true), []);
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, signOut, refreshSession, openAuthModal }}>
+    <AuthContext.Provider
+      value={{ user, session, loading, signOut, refreshSession, openAuthModal }}
+    >
       {children}
-      <AuthModal open={authModalOpen} onClose={() => setAuthModalOpen(false)} onSuccess={() => setAuthModalOpen(false)} />
+      <AuthModal
+        open={authModalOpen}
+        onClose={() => setAuthModalOpen(false)}
+        onSuccess={() => setAuthModalOpen(false)}
+      />
     </AuthContext.Provider>
   );
 }
-
