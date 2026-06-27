@@ -959,6 +959,28 @@ using (
   and auth.uid()::text = split_part(name, '/', 1)
 );
 
+-- Recipe images (admin-uploaded via service role; publicly readable)
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values (
+  'recipe-images',
+  'recipe-images',
+  true,
+  5242880,
+  array['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+)
+on conflict (id) do update
+set public = excluded.public,
+    file_size_limit = excluded.file_size_limit,
+    allowed_mime_types = excluded.allowed_mime_types;
+
+-- Anyone can read recipe images. Writes happen server-side with the service
+-- role key (which bypasses RLS), so no client insert/update/delete policies.
+drop policy if exists "Public can view recipe images" on storage.objects;
+create policy "Public can view recipe images"
+on storage.objects
+for select
+using (bucket_id = 'recipe-images');
+
 create unique index if not exists limit_posts_per_hour
 on posts(user_id, date_trunc('hour', created_at AT TIME ZONE 'UTC'));
 

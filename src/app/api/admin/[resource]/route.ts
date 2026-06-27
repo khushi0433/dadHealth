@@ -19,6 +19,41 @@ async function verifyAdmin(): Promise<boolean> {
   return session === adminKey;
 }
 
+// Query PostHog for distinct visitors over the last 7 days via HogQL.
+// Returns null if env vars are missing or the request fails — never throws,
+// so analytics stays responsive even when PostHog is unavailable.
+async function fetchPosthogPageviews7d(): Promise<number | null> {
+  const apiKey = process.env.POSTHOG_API_KEY;
+  const projectId = process.env.POSTHOG_PROJECT_ID;
+  if (!apiKey || !projectId) return null;
+
+  const host = (process.env.POSTHOG_HOST || "https://us.posthog.com").replace(/\/$/, "");
+
+  try {
+    const res = await fetch(`${host}/api/projects/${projectId}/query`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        query: {
+          kind: "HogQLQuery",
+          query:
+            "SELECT count(distinct person_id) FROM events WHERE event = '$pageview' AND timestamp >= now() - interval 7 day",
+        },
+      }),
+    });
+    if (!res.ok) return null;
+    const json = await res.json();
+    const value = json?.results?.[0]?.[0];
+    return typeof value === "number" ? value : Number(value) || 0;
+  } catch (err) {
+    console.error("[admin analytics posthog]", err);
+    return null;
+  }
+}
+
 // ── GET ─────────────────────────────────────────────────────────────────────
 
 export async function GET(
@@ -154,12 +189,17 @@ export async function GET(
               .gte("performed_at", new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7).toISOString()),
           ]);
 
+        // PostHog enrichment: distinct visitors over the last 7 days.
+        // Non-blocking — returns null if env vars are unset or the request fails.
+        const pageviews_7d = await fetchPosthogPageviews7d();
+
         return NextResponse.json({
           dau: dauRes.count ?? 0,
           pro_users: proRes.count ?? 0,
           checkins_this_week: weeklyCheckinsRes.count ?? 0,
           total_users: totalUsersRes.count ?? 0,
           workouts_this_week: workoutsRes.count ?? 0,
+          pageviews_7d,
         });
       }
 
@@ -353,6 +393,18 @@ export async function DELETE(
   const { id } = await req.json();
 
   if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
+
+  // Banning a user: delete their auth account. FK cascades remove all their data.
+  if (resource === "users") {
+    try {
+      const { error } = await supabase.auth.admin.deleteUser(id);
+      if (error) throw error;
+      return NextResponse.json({ ok: true });
+    } catch (err) {
+      console.error(`[admin DELETE users]`, err);
+      return NextResponse.json({ error: "Internal error" }, { status: 500 });
+    }
+  }
 
   const TABLE_MAP: Record<string, string> = {
     challenges: "weekly_challenges",

@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect } from "react";
 import {
+  Ban,
   BarChart2,
   BookOpen,
   CalendarDays,
@@ -120,6 +121,7 @@ interface Analytics {
   checkins_this_week: number;
   total_users: number;
   workouts_this_week: number;
+  pageviews_7d: number | null;
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -228,6 +230,9 @@ function AnalyticsTab() {
           <StatCard label="Check-ins (7 days)" value={data.checkins_this_week} />
           <StatCard label="Workouts (7 days)" value={data.workouts_this_week} />
           <StatCard label="Total Users" value={data.total_users} />
+          {data.pageviews_7d != null && (
+            <StatCard label="Visitors (7 days)" value={data.pageviews_7d} />
+          )}
         </div>
       ) : null}
     </div>
@@ -446,6 +451,7 @@ function RecipesTab() {
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [filter, setFilter] = useState<"all" | "cook_together" | "standard">("all");
   const [form, setForm] = useState(BLANK_RECIPE_FORM);
 
@@ -487,6 +493,31 @@ function RecipesTab() {
       }
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleImageUpload = async (file: File | undefined) => {
+    if (!file) return;
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch("/api/admin/upload", {
+        method: "POST",
+        body: fd,
+        credentials: "include",
+      });
+      if (res.ok) {
+        const { url } = await res.json();
+        setForm((f) => ({ ...f, image_url: url }));
+      } else {
+        const data = await res.json().catch(() => null);
+        alert(data?.error ?? "Image upload failed.");
+      }
+    } catch {
+      alert("Image upload failed.");
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -570,6 +601,14 @@ function RecipesTab() {
             <div>
               <label className={labelCls}>Image URL</label>
               <input className={inputCls} value={form.image_url} onChange={(e) => setForm((f) => ({ ...f, image_url: e.target.value }))} placeholder="https://…" />
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                onChange={(e) => handleImageUpload(e.target.files?.[0])}
+                disabled={uploading}
+                className="mt-2 block w-full text-xs text-muted-foreground file:mr-3 file:rounded-full file:border-0 file:bg-primary file:px-3 file:py-1.5 file:text-xs file:font-bold file:uppercase file:tracking-wide file:text-primary-foreground hover:file:brightness-110 file:cursor-pointer disabled:opacity-60"
+              />
+              {uploading && <p className="mt-1 text-[11px] text-muted-foreground">Uploading…</p>}
             </div>
             <div className="sm:col-span-2">
               <label className={labelCls}>Ingredients (one per line)</label>
@@ -1200,6 +1239,7 @@ function ModerationTab() {
   const [items, setItems] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const [banning, setBanning] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -1221,6 +1261,17 @@ function ModerationTab() {
       setItems((prev) => prev.filter((p) => p.id !== id));
     } finally {
       setDeleting(null);
+    }
+  };
+
+  const handleBan = async (userId: string) => {
+    if (!confirm("Ban this user? This permanently deletes their account and all of their data. This cannot be undone.")) return;
+    setBanning(userId);
+    try {
+      await adminFetch("/api/admin/users", { method: "DELETE", body: JSON.stringify({ id: userId }) });
+      setItems((prev) => prev.filter((p) => p.user_id !== userId));
+    } finally {
+      setBanning(null);
     }
   };
 
@@ -1254,16 +1305,30 @@ function ModerationTab() {
                 </div>
                 <p className="text-sm text-foreground/80 line-clamp-3">{post.content}</p>
               </div>
-              <button
-                type="button"
-                onClick={() => handleDelete(post.id)}
-                disabled={deleting === post.id}
-                className={`${btnDanger} shrink-0 disabled:opacity-50`}
-                aria-label="Delete post"
-              >
-                <Trash2 className="h-3 w-3" />
-                {deleting === post.id ? "…" : "Delete"}
-              </button>
+              <div className="flex flex-col gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => handleDelete(post.id)}
+                  disabled={deleting === post.id}
+                  className={`${btnDanger} disabled:opacity-50`}
+                  aria-label="Delete post"
+                >
+                  <Trash2 className="h-3 w-3" />
+                  {deleting === post.id ? "…" : "Delete"}
+                </button>
+                {post.user_id && !post.anonymous && (
+                  <button
+                    type="button"
+                    onClick={() => handleBan(post.user_id!)}
+                    disabled={banning === post.user_id}
+                    className={`${btnDanger} disabled:opacity-50`}
+                    aria-label="Ban user"
+                  >
+                    <Ban className="h-3 w-3" />
+                    {banning === post.user_id ? "…" : "Ban User"}
+                  </button>
+                )}
+              </div>
             </div>
           ))}
         </div>
