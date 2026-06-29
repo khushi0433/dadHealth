@@ -121,7 +121,7 @@ const PrivacyPage = async () => {
           /* Column widths - responsive */
           [&_th:first-child]:w-[30%] [&_th:first-child]:lg:w-[25%]
           [&_th:nth-child(2)]:w-[55%] [&_th:nth-child(2)]:lg:w-[60%]
-          [&_th:last-child]:w-[15%] [&_th:last-child]:text-right [&_th:last-child]:whitespace-nowrap
+          [&_th:last-child]:w-[15%] [&_th:last-child]:!text-left
 
           /* Cell styles */
           [&_td]:px-3 [&_td]:py-3 [&_td]:lg:px-4 [&_td]:align-top [&_td]:break-words [&_td]:whitespace-normal
@@ -133,7 +133,7 @@ const PrivacyPage = async () => {
           /* Cell widths */
           [&_td:first-child]:w-[30%] [&_td:first-child]:lg:w-[25%]
           [&_td:nth-child(2)]:w-[55%] [&_td:nth-child(2)]:lg:w-[60%]
-          [&_td:last-child]:w-[15%] [&_td:last-child]:text-right [&_td:last-child]:whitespace-nowrap
+          [&_td:last-child]:w-[15%] [&_td:last-child]:!text-left
 
           /* Row borders */
           [&_tr]:border-b [&_tr]:border-border
